@@ -204,6 +204,13 @@ type RankedCandidate = FdcSearchFood & {
   _rationale: string;
 };
 
+type PreferredGenericProfile = {
+  canonicalQuery: string;
+  food: ResolvedFood;
+  confidence: number;
+  rationale: string;
+};
+
 type FdcFoodDetail = {
   fdcId: number;
   description: string;
@@ -312,7 +319,7 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
   {
     canonical: "white rice",
     aliases: ["white rice"],
-    searchExpansions: ["rice white", "rice"],
+    searchExpansions: ["rice white", "rice", "rice white long-grain regular cooked"],
   },
   {
     canonical: "soy sauce",
@@ -363,6 +370,89 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     canonical: "chicken breast",
     aliases: ["chicken breast", "boneless skinless chicken breast"],
     searchExpansions: ["chicken breast"],
+  },
+];
+
+const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
+  {
+    canonicalQuery: "black pepper",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA generic pantry entry.",
+    food: {
+      fdcId: 170931,
+      description: "Spices, Pepper, Black",
+      displayName: "Spices, Pepper, Black",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 251, protein: 10.4, carbs: 64, fat: 3.26 },
+      gramsByUnit: { g: 1, tbsp: 6.8, tsp: 2.3 },
+    },
+  },
+  {
+    canonicalQuery: "gochugaru",
+    confidence: 0.92,
+    rationale: "Matched automatically using a preferred USDA generic red pepper equivalent.",
+    food: {
+      fdcId: 170932,
+      description: "Spices, Pepper, Red Or Cayenne",
+      displayName: "Spices, Pepper, Red Or Cayenne",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 318, protein: 12, carbs: 56.6, fat: 17.3 },
+      gramsByUnit: { g: 1, tbsp: 6.8, tsp: 2.3 },
+    },
+  },
+  {
+    canonicalQuery: "sesame oil",
+    confidence: 0.97,
+    rationale: "Matched automatically using a preferred USDA generic pantry entry.",
+    food: {
+      fdcId: 171016,
+      description: "Oil, Sesame, Salad Or Cooking",
+      displayName: "Oil, Sesame, Salad Or Cooking",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 884, protein: 0, carbs: 0, fat: 100 },
+      gramsByUnit: { g: 1, tbsp: 13.6, tsp: 4.5 },
+    },
+  },
+  {
+    canonicalQuery: "egg",
+    confidence: 0.96,
+    rationale: "Matched automatically using a preferred USDA generic pantry entry.",
+    food: {
+      fdcId: 171287,
+      description: "Egg, Whole, Raw, Fresh",
+      displayName: "Egg, Whole, Raw, Fresh",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 143, protein: 12.6, carbs: 0.72, fat: 9.51 },
+      gramsByUnit: { g: 1, piece: 50 },
+    },
+  },
+  {
+    canonicalQuery: "white rice cooked",
+    confidence: 0.96,
+    rationale: "Matched automatically using a preferred USDA generic pantry entry.",
+    food: {
+      fdcId: 168878,
+      description: "Rice, White, Long-Grain, Regular, Enriched, Cooked",
+      displayName: "Rice, White, Long-Grain, Regular, Enriched, Cooked",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 130, protein: 2.69, carbs: 28.2, fat: 0.28 },
+      gramsByUnit: { g: 1, cup: 158 },
+    },
   },
 ];
 
@@ -606,6 +696,29 @@ export async function resolveIngredientMatch(
   options?: { includeFoodDetails?: boolean },
 ): Promise<IngredientResolution> {
   const normalized = normalizeIngredientText(rawText);
+  const preferred = getPreferredGenericProfile(normalized.canonicalQuery, rawText);
+
+  if (preferred) {
+    const candidate = preferredProfileToCandidate(preferred);
+    const chosen = {
+      candidate,
+      food: options?.includeFoodDetails === false ? null : preferred.food,
+    };
+
+    return {
+      ingredientText: rawText,
+      normalizedQuery: normalized.canonicalQuery,
+      matchedFoodId: preferred.food.fdcId,
+      matchedDescription: preferred.food.description,
+      matchedDataType: preferred.food.dataType,
+      confidence: roundValue(preferred.confidence),
+      needsReview: false,
+      rationale: preferred.rationale,
+      candidates: [toSearchResult(candidate)],
+      food: chosen.food,
+    };
+  }
+
   const ingredientType = classifyIngredientType(normalized.canonicalQuery);
   const expandedQueries = expandSynonyms(normalized.canonicalQuery);
 
@@ -685,6 +798,40 @@ export async function resolveIngredientMatch(
     rationale,
     candidates: topCandidates.map(toSearchResult),
     food: chosen?.food ?? null,
+  };
+}
+
+function getPreferredGenericProfile(
+  canonicalQuery: string,
+  rawText: string,
+): PreferredGenericProfile | null {
+  const query = canonicalQuery.toLowerCase().trim();
+  const raw = rawText.toLowerCase();
+
+  if (/\bwhite rice\b/.test(query) || /\brice,?\s*cooked\b/.test(raw) || /\bcooked rice\b/.test(raw)) {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "white rice cooked") ?? null;
+  }
+
+  if (/\beggs?\b/.test(raw) || query === "egg") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "egg") ?? null;
+  }
+
+  return (
+    PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === query) ?? null
+  );
+}
+
+function preferredProfileToCandidate(profile: PreferredGenericProfile): RankedCandidate {
+  return {
+    fdcId: profile.food.fdcId,
+    description: profile.food.description,
+    dataType: profile.food.dataType,
+    brandName: undefined,
+    brandOwner: undefined,
+    _score: 999,
+    _confidence: profile.confidence,
+    _needsReview: false,
+    _rationale: profile.rationale,
   };
 }
 

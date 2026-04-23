@@ -200,6 +200,22 @@ test("batch resolution keeps common ingredients auto-matched", async () => {
   assert.equal(results.every((item) => item.food), true);
 });
 
+test("preferred pantry profiles keep black pepper and gochugaru on sensible generic values", async () => {
+  const [pepper, gochugaru, rice, eggs] = await Promise.all([
+    resolveIngredientMatch("black pepper"),
+    resolveIngredientMatch("gochugaru"),
+    resolveIngredientMatch("rice cooked"),
+    resolveIngredientMatch("eggs"),
+  ]);
+
+  assert.equal(pepper.matchedFoodId, 170931);
+  assert.equal(pepper.food?.per100g.calories, 251);
+  assert.equal(gochugaru.matchedFoodId, 170932);
+  assert.equal(gochugaru.food?.gramsByUnit.tbsp, 6.8);
+  assert.equal(rice.matchedFoodId, 168878);
+  assert.equal(eggs.matchedFoodId, 171287);
+});
+
 function food(fdcId, description, dataType, brandName = undefined) {
   return {
     fdcId,

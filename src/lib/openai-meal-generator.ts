@@ -56,6 +56,7 @@ type AiMealDraft = {
 export async function generateMealDraft(
   request: GeneratedMealRequest,
 ): Promise<GeneratedMeal> {
+  const varietyDirection = chooseVarietyDirection();
   const prompt = [
     "Generate a meal plan in JSON.",
     "The meal should taste good in a normal home-cooking sense, not just hit macros.",
@@ -64,6 +65,7 @@ export async function generateMealDraft(
     "Being close to the nutrition targets is fine; the meal does not need to match them exactly.",
     "Aim for variety in dish format and do not default to lettuce wraps when other strong options fit the brief.",
     "For Korean-inspired meals with pork belly, consider a broader range of formats like rice bowls, stir-fries, ssam, noodle dishes, stews, and skillet meals.",
+    `Variety direction for this draft: ${varietyDirection}`,
     `Calorie target: ${request.goals.calories}`,
     `Protein target: ${request.goals.protein}g`,
     `Carb target: ${request.goals.carbs}g`,
@@ -82,6 +84,19 @@ export async function generateMealDraft(
 
   const draft = await generateStructuredMeal(prompt);
   return hydrateGeneratedMeal(draft, request.goals);
+}
+
+function chooseVarietyDirection() {
+  const directions = [
+    "lean into a rice bowl or plated entree format",
+    "favor a skillet or stir-fry format",
+    "favor a composed plate with sides rather than wraps",
+    "favor a noodle or rice-cake style if it suits the cuisine",
+    "favor a brothy or stew-adjacent format if it still works as a single meal",
+    "favor a crisp, grill-forward format with strong contrast in textures",
+  ];
+
+  return directions[Math.floor(Math.random() * directions.length)];
 }
 
 export async function reviseMealDraft(
