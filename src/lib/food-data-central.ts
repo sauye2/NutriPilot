@@ -45,6 +45,27 @@ const PROTEIN_TERMS = [
 ];
 const QUERY_PROTEIN_HINTS = ["steak", "breast", "belly", "thigh", "fillet", "meat", "loin"];
 const PANTRY_FORM_TERMS = ["flour", "powder", "mix", "dressing", "soup", "spread"];
+const BAD_PACKAGED_TERMS = [
+  "cracker",
+  "crackers",
+  "cake",
+  "cakes",
+  "snack",
+  "snacks",
+  "marinade",
+  "dip",
+  "seasoning mix",
+  "instant",
+  "meal kit",
+];
+const SPECIAL_FORM_PENALTIES: Array<{ query: RegExp; forbidden: RegExp }> = [
+  { query: /\brice\b/, forbidden: /\bcracker|crackers|cake|cakes|sushi\b/ },
+  { query: /\begg|eggs\b/, forbidden: /\byolk|white|whites|dried\b/ },
+  { query: /\bblack pepper\b/, forbidden: /\bcracker|seasoning blend|marinade\b/ },
+  { query: /\bgochugaru\b/, forbidden: /\bseasoning blend|sauce|marinade\b/ },
+  { query: /\bsesame oil\b/, forbidden: /\bdressing|blend\b/ },
+  { query: /\brice vinegar\b/, forbidden: /\bdressing|seasoned\b/ },
+];
 const PREP_WORDS = [
   "chopped",
   "minced",
@@ -299,6 +320,36 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     searchExpansions: ["soy sauce"],
   },
   {
+    canonical: "rice vinegar",
+    aliases: ["rice vinegar", "rice wine vinegar"],
+    searchExpansions: ["vinegar rice", "vinegar rice wine"],
+  },
+  {
+    canonical: "sesame oil",
+    aliases: ["sesame oil", "toasted sesame oil"],
+    searchExpansions: ["oil sesame", "sesame seed oil"],
+  },
+  {
+    canonical: "black pepper",
+    aliases: ["black pepper", "ground black pepper"],
+    searchExpansions: ["spices pepper black", "pepper black"],
+  },
+  {
+    canonical: "gochugaru",
+    aliases: ["gochugaru", "korean chili flakes", "korean chile flakes"],
+    searchExpansions: ["pepper red or cayenne", "chili flakes", "red pepper flakes"],
+  },
+  {
+    canonical: "gochujang",
+    aliases: ["gochujang", "korean chili paste"],
+    searchExpansions: ["chili paste", "pepper paste"],
+  },
+  {
+    canonical: "egg",
+    aliases: ["egg", "eggs"],
+    searchExpansions: ["egg whole raw", "eggs whole raw"],
+  },
+  {
     canonical: "shredded cheddar cheese",
     aliases: ["shredded cheddar cheese", "cheddar cheese shredded"],
     searchExpansions: ["cheddar cheese"],
@@ -461,7 +512,40 @@ export function expandSynonyms(normalizedText: string): string[] {
   }
 
   if (/white rice/.test(normalizedText)) {
-    queries.push("rice white cooked", "rice white uncooked");
+    queries.push("rice white cooked", "rice white uncooked", "rice white long grain cooked");
+  }
+
+  if (/rice/.test(normalizedText)) {
+    const baseRiceQuery = normalizedText.replace(/\bcooked\b|\braw\b/g, "").trim();
+    queries.push(`rice ${baseRiceQuery}`.trim(), `${baseRiceQuery} rice`.trim());
+
+    if (/\bcooked\b/.test(normalizedText)) {
+      queries.push("rice cooked", `${baseRiceQuery} cooked rice`.trim(), "rice short grain cooked");
+    }
+
+    if (/\braw\b/.test(normalizedText)) {
+      queries.push("rice raw", `${baseRiceQuery} raw rice`.trim());
+    }
+  }
+
+  if (/\begg\b/.test(normalizedText) && !/\bwhite\b|\byolk\b|\bdried\b/.test(normalizedText)) {
+    queries.push("egg whole raw", "eggs whole raw");
+  }
+
+  if (/black pepper/.test(normalizedText)) {
+    queries.push("spices pepper black", "pepper black");
+  }
+
+  if (/gochugaru/.test(normalizedText)) {
+    queries.push("pepper red or cayenne", "red pepper flakes", "chili flakes");
+  }
+
+  if (/sesame oil/.test(normalizedText)) {
+    queries.push("oil sesame", "sesame seed oil");
+  }
+
+  if (/rice vinegar/.test(normalizedText)) {
+    queries.push("vinegar rice", "vinegar rice wine");
   }
 
   return Array.from(new Set(queries.map((query) => query.trim()).filter(Boolean)));
@@ -668,6 +752,14 @@ function rankCandidates(
         score += 12;
       }
 
+      if (ingredient.cookedState === "cooked" && description.includes("raw")) {
+        score -= 20;
+      }
+
+      if (ingredient.cookedState === "raw" && description.includes("cooked")) {
+        score -= 20;
+      }
+
       if (ingredient.dairyDescriptor && description.includes(ingredient.dairyDescriptor)) {
         score += 12;
       }
@@ -676,8 +768,16 @@ function rankCandidates(
         score += 10;
       }
 
+      if (!ingredient.shelfDescriptor && description.includes("dried")) {
+        score -= 40;
+      }
+
+      if (!queryText.includes("sushi") && description.includes("sushi")) {
+        score -= 18;
+      }
+
       if (ingredientType === "generic" && food.brandName) {
-        score -= 14;
+        score -= 28;
       }
 
       if (PREPARED_DISH_TERMS.some((term) => description.includes(term))) {
@@ -697,6 +797,19 @@ function rankCandidates(
         !PANTRY_FORM_TERMS.some((term) => queryText.includes(term))
       ) {
         score -= 22;
+      }
+
+      if (
+        BAD_PACKAGED_TERMS.some((term) => description.includes(term)) &&
+        !BAD_PACKAGED_TERMS.some((term) => queryText.includes(term))
+      ) {
+        score -= 42;
+      }
+
+      for (const penalty of SPECIAL_FORM_PENALTIES) {
+        if (penalty.query.test(queryText) && penalty.forbidden.test(description)) {
+          score -= 44;
+        }
       }
 
       score -= Math.min(extraWords.length, 6) * 2.5;
@@ -1008,6 +1121,14 @@ function extractUnitWeights(detail: FdcFoodDetail): Partial<Record<Unit, number>
     }
   }
 
+  const heuristicUnits = getHeuristicUnitWeights(detail.description.toLowerCase());
+
+  for (const [unit, grams] of Object.entries(heuristicUnits) as Array<[Unit, number]>) {
+    if (!gramsByUnit[unit]) {
+      gramsByUnit[unit] = grams;
+    }
+  }
+
   return gramsByUnit;
 }
 
@@ -1015,7 +1136,7 @@ function mapUnitLabel(label: string): Unit | null {
   if (/\bcups?\b/.test(label)) return "cup";
   if (/\b(tbsp|tablespoon|tablespoons)\b/.test(label)) return "tbsp";
   if (/\b(tsp|teaspoon|teaspoons)\b/.test(label)) return "tsp";
-  if (/\b(piece|pieces|breast|egg|eggs|patty|patties|link|links|fillet|fillets|steak)\b/.test(label)) {
+  if (/\b(piece|pieces|breast|egg|eggs|patty|patties|link|links|fillet|fillets|steak|leaf|leaves|clove|cloves|stalk|stalks|cucumber|scallion|scallions)\b/.test(label)) {
     return "piece";
   }
 
@@ -1030,6 +1151,62 @@ function parseLeadingAmount(value: string) {
   }
 
   return Number.parseFloat(match[1]) || 1;
+}
+
+function getHeuristicUnitWeights(description: string): Partial<Record<Unit, number>> {
+  if (/olive oil|sesame oil|vegetable oil|canola oil|oil,/.test(description)) {
+    return { tbsp: 13.5, tsp: 4.5 };
+  }
+
+  if (/vinegar/.test(description)) {
+    return { tbsp: 15, tsp: 5 };
+  }
+
+  if (/soy sauce/.test(description)) {
+    return { tbsp: 16, tsp: 5.3 };
+  }
+
+  if (/pepper, black|black pepper|red pepper|cayenne|chili flakes|chile flakes|gochugaru/.test(description)) {
+    return { tbsp: 6.8, tsp: 2.3 };
+  }
+
+  if (/gochujang|chili paste|pepper paste/.test(description)) {
+    return { tbsp: 17, tsp: 5.7 };
+  }
+
+  if (/sugar/.test(description)) {
+    return { tbsp: 12.5, tsp: 4.2 };
+  }
+
+  if (/lettuce|romaine|butterhead|leaf lettuce/.test(description)) {
+    return { piece: 8 };
+  }
+
+  if (/cucumber/.test(description)) {
+    return { piece: 300 };
+  }
+
+  if (/scallion|green onion|spring onion/.test(description)) {
+    return { piece: 15 };
+  }
+
+  if (/garlic/.test(description)) {
+    return { piece: 3 };
+  }
+
+  if (/egg/.test(description)) {
+    return { piece: 50 };
+  }
+
+  if (/jalapeno|serrano|chili pepper|bell pepper/.test(description)) {
+    return { piece: 45 };
+  }
+
+  if (/lemon|lime/.test(description)) {
+    return { piece: 65 };
+  }
+
+  return {};
 }
 
 function formatFoodLabel(value: string) {

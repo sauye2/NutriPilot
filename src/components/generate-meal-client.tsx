@@ -6,6 +6,10 @@ import { AppShell } from "@/components/app-shell";
 import { GroceryListPanel } from "@/components/grocery-list-panel";
 import { SectionCard } from "@/components/section-card";
 import { saveAcceptedGeneratedMeal } from "@/lib/generated-meal-storage";
+import {
+  formatIngredientCalories,
+  formatIngredientLine,
+} from "@/lib/ingredient-text";
 import type {
   GeneratedMeal,
   GeneratedMealFeedback,
@@ -324,12 +328,17 @@ export function GenerateMealClient() {
                             className="rounded-[8px] border border-[var(--border)] bg-white/80 px-3 py-3"
                           >
                             <p className="text-sm font-medium text-[var(--foreground)]">
-                              {ingredient.amount} {ingredient.unit} {ingredient.name}
+                              {formatIngredientLine(
+                                ingredient.amount,
+                                ingredient.unit,
+                                ingredient.name,
+                                ingredient.notes,
+                              )}
                             </p>
                             <p className="mt-1 text-xs text-[var(--muted)]">
                               {ingredient.supported
-                                ? `${ingredient.totals.calories} kcal - ${ingredient.totals.protein}P ${ingredient.totals.carbs}C ${ingredient.totals.fat}F`
-                                : "Nutrition match still needs review"}
+                                ? formatIngredientCalories(ingredient)
+                                : "Nutrition estimate still needs review"}
                             </p>
                           </div>
                         ))}

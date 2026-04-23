@@ -67,6 +67,32 @@ const SEARCH_FIXTURES = [
     foods: [food(1101, "Sauce, soy, made from soy and wheat", "SR Legacy")],
   },
   {
+    match: ["rice vinegar", "vinegar rice", "vinegar rice wine"],
+    foods: [food(1151, "Vinegar, rice", "SR Legacy")],
+  },
+  {
+    match: ["sesame oil", "oil sesame", "sesame seed oil"],
+    foods: [food(1161, "Oil, sesame, salad or cooking", "Foundation")],
+  },
+  {
+    match: ["black pepper", "spices pepper black", "pepper black"],
+    foods: [
+      food(1171, "Spices, pepper, black", "SR Legacy"),
+      food(1172, "Black pepper crackers", "Branded", "CrunchCo"),
+    ],
+  },
+  {
+    match: ["gochugaru", "pepper red or cayenne", "red pepper flakes", "chili flakes"],
+    foods: [food(1181, "Spices, pepper, red or cayenne", "SR Legacy")],
+  },
+  {
+    match: ["egg", "eggs whole raw", "egg whole raw"],
+    foods: [
+      food(1191, "Egg, whole, raw, fresh", "Foundation"),
+      food(1192, "Egg yolk, raw, fresh", "Foundation"),
+    ],
+  },
+  {
     match: ["pork belly", "pork fresh belly", "pork"],
     foods: [food(1201, "Pork, fresh, belly, raw", "Foundation")],
   },
@@ -84,6 +110,11 @@ const DETAIL_FIXTURES = {
   901: detail(901, "Beef, ground, 90% lean meat / 10% fat, raw", "SR Legacy"),
   1001: detail(1001, "Cheese, cheddar", "Foundation", { cup: 113 }),
   1101: detail(1101, "Sauce, soy, made from soy and wheat", "SR Legacy", { tbsp: 16 }),
+  1151: detail(1151, "Vinegar, rice", "SR Legacy", { tbsp: 15, tsp: 5 }),
+  1161: detail(1161, "Oil, sesame, salad or cooking", "Foundation", { tbsp: 13.5, tsp: 4.5 }),
+  1171: detail(1171, "Spices, pepper, black", "SR Legacy", { tbsp: 6.8, tsp: 2.3 }),
+  1181: detail(1181, "Spices, pepper, red or cayenne", "SR Legacy", { tbsp: 6.8, tsp: 2.3 }),
+  1191: detail(1191, "Egg, whole, raw, fresh", "Foundation", { piece: 50 }),
   1201: detail(1201, "Pork, fresh, belly, raw", "Foundation"),
 };
 
@@ -136,6 +167,11 @@ for (const ingredient of [
   "90/10 ground beef",
   "shredded cheddar cheese",
   "soy sauce",
+  "rice vinegar",
+  "sesame oil",
+  "black pepper",
+  "gochugaru",
+  "eggs",
   "pork belly",
 ]) {
   test(`auto-matches ${ingredient} without requiring review`, async () => {

@@ -18,7 +18,7 @@ export function GroceryListPanel({
       "",
       ...meal.groceryList.flatMap((section) => [
         section.title,
-        ...section.items.map((item) => `- ${item.quantity} ${item.label}`),
+        ...section.items.map((item) => `- ${item.quantity} ${item.label}`.trim()),
         "",
       ]),
     ];

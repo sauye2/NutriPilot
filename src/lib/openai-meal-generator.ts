@@ -1,5 +1,6 @@
 import "server-only";
 
+import { formatGroceryQuantity } from "@/lib/ingredient-text";
 import { compareGoals, roundTotals } from "@/lib/nutrition";
 import { resolveIngredientMatch } from "@/lib/food-data-central";
 import type {
@@ -60,6 +61,9 @@ export async function generateMealDraft(
     "The meal should taste good in a normal home-cooking sense, not just hit macros.",
     "Keep ingredients practical, coherent, and limited to a single meal.",
     "Prefer common grocery ingredients and avoid obscure supplements or duplicate ingredients.",
+    "Being close to the nutrition targets is fine; the meal does not need to match them exactly.",
+    "Aim for variety in dish format and do not default to lettuce wraps when other strong options fit the brief.",
+    "For Korean-inspired meals with pork belly, consider a broader range of formats like rice bowls, stir-fries, ssam, noodle dishes, stews, and skillet meals.",
     `Calorie target: ${request.goals.calories}`,
     `Protein target: ${request.goals.protein}g`,
     `Carb target: ${request.goals.carbs}g`,
@@ -68,8 +72,12 @@ export async function generateMealDraft(
     `Anchor food or dish style: ${request.anchorFood || "none provided"}`,
     `Dietary notes: ${request.dietaryNotes || "none provided"}`,
     "Use only these units for ingredients: g, tbsp, tsp, cup, piece.",
+    "Prefer grams for meats, rice, sauces, chopped vegetables, and anything that is not naturally countable.",
+    "Use piece only for clearly countable items like eggs, cucumbers, scallions, garlic cloves, lettuce leaves, chicken breasts, or steaks.",
     "Every ingredient must have an amount greater than 0.",
     "Keep the ingredient list concise and avoid garnish-only filler.",
+    "Write instructions in a realistic cooking order. Prep work like mincing, slicing, mixing sauces, and heating pans should appear before the steps that use them.",
+    "Make the instructions comprehensive enough for a home cook to follow without guessing.",
   ].join("\n");
 
   const draft = await generateStructuredMeal(prompt);
@@ -95,6 +103,8 @@ export async function reviseMealDraft(
     ),
     "Preserve the spirit of the meal unless the feedback clearly asks for a larger change.",
     "Keep ingredients practical and coherent, and use only the units g, tbsp, tsp, cup, piece.",
+    "Prefer grams for meats, rice, sauces, chopped vegetables, and anything that is not naturally countable.",
+    "Write instructions in a realistic prep-then-cook order so the timing makes sense for a home cook.",
   ].join("\n");
 
   const draft = await generateStructuredMeal(prompt);
@@ -242,15 +252,20 @@ async function hydrateGeneratedMeal(
     draft.ingredients.map(async (ingredient) => {
       const resolution = await resolveIngredientMatch(ingredient.name);
       const food = resolution.food;
+      const chosenUnit = chooseGeneratedUnit(
+        ingredient.unit,
+        food?.gramsByUnit ?? {},
+        ingredient.name,
+      );
       const totals = food
-        ? calculateIngredientTotals(food.per100g, ingredient.amount, ingredient.unit, food.gramsByUnit)
+        ? calculateIngredientTotals(food.per100g, ingredient.amount, chosenUnit, food.gramsByUnit)
         : zeroTotals();
 
       return {
         id: crypto.randomUUID(),
         name: ingredient.name,
         amount: ingredient.amount,
-        unit: ingredient.unit,
+        unit: chosenUnit,
         notes: ingredient.notes ?? null,
         food,
         resolution,
@@ -317,7 +332,12 @@ function buildGroceryList(ingredients: GeneratedMealIngredient[]): GroceryListSe
     const item: GroceryListItem = {
       id: ingredient.id,
       label: ingredient.name,
-      quantity: `${ingredient.amount} ${ingredient.unit}`,
+      quantity: formatGroceryQuantity(
+        ingredient.amount,
+        ingredient.unit,
+        ingredient.name,
+        ingredient.notes,
+      ),
     };
     const existing = sections.get(title) ?? [];
     existing.push(item);
@@ -345,6 +365,26 @@ function categorizeIngredient(name: string) {
 
 function zeroTotals(): MacroTotals {
   return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+}
+
+function chooseGeneratedUnit(
+  preferredUnit: Unit,
+  gramsByUnit: Partial<Record<Unit, number>>,
+  ingredientName: string,
+): Unit {
+  if (gramsByUnit[preferredUnit]) {
+    return preferredUnit;
+  }
+
+  if (
+    preferredUnit === "piece" &&
+    /scallion|green onion|garlic|lettuce|cucumber|egg|steak|breast/i.test(ingredientName) &&
+    gramsByUnit.piece
+  ) {
+    return "piece";
+  }
+
+  return preferredUnit;
 }
 
 function extractStructuredText(payload: ResponsesApiPayload) {

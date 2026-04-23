@@ -620,7 +620,7 @@ function IngredientRow({
             {isResolving
               ? "Fetching live nutrition data"
               : calculated.supported
-                ? `${calculated.totals.calories} kcal - ${calculated.totals.protein}P ${calculated.totals.carbs}C ${calculated.totals.fat}F`
+                ? `${calculated.totals.calories} kcal`
                 : ingredient.name.trim()
                   ? searchResults.length > 0
                     ? "Pick a different match if you want"
