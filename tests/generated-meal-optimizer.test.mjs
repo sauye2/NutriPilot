@@ -123,6 +123,31 @@ test("optimizer keeps pushing protein when calories are already close but protei
   assert.ok(totals.calories <= 1800, `calories should stay in a reasonable band, got ${totals.calories}`);
 });
 
+test("optimizer rebalances high-calorie beef meals so protein does not wildly overshoot the goal", () => {
+  const ingredients = [
+    ingredient("beef sirloin steak", 1035, "g", { calories: 206, protein: 28.6, carbs: 0, fat: 10.6 }),
+    ingredient("broccoli florets", 300, "g", { calories: 34, protein: 2.8, carbs: 6.6, fat: 0.4 }),
+    ingredient("mushrooms", 250, "g", { calories: 22, protein: 3.1, carbs: 3.3, fat: 0.3 }),
+    ingredient("olive oil", 2, "tbsp", { calories: 884, protein: 0, carbs: 0, fat: 100 }, { tbsp: 13.6 }),
+    ingredient("rice cooked", 300, "g", { calories: 130, protein: 2.7, carbs: 28.2, fat: 0.3 }),
+  ];
+
+  const optimized = optimizeGeneratedIngredientsForGoals(ingredients, {
+    calories: 3000,
+    protein: 150,
+    carbs: 60,
+    fat: 70,
+  });
+
+  const totals = sumTotals(optimized);
+  const beef = optimized.find((ingredient) => ingredient.name === "beef sirloin steak");
+
+  assert.ok(beef);
+  assert.ok((beef?.amount ?? 0) < 1035, "oversized beef portion should be trimmed back");
+  assert.ok(totals.protein <= 220, `protein should stay in a more reasonable band, got ${totals.protein}`);
+  assert.ok(totals.calories >= 2400, `meal should still stay meaningfully caloric, got ${totals.calories}`);
+});
+
 function ingredient(name, amount, unit, per100g, gramsByUnit = { g: 1 }) {
   return {
     id: `${name}-${unit}`,

@@ -28,7 +28,7 @@ export function optimizeGeneratedIngredientsForGoals(
   );
 
   if (!needsTrim) {
-    return boostGeneratedIngredientsTowardGoals(current, goals);
+    return rebalanceGeneratedIngredients(boostGeneratedIngredientsTowardGoals(current, goals), goals);
   }
 
   const scaleFactors = (Object.keys(thresholds) as Array<keyof MacroTotals>)
@@ -68,7 +68,7 @@ export function optimizeGeneratedIngredientsForGoals(
     current = current.map((ingredient) => (ingredient.id === candidate.id ? next : ingredient));
   }
 
-  return boostGeneratedIngredientsTowardGoals(current, goals);
+  return rebalanceGeneratedIngredients(boostGeneratedIngredientsTowardGoals(current, goals), goals);
 }
 
 function getGoalThresholds(goals: NutritionGoals): NutritionGoals {
@@ -414,6 +414,86 @@ function boostGeneratedIngredientsTowardGoals(
   return current;
 }
 
+function rebalanceGeneratedIngredients(
+  ingredients: GeneratedMealIngredient[],
+  goals: NutritionGoals,
+) {
+  let current = ingredients.map((ingredient) => ({
+    ...ingredient,
+    totals: { ...ingredient.totals },
+  }));
+
+  for (let iteration = 0; iteration < 8; iteration += 1) {
+    const totals = summarizeIngredients(current);
+
+    if (!needsProteinRebalance(totals, goals)) {
+      break;
+    }
+
+    const candidate = pickProteinTrimCandidate(current);
+
+    if (!candidate) {
+      break;
+    }
+
+    const next = rescaleIngredient(candidate, getProteinRebalanceFactor(candidate, totals, goals));
+
+    if (next.amount === candidate.amount) {
+      break;
+    }
+
+    current = current.map((ingredient) => (ingredient.id === candidate.id ? next : ingredient));
+  }
+
+  for (let iteration = 0; iteration < 6; iteration += 1) {
+    const totals = summarizeIngredients(current);
+
+    if (!needsNonProteinCalorieRefill(totals, goals)) {
+      break;
+    }
+
+    const candidate = pickBoostCandidate(current, totals, goals, "calorie", {
+      avoidProtein: true,
+    });
+
+    if (!candidate) {
+      break;
+    }
+
+    const next = rescaleIngredient(candidate, getBoostFactor(candidate, totals, goals, "calorie"));
+
+    if (next.amount === candidate.amount) {
+      break;
+    }
+
+    current = current.map((ingredient) => (ingredient.id === candidate.id ? next : ingredient));
+  }
+
+  for (let iteration = 0; iteration < 4; iteration += 1) {
+    const totals = summarizeIngredients(current);
+
+    if (!needsProteinRebalance(totals, goals)) {
+      break;
+    }
+
+    const candidate = pickProteinTrimCandidate(current);
+
+    if (!candidate) {
+      break;
+    }
+
+    const next = rescaleIngredient(candidate, getProteinRebalanceFactor(candidate, totals, goals));
+
+    if (next.amount === candidate.amount) {
+      break;
+    }
+
+    current = current.map((ingredient) => (ingredient.id === candidate.id ? next : ingredient));
+  }
+
+  return current;
+}
+
 function needsProteinBoost(totals: MacroTotals, goals: NutritionGoals) {
   if (!goals.protein) {
     return false;
@@ -454,7 +534,11 @@ function shouldAttemptBoost(
     );
   }
 
-  return totals.calories <= calorieCap && totals.fat <= fatCap;
+  return (
+    totals.calories <= calorieCap &&
+    totals.fat <= fatCap &&
+    totals.protein <= getProteinUpperBound(goals)
+  );
 }
 
 function pickBoostCandidate(
@@ -462,9 +546,16 @@ function pickBoostCandidate(
   totals: MacroTotals,
   goals: NutritionGoals,
   phase: "protein" | "calorie",
+  options?: { avoidProtein?: boolean },
 ) {
   const scored = ingredients
-    .filter((ingredient) => ingredient.supported && ingredient.food && ingredient.totals.calories > 0)
+    .filter(
+      (ingredient) =>
+        ingredient.supported &&
+        ingredient.food &&
+        ingredient.totals.calories > 0 &&
+        !(options?.avoidProtein && categorizeIngredientForOptimization(ingredient.name) === "protein"),
+    )
     .map((ingredient) => ({
       ingredient,
       score: scoreBoostCandidate(ingredient, totals, goals, phase),
@@ -519,6 +610,9 @@ function scoreBoostCandidate(
   }
 
   let score = ingredient.totals.calories * 0.25;
+  const proteinUpperBound = getProteinUpperBound(goals);
+  const proteinAdequate = goals.protein > 0 && totals.protein >= goals.protein * 0.98;
+  const proteinHigh = goals.protein > 0 && totals.protein >= proteinUpperBound;
 
   if (goals.calories > 0 && totals.calories < goals.calories * 0.88) {
     score += ingredient.totals.calories * 0.4;
@@ -529,7 +623,11 @@ function scoreBoostCandidate(
   } else if (category === "fat") {
     score += 120 + fatDensity * 150;
   } else if (category === "protein") {
-    score += 235 + proteinDensity * 700;
+    score += proteinAdequate ? 35 : 235;
+    score += proteinAdequate ? proteinDensity * 180 : proteinDensity * 700;
+    if (proteinHigh) {
+      score -= 420;
+    }
   } else if (category === "produce") {
     score -= 40;
   } else if (category === "seasoning" || category === "aromatic") {
@@ -591,4 +689,67 @@ function getMaximumAmount(ingredient: GeneratedMealIngredient) {
   }
 
   return Math.max(ingredient.amount * 1.4, 3);
+}
+
+function needsProteinRebalance(totals: MacroTotals, goals: NutritionGoals) {
+  if (!goals.protein || !goals.calories) {
+    return false;
+  }
+
+  return totals.protein > getProteinUpperBound(goals) && totals.calories >= goals.calories * 0.82;
+}
+
+function getProteinUpperBound(goals: NutritionGoals) {
+  if (!goals.protein) {
+    return Infinity;
+  }
+
+  return Math.max(goals.protein * 1.22, goals.protein + 22);
+}
+
+function pickProteinTrimCandidate(ingredients: GeneratedMealIngredient[]) {
+  const scored = ingredients
+    .filter((ingredient) => ingredient.supported && ingredient.food)
+    .map((ingredient) => ({
+      ingredient,
+      score: scoreProteinTrimCandidate(ingredient),
+    }))
+    .filter((entry) => entry.score > 0)
+    .sort((left, right) => right.score - left.score);
+
+  return scored[0]?.ingredient ?? null;
+}
+
+function scoreProteinTrimCandidate(ingredient: GeneratedMealIngredient) {
+  const category = categorizeIngredientForOptimization(ingredient.name);
+
+  if (category !== "protein" || ingredient.amount <= getMinimumAmount(ingredient)) {
+    return 0;
+  }
+
+  return ingredient.totals.protein * 24 + ingredient.totals.calories * 0.2;
+}
+
+function getProteinRebalanceFactor(
+  ingredient: GeneratedMealIngredient,
+  totals: MacroTotals,
+  goals: NutritionGoals,
+) {
+  const proteinUpperBound = getProteinUpperBound(goals);
+  const proteinGapRatio = proteinUpperBound / Math.max(totals.protein, 1);
+  const severeOvershoot = totals.protein > proteinUpperBound * 1.15;
+
+  if (categorizeIngredientForOptimization(ingredient.name) !== "protein") {
+    return 0.92;
+  }
+
+  return severeOvershoot ? Math.max(0.68, proteinGapRatio) : Math.max(0.78, proteinGapRatio);
+}
+
+function needsNonProteinCalorieRefill(totals: MacroTotals, goals: NutritionGoals) {
+  if (!goals.calories) {
+    return false;
+  }
+
+  return totals.calories < goals.calories * 0.9;
 }
