@@ -352,10 +352,6 @@ function boostGeneratedIngredientsTowardGoals(
   ingredients: GeneratedMealIngredient[],
   goals: NutritionGoals,
 ) {
-  if (!goals.calories) {
-    return ingredients;
-  }
-
   let current = ingredients.map((ingredient) => ({
     ...ingredient,
     totals: { ...ingredient.totals },
@@ -363,19 +359,40 @@ function boostGeneratedIngredientsTowardGoals(
 
   for (let iteration = 0; iteration < 8; iteration += 1) {
     const totals = summarizeIngredients(current);
-    const calorieFloor = goals.calories * 0.82;
 
-    if (totals.calories >= calorieFloor || !shouldAttemptCalorieBoost(totals, goals)) {
+    if (!needsProteinBoost(totals, goals) || !shouldAttemptBoost(totals, goals, "protein")) {
       break;
     }
 
-    const candidate = pickBoostCandidate(current, totals, goals);
+    const candidate = pickBoostCandidate(current, totals, goals, "protein");
 
     if (!candidate) {
       break;
     }
 
-    const next = rescaleIngredient(candidate, getBoostFactor(candidate, totals, goals));
+    const next = rescaleIngredient(candidate, getBoostFactor(candidate, totals, goals, "protein"));
+
+    if (next.amount === candidate.amount) {
+      break;
+    }
+
+    current = current.map((ingredient) => (ingredient.id === candidate.id ? next : ingredient));
+  }
+
+  for (let iteration = 0; iteration < 10; iteration += 1) {
+    const totals = summarizeIngredients(current);
+
+    if (!needsCalorieBoost(totals, goals) || !shouldAttemptBoost(totals, goals, "calorie")) {
+      break;
+    }
+
+    const candidate = pickBoostCandidate(current, totals, goals, "calorie");
+
+    if (!candidate) {
+      break;
+    }
+
+    const next = rescaleIngredient(candidate, getBoostFactor(candidate, totals, goals, "calorie"));
 
     if (next.amount === candidate.amount) {
       break;
@@ -387,23 +404,49 @@ function boostGeneratedIngredientsTowardGoals(
   return current;
 }
 
-function shouldAttemptCalorieBoost(totals: MacroTotals, goals: NutritionGoals) {
-  const proteinCap = goals.protein > 0 ? Math.max(goals.protein * 1.2, goals.protein + 15) : Infinity;
+function needsProteinBoost(totals: MacroTotals, goals: NutritionGoals) {
+  if (!goals.protein) {
+    return false;
+  }
+
+  return totals.protein < goals.protein * 0.9;
+}
+
+function needsCalorieBoost(totals: MacroTotals, goals: NutritionGoals) {
+  if (!goals.calories) {
+    return false;
+  }
+
+  return totals.calories < goals.calories * 0.88;
+}
+
+function shouldAttemptBoost(
+  totals: MacroTotals,
+  goals: NutritionGoals,
+  phase: "protein" | "calorie",
+) {
+  const calorieCap = goals.calories > 0 ? Math.max(goals.calories * 1.08, goals.calories + 120) : Infinity;
+  const proteinCap = goals.protein > 0 ? Math.max(goals.protein * 1.15, goals.protein + 18) : Infinity;
   const fatCap = goals.fat > 0 ? Math.max(goals.fat * 1.35, goals.fat + 12) : Infinity;
 
-  return totals.protein <= proteinCap && totals.fat <= fatCap;
+  if (phase === "protein") {
+    return totals.calories <= calorieCap && totals.protein <= proteinCap && totals.fat <= fatCap;
+  }
+
+  return totals.calories <= calorieCap && totals.fat <= fatCap;
 }
 
 function pickBoostCandidate(
   ingredients: GeneratedMealIngredient[],
   totals: MacroTotals,
   goals: NutritionGoals,
+  phase: "protein" | "calorie",
 ) {
   const scored = ingredients
     .filter((ingredient) => ingredient.supported && ingredient.food && ingredient.totals.calories > 0)
     .map((ingredient) => ({
       ingredient,
-      score: scoreBoostCandidate(ingredient, totals, goals),
+      score: scoreBoostCandidate(ingredient, totals, goals, phase),
     }))
     .filter((entry) => entry.score > 0)
     .sort((left, right) => right.score - left.score);
@@ -415,6 +458,7 @@ function scoreBoostCandidate(
   ingredient: GeneratedMealIngredient,
   totals: MacroTotals,
   goals: NutritionGoals,
+  phase: "protein" | "calorie",
 ) {
   const category = categorizeIngredientForOptimization(ingredient.name);
   const maxAmount = getMaximumAmount(ingredient);
@@ -423,26 +467,44 @@ function scoreBoostCandidate(
     return 0;
   }
 
-  if (category === "protein" && goals.protein > 0 && totals.protein >= goals.protein) {
-    return 0;
+  const proteinDensity = ingredient.totals.protein / Math.max(ingredient.totals.calories, 1);
+  const carbDensity = ingredient.totals.carbs / Math.max(ingredient.totals.calories, 1);
+  const fatDensity = ingredient.totals.fat / Math.max(ingredient.totals.calories, 1);
+
+  if (phase === "protein") {
+    if (category !== "protein") {
+      return category === "carb" ? 20 : 0;
+    }
+
+    let score = ingredient.totals.protein * 42 + proteinDensity * 900;
+
+    if (goals.calories > 0 && totals.calories < goals.calories * 0.82) {
+      score += ingredient.totals.calories * 0.2;
+    }
+
+    if (goals.fat > 0 && totals.fat > goals.fat * 1.1) {
+      score -= ingredient.totals.fat * 18;
+    }
+
+    return score;
   }
 
-  let score = ingredient.totals.calories;
+  let score = ingredient.totals.calories * 0.25;
 
-  if (goals.calories > 0 && totals.calories < goals.calories * 0.82) {
-    score += ingredient.totals.calories * 0.8;
+  if (goals.calories > 0 && totals.calories < goals.calories * 0.88) {
+    score += ingredient.totals.calories * 0.4;
   }
 
   if (category === "carb") {
-    score += 120;
+    score += 185 + carbDensity * 260;
   } else if (category === "fat") {
-    score += 95;
-  } else if (
-    category === "protein" &&
-    goals.protein > 0 &&
-    totals.protein < goals.protein * 0.95
-  ) {
-    score += 70;
+    score += 160 + fatDensity * 220;
+  } else if (category === "protein") {
+    if (goals.protein > 0 && totals.protein < goals.protein * 0.95) {
+      score += 165 + proteinDensity * 520;
+    } else {
+      score -= goals.protein > 0 && totals.protein >= goals.protein * 1.02 ? 180 : 40;
+    }
   } else if (category === "produce") {
     score -= 40;
   } else if (category === "seasoning" || category === "aromatic") {
@@ -460,20 +522,30 @@ function getBoostFactor(
   ingredient: GeneratedMealIngredient,
   totals: MacroTotals,
   goals: NutritionGoals,
+  phase: "protein" | "calorie",
 ) {
   const category = categorizeIngredientForOptimization(ingredient.name);
-  const severeUndershoot = goals.calories > 0 && totals.calories < goals.calories * 0.65;
+  const severeCalorieUndershoot = goals.calories > 0 && totals.calories < goals.calories * 0.7;
+  const severeProteinUndershoot = goals.protein > 0 && totals.protein < goals.protein * 0.72;
+
+  if (phase === "protein") {
+    if (category === "protein") {
+      return severeProteinUndershoot ? 1.35 : 1.2;
+    }
+
+    return 1.08;
+  }
 
   if (category === "carb") {
-    return severeUndershoot ? 1.45 : 1.28;
+    return severeCalorieUndershoot ? 1.38 : 1.24;
   }
 
   if (category === "fat") {
-    return severeUndershoot ? 1.4 : 1.22;
+    return severeCalorieUndershoot ? 1.3 : 1.18;
   }
 
   if (category === "protein") {
-    return severeUndershoot ? 1.22 : 1.12;
+    return severeProteinUndershoot ? 1.25 : 1.14;
   }
 
   return 1.1;
@@ -482,8 +554,8 @@ function getBoostFactor(
 function getMaximumAmount(ingredient: GeneratedMealIngredient) {
   if (ingredient.unit === "g") {
     const category = categorizeIngredientForOptimization(ingredient.name);
-    if (category === "protein") return Math.max(ingredient.amount * 1.5, 260);
-    if (category === "carb") return Math.max(ingredient.amount * 1.85, 260);
+    if (category === "protein") return Math.max(ingredient.amount * 1.8, 320);
+    if (category === "carb") return Math.max(ingredient.amount * 1.95, 320);
     if (category === "fat") return Math.max(ingredient.amount * 2, 28);
     if (category === "produce") return Math.max(ingredient.amount * 1.6, 240);
     return Math.max(ingredient.amount * 1.5, 60);

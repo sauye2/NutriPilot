@@ -75,6 +75,30 @@ test("optimizer can nudge light meals upward with existing carb and fat ingredie
   assert.ok(totals.calories > 500, `calories should come up meaningfully, got ${totals.calories}`);
 });
 
+test("optimizer boosts protein-forward ingredients when the draft is far under the protein target", () => {
+  const ingredients = [
+    ingredient("chicken breast", 180, "g", { calories: 165, protein: 31, carbs: 0, fat: 3.6 }),
+    ingredient("rice cooked", 180, "g", { calories: 130, protein: 2.7, carbs: 28.2, fat: 0.3 }),
+    ingredient("broccoli florets", 180, "g", { calories: 34, protein: 2.8, carbs: 6.6, fat: 0.4 }),
+    ingredient("olive oil", 1, "tbsp", { calories: 884, protein: 0, carbs: 0, fat: 100 }, { tbsp: 13.6 }),
+  ];
+
+  const optimized = optimizeGeneratedIngredientsForGoals(ingredients, {
+    calories: 1500,
+    protein: 100,
+    carbs: 90,
+    fat: 45,
+  });
+
+  const totals = sumTotals(optimized);
+  const chicken = optimized.find((ingredient) => ingredient.name === "chicken breast");
+
+  assert.ok(chicken);
+  assert.ok((chicken?.amount ?? 0) > 180, "lean protein should be increased when protein is well under target");
+  assert.ok(totals.protein >= 80, `protein should come much closer to target, got ${totals.protein}`);
+  assert.ok(totals.calories >= 1000, `calories should also stay meaningfully filled in, got ${totals.calories}`);
+});
+
 function ingredient(name, amount, unit, per100g, gramsByUnit = { g: 1 }) {
   return {
     id: `${name}-${unit}`,

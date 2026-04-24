@@ -57,19 +57,22 @@ type AiMealDraft = {
 export async function generateMealDraft(
   request: GeneratedMealRequest,
 ): Promise<GeneratedMeal> {
-  const varietyDirection = chooseVarietyDirection();
+  const varietyDirection = chooseVarietyDirection(request);
   const prompt = [
     "Generate a meal plan in JSON.",
     "The meal should taste good in a normal home-cooking sense, not just hit macros.",
     "Keep ingredients practical, coherent, and limited to a single meal.",
     "Prefer common grocery ingredients and avoid obscure supplements or duplicate ingredients.",
     "Being close to the nutrition targets is fine; the meal does not need to match them exactly.",
+    "Still, aim to land reasonably close on both calories and protein after the ingredient list is checked against USDA nutrition data.",
+    "If the protein target is substantial, choose enough lean or balanced protein so the finished meal is not short by dozens of grams.",
     "Draft a realistic single serving. If the anchor ingredient is rich, reduce the portion size instead of massively overshooting calories, protein, or fat.",
     "If the calorie target is much higher than the protein target, include a coherent calorie source like rice, noodles, potatoes, or cooking fat so the meal does not undershoot calories by hundreds.",
     "Assume nutrition counts should reflect cooked, edible portions for served ingredients unless the ingredient clearly needs to stay raw.",
     "Aim for variety in dish format and do not default to lettuce wraps when other strong options fit the brief.",
+    "When the same inputs could support multiple good dishes, choose a noticeably different format, starch, or cooking method rather than repeating the most obvious default.",
     "For Korean-inspired meals with pork belly, consider a broader range of formats like rice bowls, stir-fries, ssam, noodle dishes, stews, and skillet meals.",
-    `Variety direction for this draft: ${varietyDirection}`,
+    ...varietyDirection,
     `Calorie target: ${request.goals.calories}`,
     `Protein target: ${request.goals.protein}g`,
     `Carb target: ${request.goals.carbs}g`,
@@ -90,17 +93,53 @@ export async function generateMealDraft(
   return hydrateGeneratedMeal(draft, request.goals);
 }
 
-function chooseVarietyDirection() {
-  const directions = [
-    "lean into a rice bowl or plated entree format",
-    "favor a skillet or stir-fry format",
-    "favor a composed plate with sides rather than wraps",
-    "favor a noodle or rice-cake style if it suits the cuisine",
-    "favor a brothy or stew-adjacent format if it still works as a single meal",
-    "favor a crisp, grill-forward format with strong contrast in textures",
+function chooseVarietyDirection(request: GeneratedMealRequest) {
+  const formats = [
+    "Build this as a rice bowl or plated entree.",
+    "Build this as a skillet meal or stir-fry.",
+    "Build this as a noodle dish if the cuisine supports it.",
+    "Build this as a composed plate with a distinct side.",
+    "Build this as a brothy, stew-like, or braised meal if that fits naturally.",
+    "Build this as a roast, bake, or sheet-pan style meal if that fits naturally.",
+  ];
+  const textures = [
+    "Favor contrast between something crisp, something tender, and something saucy.",
+    "Favor a glossy, savory finish with one fresh bright element.",
+    "Favor char, caramelization, or searing where it makes sense.",
+    "Favor a cozy, softer texture profile instead of a crunchy one.",
+  ];
+  const starchStrategies = [
+    "Use a clear starch plan: rice, noodles, potatoes, bread, or another coherent base if needed.",
+    "If the meal needs more calories, prefer a real side or base over randomly inflating sauces.",
+    "If the meal is already rich, keep the starch moderate and let vegetables carry more volume.",
+    "If the protein target is high, let the starch support the meal rather than dominate it.",
+  ];
+  const anchorNotes = [
+    "Do not default to wraps unless they are genuinely the best fit.",
+    "Avoid repeating the most obvious template for the anchor ingredient if another strong format would work.",
+    "Make the dish feel like something someone would actually be excited to cook for dinner.",
   ];
 
-  return directions[Math.floor(Math.random() * directions.length)];
+  const lines = [
+    formats[Math.floor(Math.random() * formats.length)],
+    textures[Math.floor(Math.random() * textures.length)],
+    starchStrategies[Math.floor(Math.random() * starchStrategies.length)],
+    anchorNotes[Math.floor(Math.random() * anchorNotes.length)],
+  ];
+
+  if (/korean/i.test(request.cuisine) && /pork belly/i.test(request.anchorFood)) {
+    lines.push(
+      "For Korean pork belly, actively vary across bowls, stir-fries, ssam, noodle dishes, kimchi-forward plates, and skillet meals.",
+    );
+  }
+
+  if (/chinese/i.test(request.cuisine) && /beef|steak/i.test(request.anchorFood)) {
+    lines.push(
+      "For Chinese-style beef dishes, vary across stir-fries, rice plates, noodle dishes, pepper steak, ginger-scallion, black bean, cumin, tomato-beef, and dry-fried styles.",
+    );
+  }
+
+  return lines;
 }
 
 export async function reviseMealDraft(
