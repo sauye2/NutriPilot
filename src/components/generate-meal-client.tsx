@@ -58,7 +58,8 @@ export function GenerateMealClient() {
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRevising, setIsRevising] = useState(false);
-  const [hiddenOptimizationIds, setHiddenOptimizationIds] = useState<string[]>([]);
+  const [dismissedOptimizationIds, setDismissedOptimizationIds] = useState<string[]>([]);
+  const [acceptedOptimizationIds, setAcceptedOptimizationIds] = useState<string[]>([]);
   const greeting = useMemo(() => getGreeting(), []);
 
   const parsedGoals = useMemo<NutritionGoals>(
@@ -76,17 +77,18 @@ export function GenerateMealClient() {
     () =>
       meal
         ? buildOptimizationSuggestions(meal).filter(
-            (suggestion) => !hiddenOptimizationIds.includes(suggestion.id),
+            (suggestion) => !dismissedOptimizationIds.includes(suggestion.id),
           )
         : [],
-    [meal, hiddenOptimizationIds],
+    [meal, dismissedOptimizationIds],
   );
 
   async function handleGenerate() {
     setIsGenerating(true);
     setError(null);
     setAcceptedMeal(null);
-    setHiddenOptimizationIds([]);
+    setDismissedOptimizationIds([]);
+    setAcceptedOptimizationIds([]);
     setFeedback("");
 
     try {
@@ -125,7 +127,7 @@ export function GenerateMealClient() {
     const feedbackText = overrideFeedback?.trim() || feedback.trim();
 
     if (!meal || !feedbackText) {
-      return;
+      return false;
     }
 
     setIsRevising(true);
@@ -153,7 +155,7 @@ export function GenerateMealClient() {
 
       if (!response.ok || !payload.updatedMeal) {
         setError(payload.error ?? "Lazy Mode could not revise the meal.");
-        return;
+        return false;
       }
 
       setMeal(payload.updatedMeal);
@@ -161,24 +163,32 @@ export function GenerateMealClient() {
 
       if (!overrideFeedback) {
         setFeedback("");
-        setHiddenOptimizationIds([]);
+        setDismissedOptimizationIds([]);
+        setAcceptedOptimizationIds([]);
       }
+      return true;
     } catch {
       setError("Lazy Mode could not revise the meal.");
+      return false;
     } finally {
       setIsRevising(false);
     }
   }
 
   async function applyOptimizationSuggestion(suggestion: OptimizationSuggestion) {
-    setHiddenOptimizationIds((current) =>
+    const didRevise = await handleRevise(true, suggestion.prompt);
+
+    if (!didRevise) {
+      return;
+    }
+
+    setAcceptedOptimizationIds((current) =>
       current.includes(suggestion.id) ? current : [...current, suggestion.id],
     );
-    await handleRevise(true, suggestion.prompt);
   }
 
   function dismissOptimizationSuggestion(id: string) {
-    setHiddenOptimizationIds((current) =>
+    setDismissedOptimizationIds((current) =>
       current.includes(id) ? current : [...current, id],
     );
   }
@@ -402,41 +412,60 @@ export function GenerateMealClient() {
             {meal && optimizationSuggestions.length > 0 ? (
               <SectionCard title="Suggested Optimizations" eyebrow="A few easy ways to tune it">
                 <div className="space-y-3">
-                  {optimizationSuggestions.map((suggestion) => (
-                    <article
-                      key={suggestion.id}
-                      className="rounded-[8px] border border-[var(--border)] bg-white/80 p-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="text-sm font-semibold text-[var(--foreground)]">
-                          {suggestion.title}
+                  {optimizationSuggestions.map((suggestion) => {
+                    const isAccepted = acceptedOptimizationIds.includes(suggestion.id);
+
+                    return (
+                      <article
+                        key={suggestion.id}
+                        className={`rounded-[8px] border border-[var(--border)] bg-white/80 p-4 transition-all duration-300 ${
+                          isAccepted ? "opacity-60" : "opacity-100"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-sm font-semibold text-[var(--foreground)]">
+                            {suggestion.title}
+                          </p>
+                          <div className="flex shrink-0 items-center gap-2">
+                            {isAccepted ? (
+                              <span className="rounded-full border border-[var(--primary-soft)] bg-[var(--muted-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--primary-strong)]">
+                                Accepted
+                              </span>
+                            ) : null}
+                            <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--primary-strong)]">
+                              {suggestion.kind}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                          {suggestion.body}
                         </p>
-                        <span className="shrink-0 rounded-full bg-[var(--primary-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--primary-strong)]">
-                          {suggestion.kind}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                        {suggestion.body}
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <button
-                          className="rounded-[8px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
-                          disabled={isRevising}
-                          type="button"
-                          onClick={() => void applyOptimizationSuggestion(suggestion)}
-                        >
-                          {isRevising ? "Applying..." : "Apply Suggestion"}
-                        </button>
-                        <button
-                          className="rounded-[8px] border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--muted-soft)]"
-                          type="button"
-                          onClick={() => dismissOptimizationSuggestion(suggestion.id)}
-                        >
-                          Dismiss
-                        </button>
-                      </div>
-                    </article>
-                  ))}
+                        {isAccepted ? (
+                          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                            Applied to the current meal.
+                          </p>
+                        ) : (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              className="rounded-[8px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                              disabled={isRevising}
+                              type="button"
+                              onClick={() => void applyOptimizationSuggestion(suggestion)}
+                            >
+                              {isRevising ? "Applying..." : "Apply Suggestion"}
+                            </button>
+                            <button
+                              className="rounded-[8px] border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--muted-soft)]"
+                              type="button"
+                              onClick={() => dismissOptimizationSuggestion(suggestion.id)}
+                            >
+                              Dismiss
+                            </button>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
                 </div>
                 <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
                   These stay optional. Apply one to update the meal right away, or leave
