@@ -273,9 +273,9 @@ export function GenerateMealClient() {
               </button>
 
               <div className="rounded-[8px] bg-[var(--muted-soft)] px-4 py-4 text-sm leading-6 text-[var(--muted)]">
-                AI proposes the meal, then NutriPilot reruns the ingredient list through
-                the app&apos;s USDA-backed nutrition pipeline to judge how close it actually
-                is.
+                AI proposes the dish, then NutriPilot reruns the ingredient list through
+                the app&apos;s USDA-backed nutrition pipeline and trims obviously oversized
+                portions to bring the meal closer to the target before showing it.
               </div>
 
               {error ? (

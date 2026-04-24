@@ -1,6 +1,7 @@
 import "server-only";
 
 import { formatGroceryQuantity } from "@/lib/ingredient-text";
+import { optimizeGeneratedIngredientsForGoals } from "@/lib/generated-meal-optimizer";
 import { compareGoals, roundTotals } from "@/lib/nutrition";
 import { resolveIngredientMatch } from "@/lib/food-data-central";
 import type {
@@ -63,6 +64,7 @@ export async function generateMealDraft(
     "Keep ingredients practical, coherent, and limited to a single meal.",
     "Prefer common grocery ingredients and avoid obscure supplements or duplicate ingredients.",
     "Being close to the nutrition targets is fine; the meal does not need to match them exactly.",
+    "Draft a realistic single serving. If the anchor ingredient is rich, reduce the portion size instead of massively overshooting calories, protein, or fat.",
     "Aim for variety in dish format and do not default to lettuce wraps when other strong options fit the brief.",
     "For Korean-inspired meals with pork belly, consider a broader range of formats like rice bowls, stir-fries, ssam, noodle dishes, stews, and skillet meals.",
     `Variety direction for this draft: ${varietyDirection}`,
@@ -263,7 +265,7 @@ async function hydrateGeneratedMeal(
   draft: AiMealDraft,
   goals: NutritionGoals,
 ): Promise<GeneratedMeal> {
-  const ingredients = await Promise.all(
+  const hydratedIngredients = await Promise.all(
     draft.ingredients.map(async (ingredient) => {
       const resolution = await resolveIngredientMatch(ingredient.name);
       const food = resolution.food;
@@ -289,6 +291,8 @@ async function hydrateGeneratedMeal(
       } satisfies GeneratedMealIngredient;
     }),
   );
+
+  const ingredients = optimizeGeneratedIngredientsForGoals(hydratedIngredients, goals);
 
   const totals = roundTotals(
     ingredients.reduce<MacroTotals>(

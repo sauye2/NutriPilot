@@ -1,0 +1,97 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import { optimizeGeneratedIngredientsForGoals } from "../src/lib/generated-meal-optimizer.ts";
+
+test("optimizer trims oversized beef-heavy meals toward low protein and calorie targets", () => {
+  const ingredients = [
+    ingredient("ribeye steak", 450, "g", { calories: 255, protein: 25.6, carbs: 0, fat: 17.6 }),
+    ingredient("broccoli florets", 300, "g", { calories: 34, protein: 2.8, carbs: 6.6, fat: 0.4 }),
+    ingredient("sesame oil", 2, "tbsp", { calories: 884, protein: 0, carbs: 0, fat: 100 }, { tbsp: 13.6 }),
+  ];
+
+  const optimized = optimizeGeneratedIngredientsForGoals(ingredients, {
+    calories: 1500,
+    protein: 30,
+    carbs: 60,
+    fat: 24,
+  });
+
+  const totals = sumTotals(optimized);
+  const ribeye = optimized.find((ingredient) => ingredient.name === "ribeye steak");
+
+  assert.ok(ribeye);
+  assert.ok(ribeye.amount < 450, "steak portion should be reduced");
+  assert.ok(totals.protein < 70, `protein should come down meaningfully, got ${totals.protein}`);
+  assert.ok(totals.calories < 1500, `calories should stay under the target cap, got ${totals.calories}`);
+});
+
+test("optimizer rescales very rich pork belly meals instead of leaving them thousands of calories over", () => {
+  const ingredients = [
+    ingredient("pork belly", 300, "g", { calories: 518, protein: 9.3, carbs: 0, fat: 53 }),
+    ingredient("rice cooked", 250, "g", { calories: 130, protein: 2.7, carbs: 28.2, fat: 0.3 }),
+    ingredient("sesame oil", 1, "tbsp", { calories: 884, protein: 0, carbs: 0, fat: 100 }, { tbsp: 13.6 }),
+  ];
+
+  const optimized = optimizeGeneratedIngredientsForGoals(ingredients, {
+    calories: 1000,
+    protein: 50,
+    carbs: 50,
+    fat: 35,
+  });
+
+  const totals = sumTotals(optimized);
+  const porkBelly = optimized.find((ingredient) => ingredient.name === "pork belly");
+
+  assert.ok(porkBelly);
+  assert.ok(porkBelly.amount < 300, "pork belly portion should be reduced");
+  assert.ok(totals.calories < 1300, `calories should be much closer to target, got ${totals.calories}`);
+});
+
+function ingredient(name, amount, unit, per100g, gramsByUnit = { g: 1 }) {
+  return {
+    id: `${name}-${unit}`,
+    name,
+    amount,
+    unit,
+    notes: null,
+    food: {
+      fdcId: 1,
+      description: name,
+      displayName: name,
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g,
+      gramsByUnit,
+    },
+    resolution: null,
+    totals: calculateTotals(per100g, amount, unit, gramsByUnit),
+    supported: true,
+  };
+}
+
+function calculateTotals(per100g, amount, unit, gramsByUnit) {
+  const grams = (gramsByUnit[unit] ?? 0) * amount;
+  const scale = grams / 100;
+
+  return {
+    calories: Math.round(per100g.calories * scale),
+    protein: Math.round(per100g.protein * scale * 10) / 10,
+    carbs: Math.round(per100g.carbs * scale * 10) / 10,
+    fat: Math.round(per100g.fat * scale * 10) / 10,
+  };
+}
+
+function sumTotals(ingredients) {
+  return ingredients.reduce(
+    (sum, ingredient) => ({
+      calories: sum.calories + ingredient.totals.calories,
+      protein: sum.protein + ingredient.totals.protein,
+      carbs: sum.carbs + ingredient.totals.carbs,
+      fat: sum.fat + ingredient.totals.fat,
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0 },
+  );
+}
