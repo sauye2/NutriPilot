@@ -95,8 +95,32 @@ test("optimizer boosts protein-forward ingredients when the draft is far under t
 
   assert.ok(chicken);
   assert.ok((chicken?.amount ?? 0) > 180, "lean protein should be increased when protein is well under target");
-  assert.ok(totals.protein >= 80, `protein should come much closer to target, got ${totals.protein}`);
+  assert.ok(totals.protein >= 90, `protein should come much closer to target, got ${totals.protein}`);
   assert.ok(totals.calories >= 1000, `calories should also stay meaningfully filled in, got ${totals.calories}`);
+});
+
+test("optimizer keeps pushing protein when calories are already close but protein is still lagging", () => {
+  const ingredients = [
+    ingredient("sirloin steak", 220, "g", { calories: 206, protein: 28.6, carbs: 0, fat: 10.6 }),
+    ingredient("rice cooked", 260, "g", { calories: 130, protein: 2.7, carbs: 28.2, fat: 0.3 }),
+    ingredient("broccoli florets", 180, "g", { calories: 34, protein: 2.8, carbs: 6.6, fat: 0.4 }),
+    ingredient("olive oil", 1.25, "tbsp", { calories: 884, protein: 0, carbs: 0, fat: 100 }, { tbsp: 13.6 }),
+  ];
+
+  const optimized = optimizeGeneratedIngredientsForGoals(ingredients, {
+    calories: 1500,
+    protein: 100,
+    carbs: 90,
+    fat: 45,
+  });
+
+  const totals = sumTotals(optimized);
+  const steak = optimized.find((ingredient) => ingredient.name === "sirloin steak");
+
+  assert.ok(steak);
+  assert.ok((steak?.amount ?? 0) > 220, "protein anchor should still be increased when protein remains far under target");
+  assert.ok(totals.protein >= 85, `protein should be brought materially closer to target, got ${totals.protein}`);
+  assert.ok(totals.calories <= 1800, `calories should stay in a reasonable band, got ${totals.calories}`);
 });
 
 function ingredient(name, amount, unit, per100g, gramsByUnit = { g: 1 }) {

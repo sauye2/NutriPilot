@@ -598,10 +598,38 @@ function mergeOptimizationSuggestions(
 
 function scrollToMealSummary(ref: RefObject<HTMLDivElement | null>) {
   requestAnimationFrame(() => {
-    ref.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+    const target = ref.current;
+
+    if (!target) {
+      return;
+    }
+
+    const startY = window.scrollY;
+    const targetY = target.getBoundingClientRect().top + window.scrollY - 20;
+    const distance = targetY - startY;
+    const durationMs = 900;
+    let startTime: number | null = null;
+
+    const step = (timestamp: number) => {
+      if (startTime === null) {
+        startTime = timestamp;
+      }
+
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / durationMs, 1);
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+
+      window.scrollTo({
+        top: startY + distance * easedProgress,
+        behavior: "auto",
+      });
+
+      if (progress < 1) {
+        window.requestAnimationFrame(step);
+      }
+    };
+
+    window.requestAnimationFrame(step);
   });
 }
 

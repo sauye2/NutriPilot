@@ -66,6 +66,8 @@ export async function generateMealDraft(
     "Being close to the nutrition targets is fine; the meal does not need to match them exactly.",
     "Still, aim to land reasonably close on both calories and protein after the ingredient list is checked against USDA nutrition data.",
     "If the protein target is substantial, choose enough lean or balanced protein so the finished meal is not short by dozens of grams.",
+    "When the protein target is 80g or higher, build around a meal structure that can plausibly finish within roughly 15 to 20 grams of that protein target after USDA-backed checking.",
+    "Do not spend too much of the calorie budget on oils, cream, butter, or starch before the meal has enough protein to feel aligned with the goal.",
     "Draft a realistic single serving. If the anchor ingredient is rich, reduce the portion size instead of massively overshooting calories, protein, or fat.",
     "If the calorie target is much higher than the protein target, include a coherent calorie source like rice, noodles, potatoes, or cooking fat so the meal does not undershoot calories by hundreds.",
     "Assume nutrition counts should reflect cooked, edible portions for served ingredients unless the ingredient clearly needs to stay raw.",
