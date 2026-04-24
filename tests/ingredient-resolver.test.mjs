@@ -164,8 +164,16 @@ const SEARCH_FIXTURES = [
     foods: [food(1151, "Vinegar, rice", "SR Legacy")],
   },
   {
+    match: ["lemon", "lemon raw", "lemons raw without peel"],
+    foods: [food(1153, "Lemons, raw, without peel", "SR Legacy")],
+  },
+  {
     match: ["lime juice", "lime juice raw", "juice lime"],
     foods: [food(1152, "Lime juice, raw", "SR Legacy")],
+  },
+  {
+    match: ["lime", "lime raw", "limes raw"],
+    foods: [food(1154, "Limes, raw", "SR Legacy")],
   },
   {
     match: ["sesame oil", "oil sesame", "sesame seed oil"],
@@ -254,6 +262,8 @@ const DETAIL_FIXTURES = {
   1106: detailWithMacros(1106, "Soup, vegetable broth, ready to serve", "SR Legacy", { calories: 5, protein: 0.24, carbs: 0.93, fat: 0.07 }, { cup: 240, tbsp: 15, tsp: 5 }),
   1151: detail(1151, "Vinegar, rice", "SR Legacy", { tbsp: 15, tsp: 5 }),
   1152: detailWithMacros(1152, "Lime juice, raw", "SR Legacy", { calories: 25, protein: 0.4, carbs: 8.4, fat: 0.1 }, { tbsp: 15, tsp: 5, piece: 44 }),
+  1153: detailWithMacros(1153, "Lemons, raw, without peel", "SR Legacy", { calories: 29, protein: 1.1, carbs: 9.32, fat: 0.3 }, { piece: 58, tbsp: 15, tsp: 5 }),
+  1154: detailWithMacros(1154, "Limes, raw", "SR Legacy", { calories: 30, protein: 0.7, carbs: 10.5, fat: 0.2 }, { piece: 67, tbsp: 15, tsp: 5 }),
   1161: detail(1161, "Oil, sesame, salad or cooking", "Foundation", { tbsp: 13.5, tsp: 4.5 }),
   1162: detailWithMacros(1162, "Nuts, coconut milk, canned (liquid expressed from grated meat and water)", "SR Legacy", { calories: 197, protein: 2.02, carbs: 2.81, fat: 21.3 }, { cup: 240, tbsp: 15, tsp: 5 }),
   1163: detailWithMacros(1163, "Coconut milk", "Survey (FNDDS)", { calories: 31, protein: 0.21, carbs: 2.92, fat: 2.08 }, { cup: 240, tbsp: 15, tsp: 5 }),
@@ -331,7 +341,9 @@ for (const ingredient of [
   "shredded cheddar cheese",
   "soy sauce",
   "rice vinegar",
+  "lemon",
   "lime juice",
+  "lime",
   "sesame oil",
   "coconut milk",
   "salt",
@@ -406,7 +418,7 @@ test("preferCooked biases ambiguous proteins toward cooked USDA entries", async 
 });
 
 test("preferred pantry profiles keep spices and produce on sensible generic values", async () => {
-  const [pepper, gochugaru, rice, eggs, oil, butter, heavyCream, halfAndHalf, chickenBroth, beefBroth, vegetableBroth, coconutMilk, salt, potatoes, starch, steak, onion, avocado, bellPepper, cumin, chili, limeJuice, scotchBonnet] = await Promise.all([
+  const [pepper, gochugaru, rice, eggs, oil, butter, heavyCream, halfAndHalf, chickenBroth, beefBroth, vegetableBroth, coconutMilk, salt, potatoes, starch, steak, onion, avocado, bellPepper, cumin, chili, lemon, limeJuice, lime, scotchBonnet] = await Promise.all([
     resolveIngredientMatch("black pepper"),
     resolveIngredientMatch("gochugaru"),
     resolveIngredientMatch("rice cooked"),
@@ -428,7 +440,9 @@ test("preferred pantry profiles keep spices and produce on sensible generic valu
     resolveIngredientMatch("bell pepper"),
     resolveIngredientMatch("ground cumin"),
     resolveIngredientMatch("chili powder"),
+    resolveIngredientMatch("lemon"),
     resolveIngredientMatch("lime juice"),
+    resolveIngredientMatch("lime"),
     resolveIngredientMatch("scotch bonnet pepper"),
   ]);
 
@@ -460,7 +474,10 @@ test("preferred pantry profiles keep spices and produce on sensible generic valu
   assert.equal(bellPepper.food?.gramsByUnit.piece, 119);
   assert.equal(cumin.food?.gramsByUnit.tsp, 2);
   assert.equal(chili.food?.gramsByUnit.tsp, 2.7);
+  assert.equal(lemon.food?.per100g.calories, 29);
+  assert.equal(lemon.food?.gramsByUnit.piece, 58);
   assert.equal(limeJuice.food?.gramsByUnit.tbsp, 15);
+  assert.equal(lime.food?.per100g.calories, 30);
   assert.equal(scotchBonnet.food?.gramsByUnit.piece, 14);
 });
 

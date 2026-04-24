@@ -430,9 +430,19 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     searchExpansions: ["lemon juice raw", "juice lemon"],
   },
   {
+    canonical: "lemon",
+    aliases: ["lemon", "whole lemon", "fresh lemon"],
+    searchExpansions: ["lemon raw", "lemons raw without peel"],
+  },
+  {
     canonical: "lime juice",
     aliases: ["lime juice", "fresh lime juice", "juice of lime", "juice from lime"],
     searchExpansions: ["lime juice raw", "juice lime"],
+  },
+  {
+    canonical: "lime",
+    aliases: ["lime", "whole lime", "fresh lime"],
+    searchExpansions: ["lime raw", "limes raw"],
   },
   {
     canonical: "sesame oil",
@@ -761,6 +771,22 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
     },
   },
   {
+    canonicalQuery: "lemon",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA fresh lemon entry.",
+    food: {
+      fdcId: 167746,
+      description: "Lemons, Raw, Without Peel",
+      displayName: "Lemon, Raw",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 29, protein: 1.1, carbs: 9.32, fat: 0.3 },
+      gramsByUnit: { g: 1, piece: 58, tbsp: 15, tsp: 5 },
+    },
+  },
+  {
     canonicalQuery: "lime juice",
     confidence: 0.94,
     rationale: "Matched automatically using a preferred USDA pantry entry.",
@@ -774,6 +800,22 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
       servingText: null,
       per100g: { calories: 25, protein: 0.4, carbs: 8.4, fat: 0.1 },
       gramsByUnit: { g: 1, tbsp: 15, tsp: 5, piece: 44 },
+    },
+  },
+  {
+    canonicalQuery: "lime",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA fresh lime entry.",
+    food: {
+      fdcId: 168155,
+      description: "Limes, Raw",
+      displayName: "Lime, Raw",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 30, protein: 0.7, carbs: 10.5, fat: 0.2 },
+      gramsByUnit: { g: 1, piece: 67, tbsp: 15, tsp: 5 },
     },
   },
   {
@@ -1391,8 +1433,16 @@ export function expandSynonyms(normalizedText: string): string[] {
     queries.push("lemon juice raw", "juice lemon");
   }
 
+  if (/\blemon\b/.test(normalizedText) && !/juice/.test(normalizedText)) {
+    queries.push("lemon raw", "lemons raw without peel");
+  }
+
   if (/lime juice/.test(normalizedText)) {
     queries.push("lime juice raw", "juice lime");
+  }
+
+  if (/\blime\b/.test(normalizedText) && !/juice/.test(normalizedText)) {
+    queries.push("lime raw", "limes raw");
   }
 
   if (/yellow onion|onion/.test(normalizedText)) {
@@ -1718,8 +1768,16 @@ function getPreferredGenericProfile(
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "lemon juice") ?? null;
   }
 
+  if (query === "lemon") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "lemon") ?? null;
+  }
+
   if (query === "lime juice") {
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "lime juice") ?? null;
+  }
+
+  if (query === "lime") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "lime") ?? null;
   }
 
   if (query === "soy sauce") {
