@@ -468,6 +468,11 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     searchExpansions: ["salt table"],
   },
   {
+    canonical: "water",
+    aliases: ["water", "tap water", "plain water"],
+    searchExpansions: ["water tap"],
+  },
+  {
     canonical: "black pepper",
     aliases: ["black pepper", "ground black pepper"],
     searchExpansions: ["spices pepper black", "pepper black"],
@@ -912,6 +917,22 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
       servingText: null,
       per100g: { calories: 0, protein: 0, carbs: 0, fat: 0 },
       gramsByUnit: { g: 1, tbsp: 18, tsp: 6 },
+    },
+  },
+  {
+    canonicalQuery: "water",
+    confidence: 0.98,
+    rationale: "Matched automatically using a preferred USDA plain water entry.",
+    food: {
+      fdcId: 2710707,
+      description: "Water, Tap",
+      displayName: "Water",
+      dataType: "Survey (FNDDS)",
+      brandName: null,
+      sourceLabel: "USDA Survey (FNDDS)",
+      servingText: null,
+      per100g: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+      gramsByUnit: { g: 1, cup: 237, tbsp: 15, tsp: 5 },
     },
   },
   {
@@ -1425,6 +1446,10 @@ export function expandSynonyms(normalizedText: string): string[] {
     queries.push("salt table");
   }
 
+  if (/\bwater\b/.test(normalizedText)) {
+    queries.push("water tap");
+  }
+
   if (/rice vinegar/.test(normalizedText)) {
     queries.push("vinegar rice", "vinegar rice wine");
   }
@@ -1778,6 +1803,10 @@ function getPreferredGenericProfile(
 
   if (query === "lime") {
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "lime") ?? null;
+  }
+
+  if (query === "water") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "water") ?? null;
   }
 
   if (query === "soy sauce") {
@@ -2367,6 +2396,10 @@ function getHeuristicUnitWeights(description: string): Partial<Record<Unit, numb
 
   if (/milk, whole|milk, reduced fat|milk, low fat|milk, nonfat|milk, buttermilk/.test(description)) {
     return { cup: 244, tbsp: 15.3, tsp: 5.1 };
+  }
+
+  if (/water, tap|^water$/.test(description)) {
+    return { cup: 237, tbsp: 15, tsp: 5 };
   }
 
   if (/salt/.test(description)) {

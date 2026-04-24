@@ -191,6 +191,13 @@ const SEARCH_FIXTURES = [
     foods: [food(1164, "Salt, table", "SR Legacy")],
   },
   {
+    match: ["water", "water tap"],
+    foods: [
+      food(1165, "Water, tap", "Survey (FNDDS)"),
+      food(1166, "Crackers, water", "Survey (FNDDS)"),
+    ],
+  },
+  {
     match: ["black pepper", "spices pepper black", "pepper black"],
     foods: [
       food(1171, "Spices, pepper, black", "SR Legacy"),
@@ -268,6 +275,8 @@ const DETAIL_FIXTURES = {
   1162: detailWithMacros(1162, "Nuts, coconut milk, canned (liquid expressed from grated meat and water)", "SR Legacy", { calories: 197, protein: 2.02, carbs: 2.81, fat: 21.3 }, { cup: 240, tbsp: 15, tsp: 5 }),
   1163: detailWithMacros(1163, "Coconut milk", "Survey (FNDDS)", { calories: 31, protein: 0.21, carbs: 2.92, fat: 2.08 }, { cup: 240, tbsp: 15, tsp: 5 }),
   1164: detailWithMacros(1164, "Salt, table", "SR Legacy", { calories: 0, protein: 0, carbs: 0, fat: 0 }, { tbsp: 18, tsp: 6 }),
+  1165: detailWithMacros(1165, "Water, tap", "Survey (FNDDS)", { calories: 0, protein: 0, carbs: 0, fat: 0 }, { cup: 237, tbsp: 15, tsp: 5 }),
+  1166: detailWithMacros(1166, "Crackers, water", "Survey (FNDDS)", { calories: 384, protein: 9.5, carbs: 72.2, fat: 8.7 }, { piece: 6 }),
   1171: detail(1171, "Spices, pepper, black", "SR Legacy", { tbsp: 6.8, tsp: 2.3 }),
   1173: detailWithMacros(1173, "Spices, cumin seed", "SR Legacy", { calories: 375, protein: 17.8, carbs: 44.2, fat: 22.3 }, { tbsp: 6, tsp: 2 }),
   1174: detailWithMacros(1174, "Spices, chili powder", "SR Legacy", { calories: 282, protein: 13.5, carbs: 49.7, fat: 14.3 }, { tbsp: 8, tsp: 2.7 }),
@@ -347,6 +356,7 @@ for (const ingredient of [
   "sesame oil",
   "coconut milk",
   "salt",
+  "water",
   "black pepper",
   "ground cumin",
   "chili powder",
@@ -418,7 +428,7 @@ test("preferCooked biases ambiguous proteins toward cooked USDA entries", async 
 });
 
 test("preferred pantry profiles keep spices and produce on sensible generic values", async () => {
-  const [pepper, gochugaru, rice, eggs, oil, butter, heavyCream, halfAndHalf, chickenBroth, beefBroth, vegetableBroth, coconutMilk, salt, potatoes, starch, steak, onion, avocado, bellPepper, cumin, chili, lemon, limeJuice, lime, scotchBonnet] = await Promise.all([
+  const [pepper, gochugaru, rice, eggs, oil, butter, heavyCream, halfAndHalf, chickenBroth, beefBroth, vegetableBroth, coconutMilk, salt, water, potatoes, starch, steak, onion, avocado, bellPepper, cumin, chili, lemon, limeJuice, lime, scotchBonnet] = await Promise.all([
     resolveIngredientMatch("black pepper"),
     resolveIngredientMatch("gochugaru"),
     resolveIngredientMatch("rice cooked"),
@@ -432,6 +442,7 @@ test("preferred pantry profiles keep spices and produce on sensible generic valu
     resolveIngredientMatch("vegetable broth"),
     resolveIngredientMatch("coconut milk"),
     resolveIngredientMatch("salt"),
+    resolveIngredientMatch("water"),
     resolveIngredientMatch("potatoes"),
     resolveIngredientMatch("cornstarch"),
     resolveIngredientMatch("sirloin steak"),
@@ -466,6 +477,8 @@ test("preferred pantry profiles keep spices and produce on sensible generic valu
   assert.equal(coconutMilk.food?.gramsByUnit.cup, 240);
   assert.equal(salt.food?.per100g.calories, 0);
   assert.equal(salt.food?.gramsByUnit.tsp, 6);
+  assert.equal(water.food?.per100g.calories, 0);
+  assert.equal(water.food?.gramsByUnit.cup, 237);
   assert.equal(potatoes.food?.per100g.calories, 77);
   assert.equal(starch.food?.gramsByUnit.tbsp, 8);
   assert.equal(steak.food?.per100g.calories, 206);
