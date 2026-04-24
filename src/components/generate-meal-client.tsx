@@ -657,7 +657,7 @@ function scrollToMealSummary(ref: RefObject<HTMLDivElement | null>) {
     const startY = window.scrollY;
     const targetY = target.getBoundingClientRect().top + window.scrollY - 20;
     const distance = targetY - startY;
-    const durationMs = 1500;
+    const durationMs = 3000;
     let startTime: number | null = null;
 
     const step = (timestamp: number) => {
