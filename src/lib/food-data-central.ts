@@ -278,6 +278,21 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     searchExpansions: ["coriander leaves", "fresh coriander"],
   },
   {
+    canonical: "basil",
+    aliases: ["basil", "thai basil", "sweet basil"],
+    searchExpansions: ["basil fresh", "basil raw"],
+  },
+  {
+    canonical: "parsley",
+    aliases: ["parsley", "italian parsley", "flat leaf parsley", "curly parsley"],
+    searchExpansions: ["parsley fresh", "parsley raw"],
+  },
+  {
+    canonical: "mint",
+    aliases: ["mint", "fresh mint", "spearmint", "peppermint"],
+    searchExpansions: ["mint fresh", "mint raw"],
+  },
+  {
     canonical: "confectioners sugar",
     aliases: ["confectioners sugar", "powdered sugar", "icing sugar"],
     searchExpansions: ["powdered sugar"],
@@ -328,6 +343,21 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     searchExpansions: ["mushrooms"],
   },
   {
+    canonical: "okra",
+    aliases: ["okra"],
+    searchExpansions: ["okra raw"],
+  },
+  {
+    canonical: "plantain",
+    aliases: ["plantain", "plantains"],
+    searchExpansions: ["plantains raw", "plantain raw"],
+  },
+  {
+    canonical: "cassava",
+    aliases: ["cassava", "yuca", "manioc"],
+    searchExpansions: ["cassava raw", "yuca raw"],
+  },
+  {
     canonical: "roma tomato",
     aliases: ["roma tomato", "roma tomatoes"],
     searchExpansions: ["tomato"],
@@ -346,6 +376,11 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     canonical: "soy sauce",
     aliases: ["soy sauce"],
     searchExpansions: ["soy sauce"],
+  },
+  {
+    canonical: "fish sauce",
+    aliases: ["fish sauce", "nam pla", "nuoc mam"],
+    searchExpansions: ["fish sauce", "sauce fish"],
   },
   {
     canonical: "rice vinegar",
@@ -779,6 +814,48 @@ const CATEGORY_FALLBACK_RULES: CategoryFallbackRule[] = [
   },
   {
     test: (ingredient, rawText) =>
+      /\bbasil|thai basil|sweet basil\b/.test(
+        `${ingredient.canonicalQuery} ${rawText}`.toLowerCase(),
+      ),
+    queries: ["basil fresh", "basil raw"],
+    rationale: "Used a generic USDA fresh basil profile for a close herb match.",
+  },
+  {
+    test: (ingredient, rawText) =>
+      /\bparsley|italian parsley|flat leaf parsley|curly parsley\b/.test(
+        `${ingredient.canonicalQuery} ${rawText}`.toLowerCase(),
+      ),
+    queries: ["parsley fresh", "parsley raw"],
+    rationale: "Used a generic USDA parsley profile for a close herb match.",
+  },
+  {
+    test: (ingredient, rawText) =>
+      /\bmint|spearmint|peppermint\b/.test(
+        `${ingredient.canonicalQuery} ${rawText}`.toLowerCase(),
+      ),
+    queries: ["mint fresh", "mint raw"],
+    rationale: "Used a generic USDA fresh mint profile for a close herb match.",
+  },
+  {
+    test: (ingredient, rawText) =>
+      /\bokra\b/.test(`${ingredient.canonicalQuery} ${rawText}`.toLowerCase()),
+    queries: ["okra raw"],
+    rationale: "Used a generic USDA okra profile to keep the estimate accurate.",
+  },
+  {
+    test: (ingredient, rawText) =>
+      /\bplantain|plantains\b/.test(`${ingredient.canonicalQuery} ${rawText}`.toLowerCase()),
+    queries: ["plantains raw", "plantain raw"],
+    rationale: "Used a generic USDA plantain profile for a close produce match.",
+  },
+  {
+    test: (ingredient, rawText) =>
+      /\bcassava|yuca|manioc\b/.test(`${ingredient.canonicalQuery} ${rawText}`.toLowerCase()),
+    queries: ["cassava raw", "yuca raw"],
+    rationale: "Used a generic USDA cassava profile for a close produce match.",
+  },
+  {
+    test: (ingredient, rawText) =>
       /\b(extra virgin olive oil|olive oil|sesame oil|vegetable oil|canola oil|avocado oil|grapeseed oil|neutral oil|oil)\b/.test(
         `${ingredient.canonicalQuery} ${rawText}`.toLowerCase(),
       ),
@@ -816,6 +893,14 @@ const CATEGORY_FALLBACK_RULES: CategoryFallbackRule[] = [
       ),
     queries: ["spices chili powder", "pepper red or cayenne"],
     rationale: "Used a generic USDA chile spice profile for a close pantry match.",
+  },
+  {
+    test: (ingredient, rawText) =>
+      /\bfish sauce|nam pla|nuoc mam\b/.test(
+        `${ingredient.canonicalQuery} ${rawText}`.toLowerCase(),
+      ),
+    queries: ["fish sauce", "sauce fish"],
+    rationale: "Used a generic USDA fish sauce profile for a close pantry match.",
   },
 ];
 
@@ -1899,6 +1984,10 @@ function getHeuristicUnitWeights(description: string): Partial<Record<Unit, numb
     return { tbsp: 16, tsp: 5.3 };
   }
 
+  if (/fish sauce/.test(description)) {
+    return { tbsp: 18, tsp: 6 };
+  }
+
   if (/pepper, black|black pepper|red pepper|cayenne|chili flakes|chile flakes|gochugaru/.test(description)) {
     return { tbsp: 6.8, tsp: 2.3 };
   }
@@ -1931,6 +2020,10 @@ function getHeuristicUnitWeights(description: string): Partial<Record<Unit, numb
     return { piece: 15 };
   }
 
+  if (/basil|parsley|mint/.test(description)) {
+    return { cup: 20 };
+  }
+
   if (/garlic/.test(description)) {
     return { piece: 3 };
   }
@@ -1957,6 +2050,18 @@ function getHeuristicUnitWeights(description: string): Partial<Record<Unit, numb
 
   if (/avocado/.test(description)) {
     return { piece: 150 };
+  }
+
+  if (/okra/.test(description)) {
+    return { piece: 12, cup: 100 };
+  }
+
+  if (/plantain/.test(description)) {
+    return { piece: 179, cup: 148 };
+  }
+
+  if (/cassava/.test(description)) {
+    return { cup: 103, piece: 250 };
   }
 
   if (/lemon|lime/.test(description)) {

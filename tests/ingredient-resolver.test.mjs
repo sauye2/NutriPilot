@@ -74,6 +74,30 @@ const SEARCH_FIXTURES = [
     foods: [food(601, "Mushrooms, white, raw", "Foundation")],
   },
   {
+    match: ["basil fresh", "basil raw"],
+    foods: [food(611, "Basil, fresh", "Foundation")],
+  },
+  {
+    match: ["parsley fresh", "parsley raw"],
+    foods: [food(612, "Parsley, fresh", "Foundation")],
+  },
+  {
+    match: ["mint fresh", "mint raw"],
+    foods: [food(613, "Mint, fresh", "Foundation")],
+  },
+  {
+    match: ["okra raw"],
+    foods: [food(614, "Okra, raw", "Foundation")],
+  },
+  {
+    match: ["plantains raw", "plantain raw"],
+    foods: [food(615, "Plantains, raw", "SR Legacy")],
+  },
+  {
+    match: ["cassava raw", "yuca raw"],
+    foods: [food(616, "Cassava, raw", "SR Legacy")],
+  },
+  {
     match: ["greek yogurt", "yogurt greek"],
     foods: [food(701, "Yogurt, Greek, plain, nonfat", "SR Legacy")],
   },
@@ -99,6 +123,10 @@ const SEARCH_FIXTURES = [
   {
     match: ["soy sauce"],
     foods: [food(1101, "Sauce, soy, made from soy and wheat", "SR Legacy")],
+  },
+  {
+    match: ["fish sauce", "sauce fish"],
+    foods: [food(1102, "Sauce, fish", "SR Legacy")],
   },
   {
     match: ["rice vinegar", "vinegar rice", "vinegar rice wine"],
@@ -161,12 +189,19 @@ const DETAIL_FIXTURES = {
   401: detail(401, "Chicken, broilers or fryers, breast, meat only, cooked, roasted", "Foundation"),
   501: detail(501, "Tomatoes, red, ripe, raw, year round average", "Foundation", { piece: 123 }),
   601: detail(601, "Mushrooms, white, raw", "Foundation", { cup: 70 }),
+  611: detailWithMacros(611, "Basil, fresh", "Foundation", { calories: 23, protein: 3.2, carbs: 2.7, fat: 0.6 }, { cup: 21 }),
+  612: detailWithMacros(612, "Parsley, fresh", "Foundation", { calories: 36, protein: 3, carbs: 6.3, fat: 0.8 }, { cup: 30 }),
+  613: detailWithMacros(613, "Mint, fresh", "Foundation", { calories: 44, protein: 3.3, carbs: 8.4, fat: 0.7 }, { cup: 25 }),
+  614: detailWithMacros(614, "Okra, raw", "Foundation", { calories: 33, protein: 1.9, carbs: 7.5, fat: 0.2 }, { piece: 12, cup: 100 }),
+  615: detailWithMacros(615, "Plantains, raw", "SR Legacy", { calories: 122, protein: 1.3, carbs: 32, fat: 0.4 }, { piece: 179, cup: 148 }),
+  616: detailWithMacros(616, "Cassava, raw", "SR Legacy", { calories: 160, protein: 1.4, carbs: 38.1, fat: 0.3 }, { cup: 103, piece: 250 }),
   701: detail(701, "Yogurt, Greek, plain, nonfat", "SR Legacy", { cup: 245 }),
   801: detail(801, "Onions, young green, tops and bulb, raw", "Foundation", { cup: 100 }),
   901: detail(901, "Beef, ground, 90% lean meat / 10% fat, raw", "SR Legacy"),
   903: detailWithMacros(903, "Beef, ground, unspecified fat content, cooked", "SR Legacy", { calories: 254, protein: 25.9, carbs: 0, fat: 17.4 }, { g: 1 }),
   1001: detail(1001, "Cheese, cheddar", "Foundation", { cup: 113 }),
   1101: detail(1101, "Sauce, soy, made from soy and wheat", "SR Legacy", { tbsp: 16 }),
+  1102: detailWithMacros(1102, "Sauce, fish", "SR Legacy", { calories: 35, protein: 6, carbs: 3.6, fat: 0 }, { tbsp: 18, tsp: 6 }),
   1151: detail(1151, "Vinegar, rice", "SR Legacy", { tbsp: 15, tsp: 5 }),
   1152: detailWithMacros(1152, "Lime juice, raw", "SR Legacy", { calories: 25, protein: 0.4, carbs: 8.4, fat: 0.1 }, { tbsp: 15, tsp: 5, piece: 44 }),
   1161: detail(1161, "Oil, sesame, salad or cooking", "Foundation", { tbsp: 13.5, tsp: 4.5 }),
@@ -229,6 +264,7 @@ for (const ingredient of [
   "chicken breast",
   "roma tomatoes",
   "baby bella mushrooms",
+  "fish sauce",
   "greek yogurt",
   "scallions",
   "90/10 ground beef",
@@ -265,6 +301,12 @@ for (const ingredient of [
   "serrano pepper",
   "poblano pepper",
   "fresno pepper",
+  "thai basil",
+  "parsley",
+  "mint",
+  "okra",
+  "plantain",
+  "cassava",
 ]) {
   test(`falls back to a usable generic family match for ${ingredient}`, async () => {
     const resolution = await resolveIngredientMatch(ingredient);
@@ -333,13 +375,20 @@ test("preferred pantry profiles keep spices and produce on sensible generic valu
   assert.equal(scotchBonnet.food?.gramsByUnit.piece, 14);
 });
 
-test("category fallback keeps future onion and pepper variants from losing nutrition data", async () => {
-  const [shallot, redOnion, serrano, poblano, fresno] = await Promise.all([
+test("category fallback keeps future ingredient families from losing nutrition data", async () => {
+  const [shallot, redOnion, serrano, poblano, fresno, thaiBasil, parsley, mint, okra, plantain, cassava, fishSauce] = await Promise.all([
     resolveIngredientMatch("shallot"),
     resolveIngredientMatch("red onion"),
     resolveIngredientMatch("serrano pepper"),
     resolveIngredientMatch("poblano pepper"),
     resolveIngredientMatch("fresno pepper"),
+    resolveIngredientMatch("thai basil"),
+    resolveIngredientMatch("parsley"),
+    resolveIngredientMatch("mint"),
+    resolveIngredientMatch("okra"),
+    resolveIngredientMatch("plantain"),
+    resolveIngredientMatch("cassava"),
+    resolveIngredientMatch("fish sauce"),
   ]);
 
   assert.equal(shallot.food?.description, "Onions, Yellow, Raw");
@@ -347,6 +396,13 @@ test("category fallback keeps future onion and pepper variants from losing nutri
   assert.equal(serrano.food?.description, "Peppers, Hot, Raw");
   assert.equal(poblano.food?.description, "Peppers, Hot, Raw");
   assert.equal(fresno.food?.description, "Peppers, Hot, Raw");
+  assert.equal(thaiBasil.food?.description, "Basil, Fresh");
+  assert.equal(parsley.food?.description, "Parsley, Fresh");
+  assert.equal(mint.food?.description, "Mint, Fresh");
+  assert.equal(okra.food?.description, "Okra, Raw");
+  assert.equal(plantain.food?.description, "Plantains, Raw");
+  assert.equal(cassava.food?.description, "Cassava, Raw");
+  assert.equal(fishSauce.food?.description, "Sauce, Fish");
 });
 
 function food(fdcId, description, dataType, brandName = undefined) {
