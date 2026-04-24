@@ -226,8 +226,6 @@ const DETAIL_FIXTURES = {
 
 test.before(() => {
   process.env.USDA_FOODDATA_API_KEY = "test-key";
-  process.env.EDAMAM_APP_ID = "edamam-id";
-  process.env.EDAMAM_APP_KEY = "edamam-key";
   globalThis.fetch = async (input, init) => {
     const url = String(input);
 
@@ -245,41 +243,6 @@ test.before(() => {
       const match = url.match(/\/food\/(\d+)/);
       const id = match ? Number(match[1]) : NaN;
       return Response.json(DETAIL_FIXTURES[id] ?? {});
-    }
-
-    if (url.includes("api.edamam.com/api/nutrition-data")) {
-      const parsed = new URL(url);
-      const ingredient = parsed.searchParams.get("ingr")?.toLowerCase() ?? "";
-
-      if (ingredient.includes("coconut aminos")) {
-        return Response.json({
-          calories: 45,
-          totalWeight: 100,
-          totalNutrients: {
-            PROCNT: { quantity: 0 },
-            CHOCDF: { quantity: 7.5 },
-            FAT: { quantity: 0 },
-            ENERC_KCAL: { quantity: 45 },
-          },
-          ingredients: [{ parsed: [{ food: "coconut aminos" }] }],
-        });
-      }
-
-      if (ingredient.includes("tamarind paste")) {
-        return Response.json({
-          calories: 239,
-          totalWeight: 100,
-          totalNutrients: {
-            PROCNT: { quantity: 2.8 },
-            CHOCDF: { quantity: 62.5 },
-            FAT: { quantity: 0.6 },
-            ENERC_KCAL: { quantity: 239 },
-          },
-          ingredients: [{ parsed: [{ food: "tamarind paste" }] }],
-        });
-      }
-
-      return Response.json({}, { status: 422 });
     }
 
     throw new Error(`Unexpected fetch: ${url}`);
@@ -356,8 +319,6 @@ for (const ingredient of [
   "okra",
   "plantain",
   "cassava",
-  "coconut aminos",
-  "tamarind paste",
 ]) {
   test(`falls back to a usable generic family match for ${ingredient}`, async () => {
     const resolution = await resolveIngredientMatch(ingredient);
@@ -459,21 +420,6 @@ test("category fallback keeps future ingredient families from losing nutrition d
   assert.equal(plantain.food?.description, "Plantains, Raw");
   assert.equal(cassava.food?.description, "Cassava, Raw");
   assert.equal(fishSauce.food?.description, "Sauce, Fish");
-});
-
-test("edamam fallback keeps unsupported pantry items from dropping to zero nutrition", async () => {
-  const [coconutAminos, tamarindPaste] = await Promise.all([
-    resolveIngredientMatch("coconut aminos"),
-    resolveIngredientMatch("tamarind paste"),
-  ]);
-
-  assert.equal(coconutAminos.food?.dataType, "Edamam");
-  assert.equal(coconutAminos.food?.per100g.calories, 45);
-  assert.equal(coconutAminos.needsReview, false);
-
-  assert.equal(tamarindPaste.food?.dataType, "Edamam");
-  assert.equal(tamarindPaste.food?.per100g.calories, 239);
-  assert.equal(tamarindPaste.needsReview, false);
 });
 
 function food(fdcId, description, dataType, brandName = undefined) {

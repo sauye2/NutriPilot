@@ -252,34 +252,6 @@ type FdcFoodDetail = {
   householdServingFullText?: string;
 };
 
-type EdamamNutrient = {
-  quantity?: number;
-  unit?: string;
-};
-
-type EdamamIngredientResponse = {
-  calories?: number;
-  totalWeight?: number;
-  totalNutrients?: {
-    PROCNT?: EdamamNutrient;
-    CHOCDF?: EdamamNutrient;
-    FAT?: EdamamNutrient;
-    ENERC_KCAL?: EdamamNutrient;
-  };
-  ingredients?: Array<{
-    text?: string;
-    parsed?: Array<{
-      food?: string;
-      foodMatch?: string;
-      measure?: string;
-      quantity?: number;
-      weight?: number;
-    }>;
-  }>;
-};
-
-const EDAMAM_BASE_URL = "https://api.edamam.com/api/nutrition-data";
-
 const SYNONYM_DICTIONARY: SynonymEntry[] = [
   {
     canonical: "hanger steak",
@@ -1360,32 +1332,6 @@ export async function resolveIngredientMatch(
   let chosen = await hydrateBestCandidate(topCandidates, options?.includeFoodDetails ?? true);
 
   if (!chosen?.food) {
-    const edamamFood = await getEdamamFallbackFood(
-      rawText,
-      normalized.canonicalQuery,
-      getHeuristicUnitWeights(normalized.canonicalQuery.toLowerCase()),
-    );
-
-    if (edamamFood) {
-      chosen = {
-        candidate: {
-          fdcId: edamamFood.fdcId,
-          description: edamamFood.description,
-          dataType: edamamFood.dataType,
-          brandName: undefined,
-          brandOwner: undefined,
-          _score: 72,
-          _confidence: 0.64,
-          _needsReview: false,
-          _rationale:
-            "Used Edamam as a fallback for this ingredient because USDA did not have a confident enough match.",
-        },
-        food: options?.includeFoodDetails === false ? null : edamamFood,
-      };
-    }
-  }
-
-  if (!chosen?.food) {
     const categoryFallback = await resolveCategoryFallback(
       normalized,
       rawText,
@@ -1896,94 +1842,6 @@ function logResolution(payload: {
   }
 
   console.debug("[ingredient-resolver]", JSON.stringify(payload));
-}
-
-async function getEdamamFallbackFood(
-  ingredientText: string,
-  canonicalQuery: string,
-  heuristicUnits: Partial<Record<Unit, number>>,
-): Promise<ResolvedFood | null> {
-  const appId = process.env.EDAMAM_APP_ID?.trim();
-  const appKey = process.env.EDAMAM_APP_KEY?.trim();
-
-  if (!appId || !appKey) {
-    return null;
-  }
-
-  const normalizedText = canonicalQuery.trim() || ingredientText.trim();
-
-  if (!normalizedText) {
-    return null;
-  }
-
-  const ingredientLine = `100 gram ${normalizedText}`;
-  const params = new URLSearchParams({
-    app_id: appId,
-    app_key: appKey,
-    ingr: ingredientLine,
-  });
-
-  const response = await fetch(`${EDAMAM_BASE_URL}?${params.toString()}`, {
-    headers: {
-      Accept: "application/json",
-    },
-    next: { revalidate: 0 },
-  });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  const payload = (await response.json()) as EdamamIngredientResponse;
-  const totalWeight = payload.totalWeight && payload.totalWeight > 0 ? payload.totalWeight : 100;
-  const protein = payload.totalNutrients?.PROCNT?.quantity ?? 0;
-  const carbs = payload.totalNutrients?.CHOCDF?.quantity ?? 0;
-  const fat = payload.totalNutrients?.FAT?.quantity ?? 0;
-  const calories =
-    payload.totalNutrients?.ENERC_KCAL?.quantity ??
-    payload.calories ??
-    protein * 4 + carbs * 4 + fat * 9;
-
-  if (!calories && !protein && !carbs && !fat) {
-    return null;
-  }
-
-  const scale = 100 / totalWeight;
-  const parsedFood =
-    payload.ingredients?.[0]?.parsed?.[0]?.foodMatch?.trim() ||
-    payload.ingredients?.[0]?.parsed?.[0]?.food?.trim() ||
-    normalizedText;
-  const displayName = formatFoodLabel(parsedFood);
-
-  return {
-    fdcId: createSyntheticEdamamId(normalizedText),
-    description: displayName,
-    displayName,
-    dataType: "Edamam",
-    brandName: null,
-    sourceLabel: "Edamam Nutrition Data",
-    servingText: null,
-    per100g: roundTotals({
-      calories: calories * scale,
-      protein: protein * scale,
-      carbs: carbs * scale,
-      fat: fat * scale,
-    }),
-    gramsByUnit: {
-      g: 1,
-      ...heuristicUnits,
-    },
-  };
-}
-
-function createSyntheticEdamamId(input: string) {
-  let hash = 0;
-
-  for (const char of input) {
-    hash = (hash * 31 + char.charCodeAt(0)) | 0;
-  }
-
-  return -Math.abs(hash || 1);
 }
 
 export async function getFoodDetails(fdcId: number): Promise<ResolvedFood | null> {
