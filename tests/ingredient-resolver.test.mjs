@@ -105,6 +105,10 @@ const SEARCH_FIXTURES = [
     foods: [food(1151, "Vinegar, rice", "SR Legacy")],
   },
   {
+    match: ["lime juice", "lime juice raw", "juice lime"],
+    foods: [food(1152, "Lime juice, raw", "SR Legacy")],
+  },
+  {
     match: ["sesame oil", "oil sesame", "sesame seed oil"],
     foods: [food(1161, "Oil, sesame, salad or cooking", "Foundation")],
   },
@@ -126,6 +130,10 @@ const SEARCH_FIXTURES = [
   {
     match: ["gochugaru", "pepper red or cayenne", "red pepper flakes", "chili flakes"],
     foods: [food(1181, "Spices, pepper, red or cayenne", "SR Legacy")],
+  },
+  {
+    match: ["scotch bonnet pepper", "scotch bonnet", "peppers hot raw", "hot pepper raw", "jalapeno pepper raw"],
+    foods: [food(1182, "Peppers, hot, raw", "Survey (FNDDS)")],
   },
   {
     match: ["egg", "eggs whole raw", "egg whole raw"],
@@ -160,11 +168,13 @@ const DETAIL_FIXTURES = {
   1001: detail(1001, "Cheese, cheddar", "Foundation", { cup: 113 }),
   1101: detail(1101, "Sauce, soy, made from soy and wheat", "SR Legacy", { tbsp: 16 }),
   1151: detail(1151, "Vinegar, rice", "SR Legacy", { tbsp: 15, tsp: 5 }),
+  1152: detailWithMacros(1152, "Lime juice, raw", "SR Legacy", { calories: 25, protein: 0.4, carbs: 8.4, fat: 0.1 }, { tbsp: 15, tsp: 5, piece: 44 }),
   1161: detail(1161, "Oil, sesame, salad or cooking", "Foundation", { tbsp: 13.5, tsp: 4.5 }),
   1171: detail(1171, "Spices, pepper, black", "SR Legacy", { tbsp: 6.8, tsp: 2.3 }),
   1173: detailWithMacros(1173, "Spices, cumin seed", "SR Legacy", { calories: 375, protein: 17.8, carbs: 44.2, fat: 22.3 }, { tbsp: 6, tsp: 2 }),
   1174: detailWithMacros(1174, "Spices, chili powder", "SR Legacy", { calories: 282, protein: 13.5, carbs: 49.7, fat: 14.3 }, { tbsp: 8, tsp: 2.7 }),
   1181: detail(1181, "Spices, pepper, red or cayenne", "SR Legacy", { tbsp: 6.8, tsp: 2.3 }),
+  1182: detailWithMacros(1182, "Peppers, hot, raw", "Survey (FNDDS)", { calories: 40, protein: 2, carbs: 9.5, fat: 0.2 }, { piece: 14 }),
   1191: detail(1191, "Egg, whole, raw, fresh", "Foundation", { piece: 50 }),
   1201: detail(1201, "Pork, fresh, belly, raw", "Foundation"),
 };
@@ -225,11 +235,13 @@ for (const ingredient of [
   "shredded cheddar cheese",
   "soy sauce",
   "rice vinegar",
+  "lime juice",
   "sesame oil",
   "black pepper",
   "ground cumin",
   "chili powder",
   "gochugaru",
+  "scotch bonnet pepper",
   "eggs",
   "pork belly",
 ]) {
@@ -270,7 +282,7 @@ test("preferCooked biases ambiguous proteins toward cooked USDA entries", async 
 });
 
 test("preferred pantry profiles keep spices and produce on sensible generic values", async () => {
-  const [pepper, gochugaru, rice, eggs, oil, starch, steak, onion, avocado, bellPepper, cumin, chili] = await Promise.all([
+  const [pepper, gochugaru, rice, eggs, oil, starch, steak, onion, avocado, bellPepper, cumin, chili, limeJuice, scotchBonnet] = await Promise.all([
     resolveIngredientMatch("black pepper"),
     resolveIngredientMatch("gochugaru"),
     resolveIngredientMatch("rice cooked"),
@@ -283,6 +295,8 @@ test("preferred pantry profiles keep spices and produce on sensible generic valu
     resolveIngredientMatch("bell pepper"),
     resolveIngredientMatch("ground cumin"),
     resolveIngredientMatch("chili powder"),
+    resolveIngredientMatch("lime juice"),
+    resolveIngredientMatch("scotch bonnet pepper"),
   ]);
 
   assert.equal(pepper.matchedFoodId, 170931);
@@ -299,6 +313,8 @@ test("preferred pantry profiles keep spices and produce on sensible generic valu
   assert.equal(bellPepper.food?.gramsByUnit.piece, 119);
   assert.equal(cumin.food?.gramsByUnit.tsp, 2);
   assert.equal(chili.food?.gramsByUnit.tsp, 2.7);
+  assert.equal(limeJuice.food?.gramsByUnit.tbsp, 15);
+  assert.equal(scotchBonnet.food?.gramsByUnit.piece, 14);
 });
 
 function food(fdcId, description, dataType, brandName = undefined) {

@@ -352,6 +352,11 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     searchExpansions: ["lemon juice raw", "juice lemon"],
   },
   {
+    canonical: "lime juice",
+    aliases: ["lime juice", "fresh lime juice", "juice of lime", "juice from lime"],
+    searchExpansions: ["lime juice raw", "juice lime"],
+  },
+  {
     canonical: "sesame oil",
     aliases: ["sesame oil", "toasted sesame oil"],
     searchExpansions: ["oil sesame", "sesame seed oil"],
@@ -370,6 +375,11 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     canonical: "chili powder",
     aliases: ["chili powder"],
     searchExpansions: ["spices chili powder"],
+  },
+  {
+    canonical: "scotch bonnet pepper",
+    aliases: ["scotch bonnet", "scotch bonnet pepper", "scotch bonnet peppers"],
+    searchExpansions: ["peppers hot raw", "hot pepper raw", "jalapeno pepper raw"],
   },
   {
     canonical: "gochugaru",
@@ -607,6 +617,22 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
     },
   },
   {
+    canonicalQuery: "lime juice",
+    confidence: 0.94,
+    rationale: "Matched automatically using a preferred USDA pantry entry.",
+    food: {
+      fdcId: 168156,
+      description: "Lime Juice, Raw",
+      displayName: "Lime Juice, Raw",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 25, protein: 0.4, carbs: 8.4, fat: 0.1 },
+      gramsByUnit: { g: 1, tbsp: 15, tsp: 5, piece: 44 },
+    },
+  },
+  {
     canonicalQuery: "soy sauce",
     confidence: 0.95,
     rationale: "Matched automatically using a preferred USDA pantry entry.",
@@ -700,6 +726,22 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
       servingText: null,
       per100g: { calories: 206, protein: 28.6, carbs: 0, fat: 10.6 },
       gramsByUnit: { g: 1, piece: 170 },
+    },
+  },
+  {
+    canonicalQuery: "scotch bonnet pepper",
+    confidence: 0.9,
+    rationale: "Matched automatically using a preferred USDA hot pepper equivalent.",
+    food: {
+      fdcId: 2709798,
+      description: "Peppers, Hot, Raw",
+      displayName: "Peppers, Hot, Raw",
+      dataType: "Survey (FNDDS)",
+      brandName: null,
+      sourceLabel: "USDA Survey (FNDDS)",
+      servingText: null,
+      per100g: { calories: 40, protein: 2, carbs: 9.5, fat: 0.2 },
+      gramsByUnit: { g: 1, piece: 14 },
     },
   },
 ];
@@ -882,6 +924,10 @@ export function expandSynonyms(normalizedText: string): string[] {
     queries.push("spices chili powder");
   }
 
+  if (/scotch bonnet/.test(normalizedText)) {
+    queries.push("peppers hot raw", "hot pepper raw", "jalapeno pepper raw");
+  }
+
   if (/gochugaru/.test(normalizedText)) {
     queries.push("pepper red or cayenne", "red pepper flakes", "chili flakes");
   }
@@ -900,6 +946,10 @@ export function expandSynonyms(normalizedText: string): string[] {
 
   if (/lemon juice/.test(normalizedText)) {
     queries.push("lemon juice raw", "juice lemon");
+  }
+
+  if (/lime juice/.test(normalizedText)) {
+    queries.push("lime juice raw", "juice lime");
   }
 
   if (/yellow onion|onion/.test(normalizedText)) {
@@ -1150,6 +1200,10 @@ function getPreferredGenericProfile(
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "lemon juice") ?? null;
   }
 
+  if (query === "lime juice") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "lime juice") ?? null;
+  }
+
   if (query === "soy sauce") {
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "soy sauce") ?? null;
   }
@@ -1164,6 +1218,10 @@ function getPreferredGenericProfile(
 
   if (query === "chili powder") {
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "chili powder") ?? null;
+  }
+
+  if (query === "scotch bonnet pepper" || query === "scotch bonnet") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "scotch bonnet pepper") ?? null;
   }
 
   if (/\bsirloin steak\b/.test(query) || /\bsirloin steak\b/.test(raw)) {
@@ -1677,6 +1735,10 @@ function getHeuristicUnitWeights(description: string): Partial<Record<Unit, numb
     return { tbsp: 15, tsp: 5 };
   }
 
+  if (/lemon juice|lime juice/.test(description)) {
+    return { tbsp: 15, tsp: 5 };
+  }
+
   if (/soy sauce/.test(description)) {
     return { tbsp: 16, tsp: 5.3 };
   }
@@ -1723,6 +1785,10 @@ function getHeuristicUnitWeights(description: string): Partial<Record<Unit, numb
 
   if (/jalapeno|serrano|chili pepper/.test(description)) {
     return { piece: 45 };
+  }
+
+  if (/peppers, hot|hot pepper|jalapeno pepper/.test(description)) {
+    return { piece: 14 };
   }
 
   if (/bell pepper|sweet pepper/.test(description)) {
