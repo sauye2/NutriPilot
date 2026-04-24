@@ -323,6 +323,11 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     searchExpansions: ["olive oil"],
   },
   {
+    canonical: "butter",
+    aliases: ["butter", "salted butter", "unsalted butter"],
+    searchExpansions: ["butter", "butter salted"],
+  },
+  {
     canonical: "neutral oil",
     aliases: ["neutral oil", "vegetable oil", "canola oil", "avocado oil", "grapeseed oil"],
     searchExpansions: ["vegetable oil", "oil vegetable", "canola oil"],
@@ -371,6 +376,11 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     canonical: "white rice",
     aliases: ["white rice"],
     searchExpansions: ["rice white", "rice", "rice white long-grain regular cooked"],
+  },
+  {
+    canonical: "potatoes",
+    aliases: ["potato", "potatoes", "russet potato", "russet potatoes", "yellow potato", "gold potato"],
+    searchExpansions: ["potatoes raw", "potato raw"],
   },
   {
     canonical: "soy sauce",
@@ -562,6 +572,22 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
     },
   },
   {
+    canonicalQuery: "butter",
+    confidence: 0.97,
+    rationale: "Matched automatically using a preferred USDA generic butter entry.",
+    food: {
+      fdcId: 173410,
+      description: "Butter, Salted",
+      displayName: "Butter",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 717, protein: 0.9, carbs: 0.1, fat: 81.1 },
+      gramsByUnit: { g: 1, tbsp: 14.2, tsp: 4.7 },
+    },
+  },
+  {
     canonicalQuery: "yellow onion",
     confidence: 0.95,
     rationale: "Matched automatically using a preferred USDA produce entry.",
@@ -738,6 +764,22 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
     },
   },
   {
+    canonicalQuery: "potatoes",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA generic potato entry.",
+    food: {
+      fdcId: 170026,
+      description: "Potatoes, Flesh And Skin, Raw",
+      displayName: "Potatoes, Raw",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 77, protein: 2, carbs: 17.5, fat: 0.1 },
+      gramsByUnit: { g: 1, piece: 173, cup: 150 },
+    },
+  },
+  {
     canonicalQuery: "sirloin steak cooked",
     confidence: 0.96,
     rationale: "Matched automatically using a preferred USDA cooked beef entry.",
@@ -844,6 +886,14 @@ const CATEGORY_FALLBACK_RULES: CategoryFallbackRule[] = [
   },
   {
     test: (ingredient, rawText) =>
+      /\bpotato|potatoes|russet|yukon gold|yellow potato|gold potato\b/.test(
+        `${ingredient.canonicalQuery} ${rawText}`.toLowerCase(),
+      ),
+    queries: ["potatoes raw", "potato raw"],
+    rationale: "Used a generic USDA potato profile to keep the estimate accurate.",
+  },
+  {
+    test: (ingredient, rawText) =>
       /\bplantain|plantains\b/.test(`${ingredient.canonicalQuery} ${rawText}`.toLowerCase()),
     queries: ["plantains raw", "plantain raw"],
     rationale: "Used a generic USDA plantain profile for a close produce match.",
@@ -861,6 +911,14 @@ const CATEGORY_FALLBACK_RULES: CategoryFallbackRule[] = [
       ),
     queries: ["vegetable oil", "olive oil"],
     rationale: "Used a generic USDA cooking oil profile to avoid a missing estimate.",
+  },
+  {
+    test: (ingredient, rawText) =>
+      /\bbutter|salted butter|unsalted butter\b/.test(
+        `${ingredient.canonicalQuery} ${rawText}`.toLowerCase(),
+      ),
+    queries: ["butter", "butter salted"],
+    rationale: "Used a generic USDA butter profile to keep the estimate accurate.",
   },
   {
     test: (ingredient, rawText) =>

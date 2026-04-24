@@ -25,6 +25,10 @@ const SEARCH_FIXTURES = [
     ],
   },
   {
+    match: ["butter", "butter salted"],
+    foods: [food(205, "Butter, salted", "SR Legacy")],
+  },
+  {
     match: ["neutral oil", "vegetable oil", "oil vegetable", "canola oil"],
     foods: [food(211, "Oil, vegetable, soybean, salad or cooking", "SR Legacy")],
   },
@@ -50,6 +54,10 @@ const SEARCH_FIXTURES = [
       food(301, "Rice, white, long-grain, regular, cooked", "SR Legacy"),
       food(302, "Rice bowl with vegetables", "Survey (FNDDS)"),
     ],
+  },
+  {
+    match: ["potatoes raw", "potato raw"],
+    foods: [food(303, "Potatoes, flesh and skin, raw", "SR Legacy")],
   },
   {
     match: ["sirloin steak", "beef top sirloin cooked", "beef sirloin steak cooked", "beef steak cooked"],
@@ -179,12 +187,14 @@ const SEARCH_FIXTURES = [
 const DETAIL_FIXTURES = {
   101: detail(101, "Beef, hanging tender steak, separable lean only, trimmed to 0\" fat, choice, raw", "Foundation"),
   201: detail(201, "Oil, olive, salad or cooking", "Foundation", { tbsp: 13.5, tsp: 4.5 }),
+  205: detailWithMacros(205, "Butter, salted", "SR Legacy", { calories: 717, protein: 0.9, carbs: 0.1, fat: 81.1 }, { tbsp: 14.2, tsp: 4.7 }),
   211: detailWithMacros(211, "Oil, vegetable, soybean, salad or cooking", "SR Legacy", { calories: 884, protein: 0, carbs: 0, fat: 100 }, { tbsp: 13.6, tsp: 4.5 }),
   212: detailWithMacros(212, "Cornstarch", "SR Legacy", { calories: 381, protein: 0.3, carbs: 91.3, fat: 0.1 }, { tbsp: 8, tsp: 2.7 }),
   213: detailWithMacros(213, "Peppers, bell, green, raw", "Foundation", { calories: 20, protein: 0.86, carbs: 4.64, fat: 0.17 }, { piece: 119, cup: 92 }),
   214: detailWithMacros(214, "Onions, yellow, raw", "Foundation", { calories: 37, protein: 0.77, carbs: 8.61, fat: 0.09 }, { piece: 110, cup: 160 }),
   215: detailWithMacros(215, "Avocados, raw, california", "SR Legacy", { calories: 167, protein: 2, carbs: 8.6, fat: 15.4 }, { piece: 150, cup: 150 }),
   301: detail(301, "Rice, white, long-grain, regular, cooked", "SR Legacy", { cup: 158 }),
+  303: detailWithMacros(303, "Potatoes, flesh and skin, raw", "SR Legacy", { calories: 77, protein: 2, carbs: 17.5, fat: 0.1 }, { piece: 173, cup: 150 }),
   311: detailWithMacros(311, "Beef, top sirloin, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, grilled", "SR Legacy", { calories: 206, protein: 28.6, carbs: 0, fat: 10.6 }, { piece: 170 }),
   401: detail(401, "Chicken, broilers or fryers, breast, meat only, cooked, roasted", "Foundation"),
   501: detail(501, "Tomatoes, red, ripe, raw, year round average", "Foundation", { piece: 123 }),
@@ -254,12 +264,14 @@ test("normalization preserves meaningful descriptors and strips recipe noise", (
 for (const ingredient of [
   "hanger steak",
   "extra virgin olive oil",
+  "butter",
   "neutral oil",
   "cornstarch",
   "bell pepper",
   "yellow onion",
   "avocado",
   "white rice",
+  "potatoes",
   "sirloin steak",
   "chicken breast",
   "roma tomatoes",
@@ -340,12 +352,14 @@ test("preferCooked biases ambiguous proteins toward cooked USDA entries", async 
 });
 
 test("preferred pantry profiles keep spices and produce on sensible generic values", async () => {
-  const [pepper, gochugaru, rice, eggs, oil, starch, steak, onion, avocado, bellPepper, cumin, chili, limeJuice, scotchBonnet] = await Promise.all([
+  const [pepper, gochugaru, rice, eggs, oil, butter, potatoes, starch, steak, onion, avocado, bellPepper, cumin, chili, limeJuice, scotchBonnet] = await Promise.all([
     resolveIngredientMatch("black pepper"),
     resolveIngredientMatch("gochugaru"),
     resolveIngredientMatch("rice cooked"),
     resolveIngredientMatch("eggs"),
     resolveIngredientMatch("neutral oil"),
+    resolveIngredientMatch("butter"),
+    resolveIngredientMatch("potatoes"),
     resolveIngredientMatch("cornstarch"),
     resolveIngredientMatch("sirloin steak"),
     resolveIngredientMatch("yellow onion"),
@@ -364,6 +378,9 @@ test("preferred pantry profiles keep spices and produce on sensible generic valu
   assert.equal(rice.matchedFoodId, 168878);
   assert.equal(eggs.matchedFoodId, 171287);
   assert.equal(oil.food?.gramsByUnit.tbsp, 13.6);
+  assert.equal(butter.food?.per100g.calories, 717);
+  assert.equal(butter.food?.gramsByUnit.tbsp, 14.2);
+  assert.equal(potatoes.food?.per100g.calories, 77);
   assert.equal(starch.food?.gramsByUnit.tbsp, 8);
   assert.equal(steak.food?.per100g.calories, 206);
   assert.equal(onion.food?.gramsByUnit.piece, 110);
