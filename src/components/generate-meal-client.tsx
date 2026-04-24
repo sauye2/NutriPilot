@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, type RefObject } from "react";
 import { AppShell } from "@/components/app-shell";
 import { GroceryListPanel } from "@/components/grocery-list-panel";
 import { SectionCard } from "@/components/section-card";
@@ -49,6 +49,7 @@ type OptimizationSuggestionState = OptimizationSuggestion & {
 };
 
 export function GenerateMealClient() {
+  const mealSummaryRef = useRef<HTMLDivElement | null>(null);
   const [goals, setGoals] = useState<GoalDraft>({
     calories: "",
     protein: "",
@@ -176,6 +177,8 @@ export function GenerateMealClient() {
           })),
         );
       }
+
+      scrollToMealSummary(mealSummaryRef);
       return payload.updatedMeal;
     } catch {
       setError("Lazy Mode could not revise the meal.");
@@ -316,23 +319,24 @@ export function GenerateMealClient() {
           </SectionCard>
 
           <div className="space-y-6">
-            <SectionCard
-              title={meal ? meal.title : "Meal Preview"}
-              eyebrow={meal ? "Meal idea" : "Preview"}
-              action={
-                meal ? (
-                  <button
-                    className="rounded-[8px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--primary-strong)]"
-                    type="button"
-                    onClick={acceptCurrentMeal}
-                  >
-                    Accept Meal
-                  </button>
-                ) : undefined
-              }
-            >
-              {meal ? (
-                <div className="space-y-5">
+            <div ref={mealSummaryRef}>
+              <SectionCard
+                title={meal ? meal.title : "Meal Preview"}
+                eyebrow={meal ? "Meal idea" : "Preview"}
+                action={
+                  meal ? (
+                    <button
+                      className="rounded-[8px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--primary-strong)]"
+                      type="button"
+                      onClick={acceptCurrentMeal}
+                    >
+                      Accept Meal
+                    </button>
+                  ) : undefined
+                }
+              >
+                {meal ? (
+                  <div className="space-y-5">
                   <div className="grid gap-3 sm:grid-cols-4">
                     <Metric label="Calories" value={String(meal.totals.calories)} />
                     <Metric label="Protein" value={`${meal.totals.protein}g`} />
@@ -411,19 +415,20 @@ export function GenerateMealClient() {
                       </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div className="rounded-[8px] border border-dashed border-[var(--border)] bg-[var(--muted-soft)] px-4 py-8 text-center">
-                  <p className="text-sm font-medium text-[var(--foreground)]">
-                    Start with a few goals and we&apos;ll sketch out a meal here.
-                  </p>
-                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--muted)]">
-                    A little direction goes a long way. Choose a cuisine, pick a food to
-                    build around, and we&apos;ll handle the first draft.
-                  </p>
-                </div>
-              )}
-            </SectionCard>
+                  </div>
+                ) : (
+                  <div className="rounded-[8px] border border-dashed border-[var(--border)] bg-[var(--muted-soft)] px-4 py-8 text-center">
+                    <p className="text-sm font-medium text-[var(--foreground)]">
+                      Start with a few goals and we&apos;ll sketch out a meal here.
+                    </p>
+                    <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--muted)]">
+                      A little direction goes a long way. Choose a cuisine, pick a food to
+                      build around, and we&apos;ll handle the first draft.
+                    </p>
+                  </div>
+                )}
+              </SectionCard>
+            </div>
 
             {meal &&
             optimizationSuggestions.some((suggestion) => suggestion.status !== "dismissed") ? (
@@ -573,6 +578,15 @@ function mergeOptimizationSuggestions(
   }
 
   return merged;
+}
+
+function scrollToMealSummary(ref: RefObject<HTMLDivElement | null>) {
+  requestAnimationFrame(() => {
+    ref.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  });
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
