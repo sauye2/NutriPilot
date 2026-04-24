@@ -164,15 +164,24 @@ function getCategoryWeight(
   macro: keyof MacroTotals,
 ) {
   if (category === "protein") {
-    return macro === "protein" || macro === "calories" || macro === "fat" ? 1.25 : 0.7;
+    if (macro === "protein") return 0.45;
+    if (macro === "carbs") return 0.35;
+    if (macro === "fat") return 0.7;
+    return 0.5;
   }
 
   if (category === "fat") {
-    return macro === "fat" || macro === "calories" ? 1.2 : 0.55;
+    if (macro === "fat") return 1.7;
+    if (macro === "carbs") return 0.6;
+    if (macro === "protein") return 0.4;
+    return 1.45;
   }
 
   if (category === "carb") {
-    return macro === "carbs" || macro === "calories" ? 1.05 : 0.65;
+    if (macro === "fat") return 0.95;
+    if (macro === "carbs") return 1.25;
+    if (macro === "protein") return 0.38;
+    return 1.15;
   }
 
   if (category === "produce") {
@@ -194,18 +203,19 @@ function getTrimFactor(
   const category = categorizeIngredientForOptimization(ingredient.name);
   const severeOvershoot =
     (thresholds.calories > 0 && totals.calories > thresholds.calories * 1.45) ||
-    (thresholds.protein > 0 && totals.protein > thresholds.protein * 1.55);
+    (thresholds.fat > 0 && totals.fat > thresholds.fat * 1.5) ||
+    (thresholds.carbs > 0 && totals.carbs > thresholds.carbs * 1.45);
 
   if (category === "protein") {
-    return severeOvershoot ? 0.72 : 0.84;
+    return severeOvershoot ? 0.82 : 0.9;
   }
 
   if (category === "fat") {
-    return severeOvershoot ? 0.68 : 0.8;
+    return severeOvershoot ? 0.62 : 0.76;
   }
 
   if (category === "carb") {
-    return severeOvershoot ? 0.78 : 0.88;
+    return severeOvershoot ? 0.72 : 0.84;
   }
 
   if (category === "produce") {
@@ -473,7 +483,7 @@ function scoreBoostCandidate(
 
   if (phase === "protein") {
     if (category !== "protein") {
-      return category === "carb" ? 20 : 0;
+      return category === "carb" ? 12 : 0;
     }
 
     let score = ingredient.totals.protein * 42 + proteinDensity * 900;
@@ -496,23 +506,15 @@ function scoreBoostCandidate(
   }
 
   if (category === "carb") {
-    score += 185 + carbDensity * 260;
+    score += 170 + carbDensity * 220;
   } else if (category === "fat") {
-    score += 160 + fatDensity * 220;
+    score += 120 + fatDensity * 150;
   } else if (category === "protein") {
-    if (goals.protein > 0 && totals.protein < goals.protein * 0.95) {
-      score += 165 + proteinDensity * 520;
-    } else {
-      score -= goals.protein > 0 && totals.protein >= goals.protein * 1.02 ? 180 : 40;
-    }
+    score += 235 + proteinDensity * 700;
   } else if (category === "produce") {
     score -= 40;
   } else if (category === "seasoning" || category === "aromatic") {
     score -= 70;
-  }
-
-  if (goals.protein > 0 && totals.protein > goals.protein * 1.25 && category === "protein") {
-    score -= 120;
   }
 
   return score;
@@ -536,16 +538,16 @@ function getBoostFactor(
     return 1.08;
   }
 
+  if (category === "protein") {
+    return severeProteinUndershoot ? 1.28 : 1.18;
+  }
+
   if (category === "carb") {
     return severeCalorieUndershoot ? 1.38 : 1.24;
   }
 
   if (category === "fat") {
     return severeCalorieUndershoot ? 1.3 : 1.18;
-  }
-
-  if (category === "protein") {
-    return severeProteinUndershoot ? 1.25 : 1.14;
   }
 
   return 1.1;

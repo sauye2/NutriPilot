@@ -48,7 +48,7 @@ test("optimizer rescales very rich pork belly meals instead of leaving them thou
   assert.ok(totals.calories < 1300, `calories should be much closer to target, got ${totals.calories}`);
 });
 
-test("optimizer can nudge light meals upward with existing carb and fat ingredients", () => {
+test("optimizer prioritizes protein first when filling a calorie gap", () => {
   const ingredients = [
     ingredient("sirloin steak", 190, "g", { calories: 206, protein: 28.6, carbs: 0, fat: 10.6 }),
     ingredient("broccoli florets", 150, "g", { calories: 34, protein: 2.8, carbs: 6.6, fat: 0.4 }),
@@ -64,15 +64,15 @@ test("optimizer can nudge light meals upward with existing carb and fat ingredie
   });
 
   const totals = sumTotals(optimized);
-  const oil = optimized.find((ingredient) => ingredient.name === "neutral oil");
-  const starch = optimized.find((ingredient) => ingredient.name === "cornstarch");
+  const steak = optimized.find((ingredient) => ingredient.name === "sirloin steak");
 
-  assert.ok(oil);
+  assert.ok(steak);
   assert.ok(
-    (oil?.amount ?? 0) > 0.8 || (starch?.amount ?? 0) > 0.8,
-    "existing calorie sources should be increased when meal is too light",
+    (steak?.amount ?? 0) > 190,
+    "protein should be increased first when the meal is light and still under the protein target",
   );
   assert.ok(totals.calories > 500, `calories should come up meaningfully, got ${totals.calories}`);
+  assert.ok(totals.protein > 60, `protein should come up aggressively, got ${totals.protein}`);
 });
 
 test("optimizer boosts protein-forward ingredients when the draft is far under the protein target", () => {
