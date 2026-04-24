@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type RefObject,
+} from "react";
 import { AppShell } from "@/components/app-shell";
 import { GroceryListPanel } from "@/components/grocery-list-panel";
 import { SectionCard } from "@/components/section-card";
@@ -221,6 +228,34 @@ export function GenerateMealClient() {
     saveAcceptedGeneratedMeal(meal);
   }
 
+  function handleGenerateSubmit() {
+    if (isGenerating || !hasGoals) {
+      return;
+    }
+
+    void handleGenerate();
+  }
+
+  function handleReviseSubmit() {
+    if (isRevising || feedback.trim().length < 4) {
+      return;
+    }
+
+    void handleRevise(true);
+  }
+
+  function handleEnterSubmit(
+    event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
+    submit: () => void,
+  ) {
+    if (event.key !== "Enter" || event.shiftKey) {
+      return;
+    }
+
+    event.preventDefault();
+    submit();
+  }
+
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-7xl px-5 pb-12 pt-4 sm:px-8">
@@ -239,8 +274,14 @@ export function GenerateMealClient() {
         </section>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(340px,0.9fr)_minmax(0,1.1fr)]">
-          <SectionCard title="Build a Meal for Me" eyebrow="A gentle shortcut">
-            <div className="space-y-4">
+          <SectionCard title="Build a Meal for Me" eyebrow="Lazy Mode">
+            <form
+              className="space-y-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                handleGenerateSubmit();
+              }}
+            >
               <div className="grid grid-cols-2 gap-3">
                 {(Object.keys(goals) as MacroKey[]).map((key) => (
                   <label key={key} className="block">
@@ -251,6 +292,7 @@ export function GenerateMealClient() {
                       className="focus-ring h-11 w-full rounded-[8px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
                       placeholder={goalPlaceholders[key]}
                       value={goals[key]}
+                      onKeyDown={(event) => handleEnterSubmit(event, handleGenerateSubmit)}
                       onChange={(event) =>
                         setGoals((current) => ({ ...current, [key]: event.target.value }))
                       }
@@ -267,6 +309,7 @@ export function GenerateMealClient() {
                   className="focus-ring h-11 w-full rounded-[8px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
                   placeholder="Italian, Mexican, Korean..."
                   value={cuisine}
+                  onKeyDown={(event) => handleEnterSubmit(event, handleGenerateSubmit)}
                   onChange={(event) => setCuisine(event.target.value)}
                 />
               </label>
@@ -279,6 +322,7 @@ export function GenerateMealClient() {
                   className="focus-ring h-11 w-full rounded-[8px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
                   placeholder="Steak, pasta, salmon, chicken bowl..."
                   value={anchorFood}
+                  onKeyDown={(event) => handleEnterSubmit(event, handleGenerateSubmit)}
                   onChange={(event) => setAnchorFood(event.target.value)}
                 />
               </label>
@@ -291,6 +335,7 @@ export function GenerateMealClient() {
                   className="focus-ring min-h-28 w-full rounded-[8px] border border-[var(--border)] bg-white px-3 py-3 text-sm text-[var(--foreground)]"
                   placeholder="Anything to avoid, time constraints, flavor preferences..."
                   value={dietaryNotes}
+                  onKeyDown={(event) => handleEnterSubmit(event, handleGenerateSubmit)}
                   onChange={(event) => setDietaryNotes(event.target.value)}
                 />
               </label>
@@ -298,8 +343,7 @@ export function GenerateMealClient() {
               <button
                 className="rounded-[8px] bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={isGenerating || !hasGoals}
-                type="button"
-                onClick={() => void handleGenerate()}
+                type="submit"
               >
                 {isGenerating ? "Generating..." : "Generate Meal"}
               </button>
@@ -315,7 +359,7 @@ export function GenerateMealClient() {
                   {error}
                 </div>
               ) : null}
-            </div>
+            </form>
           </SectionCard>
 
           <div className="space-y-6">
@@ -518,11 +562,18 @@ export function GenerateMealClient() {
 
             {meal ? (
               <SectionCard title="Make It Your Own" eyebrow="Add a note">
-                <div className="space-y-4">
+                <form
+                  className="space-y-4"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    handleReviseSubmit();
+                  }}
+                >
                   <textarea
                     className="focus-ring min-h-28 w-full rounded-[8px] border border-[var(--border)] bg-white px-3 py-3 text-sm text-[var(--foreground)]"
                     placeholder="Want a little more heat, fewer onions, another side, or a different feel? Add a note here."
                     value={feedback}
+                    onKeyDown={(event) => handleEnterSubmit(event, handleReviseSubmit)}
                     onChange={(event) => setFeedback(event.target.value)}
                   />
 
@@ -530,13 +581,12 @@ export function GenerateMealClient() {
                     <button
                       className="rounded-[8px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                       disabled={isRevising || feedback.trim().length < 4}
-                      type="button"
-                      onClick={() => void handleRevise(true)}
+                      type="submit"
                     >
                       {isRevising ? "Revising..." : "Revise from feedback"}
                     </button>
                   </div>
-                </div>
+                </form>
               </SectionCard>
             ) : null}
 
@@ -607,7 +657,7 @@ function scrollToMealSummary(ref: RefObject<HTMLDivElement | null>) {
     const startY = window.scrollY;
     const targetY = target.getBoundingClientRect().top + window.scrollY - 20;
     const distance = targetY - startY;
-    const durationMs = 900;
+    const durationMs = 1100;
     let startTime: number | null = null;
 
     const step = (timestamp: number) => {
