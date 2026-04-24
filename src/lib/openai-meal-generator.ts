@@ -66,6 +66,7 @@ export async function generateMealDraft(
     "Being close to the nutrition targets is fine; the meal does not need to match them exactly.",
     "Draft a realistic single serving. If the anchor ingredient is rich, reduce the portion size instead of massively overshooting calories, protein, or fat.",
     "If the calorie target is much higher than the protein target, include a coherent calorie source like rice, noodles, potatoes, or cooking fat so the meal does not undershoot calories by hundreds.",
+    "Assume nutrition counts should reflect cooked, edible portions for served ingredients unless the ingredient clearly needs to stay raw.",
     "Aim for variety in dish format and do not default to lettuce wraps when other strong options fit the brief.",
     "For Korean-inspired meals with pork belly, consider a broader range of formats like rice bowls, stir-fries, ssam, noodle dishes, stews, and skillet meals.",
     `Variety direction for this draft: ${varietyDirection}`,
@@ -270,6 +271,7 @@ async function hydrateGeneratedMeal(
     draft.ingredients.map(async (ingredient) => {
       const resolution = await resolveIngredientMatch(
         getGeneratedLookupQuery(ingredient.name, ingredient.unit),
+        { preferCooked: true },
       );
       const food = resolution.food;
       const chosenUnit = chooseGeneratedUnit(
@@ -418,6 +420,19 @@ function getGeneratedLookupQuery(name: string, unit: Unit) {
 
   if (/cornstarch|corn starch/.test(lower)) {
     return "cornstarch";
+  }
+
+  if (
+    !/\b(?:raw|cooked)\b/.test(lower) &&
+    /(chicken breast|chicken thigh|ground beef|salmon|shrimp|pork belly|pork loin|pork shoulder)/.test(lower)
+  ) {
+    if (/chicken breast/.test(lower)) return "chicken breast roasted";
+    if (/chicken thigh/.test(lower)) return "chicken thigh cooked";
+    if (/ground beef/.test(lower)) return "ground beef cooked";
+    if (/salmon/.test(lower)) return "salmon cooked";
+    if (/shrimp/.test(lower)) return "shrimp cooked";
+    if (/pork belly/.test(lower)) return "pork belly cooked";
+    return `${name} cooked`;
   }
 
   if (

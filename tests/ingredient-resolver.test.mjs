@@ -82,11 +82,15 @@ const SEARCH_FIXTURES = [
     foods: [food(801, "Onions, young green, tops and bulb, raw", "Foundation")],
   },
   {
-    match: ["ground beef 90 percent lean", "ground beef 90% lean", "ground beef"],
+    match: ["ground beef 90 percent lean", "ground beef 90% lean"],
     foods: [
       food(901, "Beef, ground, 90% lean meat / 10% fat, raw", "SR Legacy"),
       food(902, "Beef, ground, 70% lean meat / 30% fat, raw", "SR Legacy"),
     ],
+  },
+  {
+    match: ["ground beef cooked"],
+    foods: [food(903, "Beef, ground, unspecified fat content, cooked", "SR Legacy")],
   },
   {
     match: ["shredded cheddar cheese", "cheddar cheese"],
@@ -152,6 +156,7 @@ const DETAIL_FIXTURES = {
   701: detail(701, "Yogurt, Greek, plain, nonfat", "SR Legacy", { cup: 245 }),
   801: detail(801, "Onions, young green, tops and bulb, raw", "Foundation", { cup: 100 }),
   901: detail(901, "Beef, ground, 90% lean meat / 10% fat, raw", "SR Legacy"),
+  903: detailWithMacros(903, "Beef, ground, unspecified fat content, cooked", "SR Legacy", { calories: 254, protein: 25.9, carbs: 0, fat: 17.4 }, { g: 1 }),
   1001: detail(1001, "Cheese, cheddar", "Foundation", { cup: 113 }),
   1101: detail(1101, "Sauce, soy, made from soy and wheat", "SR Legacy", { tbsp: 16 }),
   1151: detail(1151, "Vinegar, rice", "SR Legacy", { tbsp: 15, tsp: 5 }),
@@ -252,6 +257,16 @@ test("batch resolution keeps common ingredients auto-matched", async () => {
   assert.equal(results.length, 3);
   assert.equal(results.filter((item) => item.needsReview).length, 0);
   assert.equal(results.every((item) => item.food), true);
+});
+
+test("preferCooked biases ambiguous proteins toward cooked USDA entries", async () => {
+  const resolution = await resolveIngredientMatch("ground beef cooked", {
+    preferCooked: true,
+  });
+
+  assert.ok(resolution.food);
+  assert.equal(resolution.food?.description, "Beef, Ground, Unspecified Fat Content, Cooked");
+  assert.equal(resolution.food?.per100g.calories, 254);
 });
 
 test("preferred pantry profiles keep spices and produce on sensible generic values", async () => {

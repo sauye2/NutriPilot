@@ -394,12 +394,12 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
   {
     canonical: "pork belly",
     aliases: ["pork belly"],
-    searchExpansions: ["pork fresh belly", "pork"],
+    searchExpansions: ["pork belly cooked", "pork fresh belly", "pork"],
   },
   {
     canonical: "chicken breast",
     aliases: ["chicken breast", "boneless skinless chicken breast"],
-    searchExpansions: ["chicken breast"],
+    searchExpansions: ["chicken breast roasted", "chicken breast cooked", "chicken breast"],
   },
   {
     canonical: "sirloin steak",
@@ -922,6 +922,14 @@ export function expandSynonyms(normalizedText: string): string[] {
     queries.push("beef top sirloin cooked", "beef sirloin steak cooked");
   }
 
+  if (/chicken breast/.test(normalizedText) && !/\braw\b/.test(normalizedText)) {
+    queries.push("chicken breast roasted", "chicken breast cooked");
+  }
+
+  if (/ground beef/.test(normalizedText) && /\bcooked\b/.test(normalizedText)) {
+    queries.push("ground beef cooked");
+  }
+
   if (/\bsteak\b/.test(normalizedText) && !/\braw\b/.test(normalizedText)) {
     queries.push("beef steak cooked", "beef sirloin steak cooked");
   }
@@ -981,9 +989,10 @@ export async function resolveIngredientsBatch(
 
 export async function resolveIngredientMatch(
   rawText: string,
-  options?: { includeFoodDetails?: boolean },
+  options?: { includeFoodDetails?: boolean; preferCooked?: boolean },
 ): Promise<IngredientResolution> {
   const normalized = normalizeIngredientText(rawText);
+  const preferCooked = Boolean(options?.preferCooked && !normalized.cookedState);
   const preferred = getPreferredGenericProfile(normalized.canonicalQuery, rawText);
 
   if (preferred) {
@@ -1018,6 +1027,7 @@ export async function resolveIngredientMatch(
     dedupeFoods(genericResults.flat()),
     ingredientType,
     expandedQueries,
+    preferCooked,
   );
 
   if ((!ranked[0] || ranked[0]._confidence < 0.6) && ingredientType === "generic") {
@@ -1029,6 +1039,7 @@ export async function resolveIngredientMatch(
       dedupeFoods(brandedFallback.flat()),
       ingredientType,
       expandedQueries,
+      preferCooked,
     );
   }
 
@@ -1041,6 +1052,7 @@ export async function resolveIngredientMatch(
       dedupeFoods(allResults.flat()),
       ingredientType,
       expandedQueries,
+      preferCooked,
     );
   }
 
@@ -1180,6 +1192,7 @@ function rankCandidates(
   foods: FdcSearchFood[],
   ingredientType: IngredientKind,
   expandedQueries: string[],
+  preferCooked = false,
 ): RankedCandidate[] {
   const ingredientTokens = ingredient.mainTokens.map(normalizeTokenForCompare);
   const expandedTokenSets = expandedQueries.map((query) =>
@@ -1237,6 +1250,11 @@ function rankCandidates(
 
       if (ingredient.cookedState && description.includes(ingredient.cookedState)) {
         score += 12;
+      }
+
+      if (preferCooked && !ingredient.cookedState) {
+        if (description.includes("cooked")) score += 16;
+        if (description.includes("raw")) score -= 18;
       }
 
       if (ingredient.cookedState === "cooked" && description.includes("raw")) {
