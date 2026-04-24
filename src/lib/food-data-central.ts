@@ -65,6 +65,8 @@ const SPECIAL_FORM_PENALTIES: Array<{ query: RegExp; forbidden: RegExp }> = [
   { query: /\bgochugaru\b/, forbidden: /\bseasoning blend|sauce|marinade\b/ },
   { query: /\bsesame oil\b/, forbidden: /\bdressing|blend\b/ },
   { query: /\brice vinegar\b/, forbidden: /\bdressing|seasoned\b/ },
+  { query: /\bbroth|stock\b/, forbidden: /\bno broth|chunky|gravy|stew|sauce\b/ },
+  { query: /\bsalt\b/, forbidden: /\bsalted\b/ },
 ];
 const PREP_WORDS = [
   "chopped",
@@ -333,6 +335,16 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     searchExpansions: ["vegetable oil", "oil vegetable", "canola oil"],
   },
   {
+    canonical: "heavy cream",
+    aliases: ["heavy cream", "heavy whipping cream", "whipping cream"],
+    searchExpansions: ["heavy cream", "cream heavy"],
+  },
+  {
+    canonical: "half and half",
+    aliases: ["half and half", "half-and-half"],
+    searchExpansions: ["half and half", "cream half and half"],
+  },
+  {
     canonical: "caster sugar",
     aliases: ["caster sugar", "superfine sugar"],
     searchExpansions: ["sugar"],
@@ -393,6 +405,21 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     searchExpansions: ["fish sauce", "sauce fish"],
   },
   {
+    canonical: "chicken broth",
+    aliases: ["chicken broth", "chicken stock"],
+    searchExpansions: ["chicken broth ready to serve", "soup chicken broth ready-to-serve"],
+  },
+  {
+    canonical: "beef broth",
+    aliases: ["beef broth", "beef stock"],
+    searchExpansions: ["beef broth ready to serve", "soup beef broth ready-to-serve"],
+  },
+  {
+    canonical: "vegetable broth",
+    aliases: ["vegetable broth", "vegetable stock", "veg broth", "veg stock"],
+    searchExpansions: ["vegetable broth ready to serve", "soup vegetable broth ready to serve"],
+  },
+  {
     canonical: "rice vinegar",
     aliases: ["rice vinegar", "rice wine vinegar"],
     searchExpansions: ["vinegar rice", "vinegar rice wine"],
@@ -411,6 +438,24 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     canonical: "sesame oil",
     aliases: ["sesame oil", "toasted sesame oil"],
     searchExpansions: ["oil sesame", "sesame seed oil"],
+  },
+  {
+    canonical: "coconut milk",
+    aliases: ["coconut milk", "canned coconut milk", "light coconut milk"],
+    searchExpansions: [
+      "coconut milk canned",
+      "nuts coconut milk canned liquid expressed from grated meat and water",
+    ],
+  },
+  {
+    canonical: "coconut cream",
+    aliases: ["coconut cream"],
+    searchExpansions: ["coconut cream canned"],
+  },
+  {
+    canonical: "salt",
+    aliases: ["salt", "table salt", "kosher salt", "sea salt"],
+    searchExpansions: ["salt table"],
   },
   {
     canonical: "black pepper",
@@ -572,6 +617,38 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
     },
   },
   {
+    canonicalQuery: "heavy cream",
+    confidence: 0.96,
+    rationale: "Matched automatically using a preferred USDA generic dairy cream entry.",
+    food: {
+      fdcId: 2705597,
+      description: "Cream, Heavy",
+      displayName: "Heavy Cream",
+      dataType: "Survey (FNDDS)",
+      brandName: null,
+      sourceLabel: "USDA Survey (FNDDS)",
+      servingText: null,
+      per100g: { calories: 343, protein: 2.02, carbs: 3.8, fat: 35.56 },
+      gramsByUnit: { g: 1, tbsp: 15, tsp: 5, cup: 238 },
+    },
+  },
+  {
+    canonicalQuery: "half and half",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA dairy entry.",
+    food: {
+      fdcId: 171263,
+      description: "Cream, Fluid, Half And Half",
+      displayName: "Half And Half",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 123, protein: 3.13, carbs: 4.73, fat: 10.53 },
+      gramsByUnit: { g: 1, tbsp: 15, tsp: 5, cup: 242 },
+    },
+  },
+  {
     canonicalQuery: "butter",
     confidence: 0.97,
     rationale: "Matched automatically using a preferred USDA generic butter entry.",
@@ -713,6 +790,86 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
       servingText: null,
       per100g: { calories: 53, protein: 8.1, carbs: 4.9, fat: 0.6 },
       gramsByUnit: { g: 1, tbsp: 16, tsp: 5.3 },
+    },
+  },
+  {
+    canonicalQuery: "chicken broth",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA broth entry.",
+    food: {
+      fdcId: 174536,
+      description: "Soup, Chicken Broth, Ready-To-Serve",
+      displayName: "Chicken Broth",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 6, protein: 0.64, carbs: 0.44, fat: 0.21 },
+      gramsByUnit: { g: 1, cup: 240, tbsp: 15, tsp: 5 },
+    },
+  },
+  {
+    canonicalQuery: "beef broth",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA broth entry.",
+    food: {
+      fdcId: 171538,
+      description: "Soup, Beef Broth Or Bouillon, Canned, Ready-To-Serve",
+      displayName: "Beef Broth",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 7, protein: 1.14, carbs: 0.04, fat: 0.22 },
+      gramsByUnit: { g: 1, cup: 240, tbsp: 15, tsp: 5 },
+    },
+  },
+  {
+    canonicalQuery: "vegetable broth",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA broth entry.",
+    food: {
+      fdcId: 171583,
+      description: "Soup, Vegetable Broth, Ready To Serve",
+      displayName: "Vegetable Broth",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 5, protein: 0.24, carbs: 0.93, fat: 0.07 },
+      gramsByUnit: { g: 1, cup: 240, tbsp: 15, tsp: 5 },
+    },
+  },
+  {
+    canonicalQuery: "coconut milk",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA canned coconut milk entry.",
+    food: {
+      fdcId: 170173,
+      description: "Nuts, Coconut Milk, Canned (Liquid Expressed From Grated Meat And Water)",
+      displayName: "Coconut Milk",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 197, protein: 2.02, carbs: 2.81, fat: 21.3 },
+      gramsByUnit: { g: 1, cup: 240, tbsp: 15, tsp: 5 },
+    },
+  },
+  {
+    canonicalQuery: "salt",
+    confidence: 0.97,
+    rationale: "Matched automatically using a preferred USDA table salt entry.",
+    food: {
+      fdcId: 173468,
+      description: "Salt, Table",
+      displayName: "Salt, Table",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+      gramsByUnit: { g: 1, tbsp: 18, tsp: 6 },
     },
   },
   {
@@ -919,6 +1076,45 @@ const CATEGORY_FALLBACK_RULES: CategoryFallbackRule[] = [
       ),
     queries: ["butter", "butter salted"],
     rationale: "Used a generic USDA butter profile to keep the estimate accurate.",
+  },
+  {
+    test: (ingredient, rawText) =>
+      /\bheavy cream|heavy whipping cream|whipping cream|half and half|half-and-half\b/.test(
+        `${ingredient.canonicalQuery} ${rawText}`.toLowerCase(),
+      ),
+    queries: ["heavy cream", "cream heavy"],
+    rationale: "Used a generic USDA dairy cream profile to keep the estimate accurate.",
+  },
+  {
+    test: (ingredient, rawText) =>
+      /\bcoconut milk|canned coconut milk|light coconut milk|coconut cream\b/.test(
+        `${ingredient.canonicalQuery} ${rawText}`.toLowerCase(),
+      ),
+    queries: [
+      "coconut milk canned",
+      "nuts coconut milk canned liquid expressed from grated meat and water",
+    ],
+    rationale: "Used a generic USDA coconut milk profile for a close pantry match.",
+  },
+  {
+    test: (ingredient, rawText) =>
+      /\b(chicken|beef|vegetable|veggie|veg)\s+(broth|stock)\b|\bbroth\b|\bstock\b/.test(
+        `${ingredient.canonicalQuery} ${rawText}`.toLowerCase(),
+      ),
+    queries: [
+      "chicken broth ready to serve",
+      "vegetable broth ready to serve",
+      "beef broth ready to serve",
+    ],
+    rationale: "Used a generic USDA broth profile to avoid dropping the estimate.",
+  },
+  {
+    test: (ingredient, rawText) =>
+      /\bsalt|kosher salt|sea salt|table salt\b/.test(
+        `${ingredient.canonicalQuery} ${rawText}`.toLowerCase(),
+      ),
+    queries: ["salt table"],
+    rationale: "Used a generic USDA table salt profile so the pantry item still resolves cleanly.",
   },
   {
     test: (ingredient, rawText) =>
@@ -1154,6 +1350,37 @@ export function expandSynonyms(normalizedText: string): string[] {
 
   if (/neutral oil/.test(normalizedText)) {
     queries.push("vegetable oil", "oil vegetable", "canola oil");
+  }
+
+  if (/heavy cream|whipping cream/.test(normalizedText)) {
+    queries.push("heavy cream", "cream heavy");
+  }
+
+  if (/half and half/.test(normalizedText)) {
+    queries.push("half and half", "cream half and half");
+  }
+
+  if (/coconut milk|coconut cream/.test(normalizedText)) {
+    queries.push(
+      "coconut milk canned",
+      "nuts coconut milk canned liquid expressed from grated meat and water",
+    );
+  }
+
+  if (/chicken broth|chicken stock/.test(normalizedText)) {
+    queries.push("chicken broth ready to serve", "soup chicken broth ready-to-serve");
+  }
+
+  if (/beef broth|beef stock/.test(normalizedText)) {
+    queries.push("beef broth ready to serve", "soup beef broth ready-to-serve");
+  }
+
+  if (/vegetable broth|vegetable stock|veg broth|veg stock/.test(normalizedText)) {
+    queries.push("vegetable broth ready to serve", "soup vegetable broth ready to serve");
+  }
+
+  if (/salt/.test(normalizedText)) {
+    queries.push("salt table");
   }
 
   if (/rice vinegar/.test(normalizedText)) {
@@ -1459,6 +1686,14 @@ function getPreferredGenericProfile(
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "neutral oil") ?? null;
   }
 
+  if (query === "heavy cream" || query === "whipping cream") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "heavy cream") ?? null;
+  }
+
+  if (query === "half and half") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "half and half") ?? null;
+  }
+
   if (query === "yellow onion" || query === "onion") {
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "yellow onion") ?? null;
   }
@@ -1491,8 +1726,28 @@ function getPreferredGenericProfile(
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "soy sauce") ?? null;
   }
 
+  if (query === "chicken broth" || query === "chicken stock") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "chicken broth") ?? null;
+  }
+
+  if (query === "beef broth" || query === "beef stock") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "beef broth") ?? null;
+  }
+
+  if (query === "vegetable broth" || query === "vegetable stock") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "vegetable broth") ?? null;
+  }
+
   if (query === "oyster sauce") {
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "oyster sauce") ?? null;
+  }
+
+  if (query === "coconut milk" || query === "coconut cream") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "coconut milk") ?? null;
+  }
+
+  if (query === "salt") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "salt") ?? null;
   }
 
   if (query === "ground cumin" || query === "cumin") {
@@ -1665,6 +1920,20 @@ function rankCandidates(
         !PANTRY_FORM_TERMS.some((term) => queryText.includes(term))
       ) {
         score -= 22;
+      }
+
+      if (/\bbroth|stock\b/.test(queryText)) {
+        if (!/\bbroth|stock\b/.test(description)) score -= 95;
+        if (/no broth/.test(description)) score -= 140;
+        if (/chunky|gravy|stew|with vegetables|with noodles|with rice/.test(description)) score -= 35;
+      }
+
+      if (/\bheavy cream|whipping cream|half and half|coconut milk|coconut cream\b/.test(queryText)) {
+        if (!/\bcream|milk\b/.test(description)) score -= 65;
+      }
+
+      if (/\bsalt\b/.test(queryText) && !/\bsalt\b/.test(description)) {
+        score -= 90;
       }
 
       if (
@@ -2024,6 +2293,26 @@ function parseLeadingAmount(value: string) {
 function getHeuristicUnitWeights(description: string): Partial<Record<Unit, number>> {
   if (/olive oil|sesame oil|vegetable oil|canola oil|oil,/.test(description)) {
     return { tbsp: 13.5, tsp: 4.5 };
+  }
+
+  if (/broth|stock|bouillon|consomme/.test(description)) {
+    return { cup: 240, tbsp: 15, tsp: 5 };
+  }
+
+  if (/heavy cream|cream, heavy|whipping cream|half and half/.test(description)) {
+    return { cup: 240, tbsp: 15, tsp: 5 };
+  }
+
+  if (/coconut milk|coconut cream/.test(description)) {
+    return { cup: 240, tbsp: 15, tsp: 5 };
+  }
+
+  if (/milk, whole|milk, reduced fat|milk, low fat|milk, nonfat|milk, buttermilk/.test(description)) {
+    return { cup: 244, tbsp: 15.3, tsp: 5.1 };
+  }
+
+  if (/salt/.test(description)) {
+    return { tbsp: 18, tsp: 6 };
   }
 
   if (/cornstarch|corn starch/.test(description)) {

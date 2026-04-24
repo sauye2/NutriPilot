@@ -33,6 +33,14 @@ const SEARCH_FIXTURES = [
     foods: [food(211, "Oil, vegetable, soybean, salad or cooking", "SR Legacy")],
   },
   {
+    match: ["heavy cream", "cream heavy"],
+    foods: [food(216, "Cream, heavy", "Survey (FNDDS)")],
+  },
+  {
+    match: ["half and half", "cream half and half"],
+    foods: [food(217, "Cream, fluid, half and half", "SR Legacy")],
+  },
+  {
     match: ["cornstarch", "corn starch"],
     foods: [food(212, "Cornstarch", "SR Legacy")],
   },
@@ -137,6 +145,21 @@ const SEARCH_FIXTURES = [
     foods: [food(1102, "Sauce, fish", "SR Legacy")],
   },
   {
+    match: ["chicken broth", "chicken broth ready to serve", "soup chicken broth ready-to-serve"],
+    foods: [
+      food(1103, "Soup, chicken broth, ready-to-serve", "SR Legacy"),
+      food(1104, "Chicken, canned, no broth", "SR Legacy"),
+    ],
+  },
+  {
+    match: ["beef broth", "beef broth ready to serve", "soup beef broth ready-to-serve"],
+    foods: [food(1105, "Soup, beef broth or bouillon, canned, ready-to-serve", "SR Legacy")],
+  },
+  {
+    match: ["vegetable broth", "vegetable broth ready to serve", "soup vegetable broth ready to serve"],
+    foods: [food(1106, "Soup, vegetable broth, ready to serve", "SR Legacy")],
+  },
+  {
     match: ["rice vinegar", "vinegar rice", "vinegar rice wine"],
     foods: [food(1151, "Vinegar, rice", "SR Legacy")],
   },
@@ -147,6 +170,17 @@ const SEARCH_FIXTURES = [
   {
     match: ["sesame oil", "oil sesame", "sesame seed oil"],
     foods: [food(1161, "Oil, sesame, salad or cooking", "Foundation")],
+  },
+  {
+    match: ["coconut milk", "coconut milk canned", "nuts coconut milk canned liquid expressed from grated meat and water"],
+    foods: [
+      food(1162, "Nuts, coconut milk, canned (liquid expressed from grated meat and water)", "SR Legacy"),
+      food(1163, "Coconut milk", "Survey (FNDDS)"),
+    ],
+  },
+  {
+    match: ["salt", "salt table"],
+    foods: [food(1164, "Salt, table", "SR Legacy")],
   },
   {
     match: ["black pepper", "spices pepper black", "pepper black"],
@@ -189,6 +223,8 @@ const DETAIL_FIXTURES = {
   201: detail(201, "Oil, olive, salad or cooking", "Foundation", { tbsp: 13.5, tsp: 4.5 }),
   205: detailWithMacros(205, "Butter, salted", "SR Legacy", { calories: 717, protein: 0.9, carbs: 0.1, fat: 81.1 }, { tbsp: 14.2, tsp: 4.7 }),
   211: detailWithMacros(211, "Oil, vegetable, soybean, salad or cooking", "SR Legacy", { calories: 884, protein: 0, carbs: 0, fat: 100 }, { tbsp: 13.6, tsp: 4.5 }),
+  216: detailWithMacros(216, "Cream, heavy", "Survey (FNDDS)", { calories: 343, protein: 2.02, carbs: 3.8, fat: 35.56 }, { tbsp: 15, tsp: 5, cup: 238 }),
+  217: detailWithMacros(217, "Cream, fluid, half and half", "SR Legacy", { calories: 123, protein: 3.13, carbs: 4.73, fat: 10.53 }, { tbsp: 15, tsp: 5, cup: 242 }),
   212: detailWithMacros(212, "Cornstarch", "SR Legacy", { calories: 381, protein: 0.3, carbs: 91.3, fat: 0.1 }, { tbsp: 8, tsp: 2.7 }),
   213: detailWithMacros(213, "Peppers, bell, green, raw", "Foundation", { calories: 20, protein: 0.86, carbs: 4.64, fat: 0.17 }, { piece: 119, cup: 92 }),
   214: detailWithMacros(214, "Onions, yellow, raw", "Foundation", { calories: 37, protein: 0.77, carbs: 8.61, fat: 0.09 }, { piece: 110, cup: 160 }),
@@ -212,9 +248,16 @@ const DETAIL_FIXTURES = {
   1001: detail(1001, "Cheese, cheddar", "Foundation", { cup: 113 }),
   1101: detail(1101, "Sauce, soy, made from soy and wheat", "SR Legacy", { tbsp: 16 }),
   1102: detailWithMacros(1102, "Sauce, fish", "SR Legacy", { calories: 35, protein: 6, carbs: 3.6, fat: 0 }, { tbsp: 18, tsp: 6 }),
+  1103: detailWithMacros(1103, "Soup, chicken broth, ready-to-serve", "SR Legacy", { calories: 6, protein: 0.64, carbs: 0.44, fat: 0.21 }, { cup: 240, tbsp: 15, tsp: 5 }),
+  1104: detailWithMacros(1104, "Chicken, canned, no broth", "SR Legacy", { calories: 185, protein: 23.2, carbs: 0.9, fat: 8.1 }, { cup: 140 }),
+  1105: detailWithMacros(1105, "Soup, beef broth or bouillon, canned, ready-to-serve", "SR Legacy", { calories: 7, protein: 1.14, carbs: 0.04, fat: 0.22 }, { cup: 240, tbsp: 15, tsp: 5 }),
+  1106: detailWithMacros(1106, "Soup, vegetable broth, ready to serve", "SR Legacy", { calories: 5, protein: 0.24, carbs: 0.93, fat: 0.07 }, { cup: 240, tbsp: 15, tsp: 5 }),
   1151: detail(1151, "Vinegar, rice", "SR Legacy", { tbsp: 15, tsp: 5 }),
   1152: detailWithMacros(1152, "Lime juice, raw", "SR Legacy", { calories: 25, protein: 0.4, carbs: 8.4, fat: 0.1 }, { tbsp: 15, tsp: 5, piece: 44 }),
   1161: detail(1161, "Oil, sesame, salad or cooking", "Foundation", { tbsp: 13.5, tsp: 4.5 }),
+  1162: detailWithMacros(1162, "Nuts, coconut milk, canned (liquid expressed from grated meat and water)", "SR Legacy", { calories: 197, protein: 2.02, carbs: 2.81, fat: 21.3 }, { cup: 240, tbsp: 15, tsp: 5 }),
+  1163: detailWithMacros(1163, "Coconut milk", "Survey (FNDDS)", { calories: 31, protein: 0.21, carbs: 2.92, fat: 2.08 }, { cup: 240, tbsp: 15, tsp: 5 }),
+  1164: detailWithMacros(1164, "Salt, table", "SR Legacy", { calories: 0, protein: 0, carbs: 0, fat: 0 }, { tbsp: 18, tsp: 6 }),
   1171: detail(1171, "Spices, pepper, black", "SR Legacy", { tbsp: 6.8, tsp: 2.3 }),
   1173: detailWithMacros(1173, "Spices, cumin seed", "SR Legacy", { calories: 375, protein: 17.8, carbs: 44.2, fat: 22.3 }, { tbsp: 6, tsp: 2 }),
   1174: detailWithMacros(1174, "Spices, chili powder", "SR Legacy", { calories: 282, protein: 13.5, carbs: 49.7, fat: 14.3 }, { tbsp: 8, tsp: 2.7 }),
@@ -266,6 +309,8 @@ for (const ingredient of [
   "extra virgin olive oil",
   "butter",
   "neutral oil",
+  "heavy cream",
+  "half and half",
   "cornstarch",
   "bell pepper",
   "yellow onion",
@@ -277,6 +322,9 @@ for (const ingredient of [
   "roma tomatoes",
   "baby bella mushrooms",
   "fish sauce",
+  "chicken broth",
+  "beef broth",
+  "vegetable broth",
   "greek yogurt",
   "scallions",
   "90/10 ground beef",
@@ -285,6 +333,8 @@ for (const ingredient of [
   "rice vinegar",
   "lime juice",
   "sesame oil",
+  "coconut milk",
+  "salt",
   "black pepper",
   "ground cumin",
   "chili powder",
@@ -319,6 +369,10 @@ for (const ingredient of [
   "okra",
   "plantain",
   "cassava",
+  "chicken stock",
+  "vegetable stock",
+  "kosher salt",
+  "sea salt",
 ]) {
   test(`falls back to a usable generic family match for ${ingredient}`, async () => {
     const resolution = await resolveIngredientMatch(ingredient);
@@ -352,13 +406,20 @@ test("preferCooked biases ambiguous proteins toward cooked USDA entries", async 
 });
 
 test("preferred pantry profiles keep spices and produce on sensible generic values", async () => {
-  const [pepper, gochugaru, rice, eggs, oil, butter, potatoes, starch, steak, onion, avocado, bellPepper, cumin, chili, limeJuice, scotchBonnet] = await Promise.all([
+  const [pepper, gochugaru, rice, eggs, oil, butter, heavyCream, halfAndHalf, chickenBroth, beefBroth, vegetableBroth, coconutMilk, salt, potatoes, starch, steak, onion, avocado, bellPepper, cumin, chili, limeJuice, scotchBonnet] = await Promise.all([
     resolveIngredientMatch("black pepper"),
     resolveIngredientMatch("gochugaru"),
     resolveIngredientMatch("rice cooked"),
     resolveIngredientMatch("eggs"),
     resolveIngredientMatch("neutral oil"),
     resolveIngredientMatch("butter"),
+    resolveIngredientMatch("heavy cream"),
+    resolveIngredientMatch("half and half"),
+    resolveIngredientMatch("chicken broth"),
+    resolveIngredientMatch("beef broth"),
+    resolveIngredientMatch("vegetable broth"),
+    resolveIngredientMatch("coconut milk"),
+    resolveIngredientMatch("salt"),
     resolveIngredientMatch("potatoes"),
     resolveIngredientMatch("cornstarch"),
     resolveIngredientMatch("sirloin steak"),
@@ -380,6 +441,17 @@ test("preferred pantry profiles keep spices and produce on sensible generic valu
   assert.equal(oil.food?.gramsByUnit.tbsp, 13.6);
   assert.equal(butter.food?.per100g.calories, 717);
   assert.equal(butter.food?.gramsByUnit.tbsp, 14.2);
+  assert.equal(heavyCream.food?.per100g.calories, 343);
+  assert.equal(heavyCream.food?.gramsByUnit.tbsp, 15);
+  assert.equal(halfAndHalf.food?.per100g.calories, 123);
+  assert.equal(chickenBroth.food?.per100g.calories, 6);
+  assert.equal(chickenBroth.food?.gramsByUnit.cup, 240);
+  assert.equal(beefBroth.food?.per100g.calories, 7);
+  assert.equal(vegetableBroth.food?.per100g.calories, 5);
+  assert.equal(coconutMilk.food?.per100g.calories, 197);
+  assert.equal(coconutMilk.food?.gramsByUnit.cup, 240);
+  assert.equal(salt.food?.per100g.calories, 0);
+  assert.equal(salt.food?.gramsByUnit.tsp, 6);
   assert.equal(potatoes.food?.per100g.calories, 77);
   assert.equal(starch.food?.gramsByUnit.tbsp, 8);
   assert.equal(steak.food?.per100g.calories, 206);
@@ -393,7 +465,7 @@ test("preferred pantry profiles keep spices and produce on sensible generic valu
 });
 
 test("category fallback keeps future ingredient families from losing nutrition data", async () => {
-  const [shallot, redOnion, serrano, poblano, fresno, thaiBasil, parsley, mint, okra, plantain, cassava, fishSauce] = await Promise.all([
+  const [shallot, redOnion, serrano, poblano, fresno, thaiBasil, parsley, mint, okra, plantain, cassava, fishSauce, chickenStock, vegetableStock, kosherSalt, seaSalt] = await Promise.all([
     resolveIngredientMatch("shallot"),
     resolveIngredientMatch("red onion"),
     resolveIngredientMatch("serrano pepper"),
@@ -406,6 +478,10 @@ test("category fallback keeps future ingredient families from losing nutrition d
     resolveIngredientMatch("plantain"),
     resolveIngredientMatch("cassava"),
     resolveIngredientMatch("fish sauce"),
+    resolveIngredientMatch("chicken stock"),
+    resolveIngredientMatch("vegetable stock"),
+    resolveIngredientMatch("kosher salt"),
+    resolveIngredientMatch("sea salt"),
   ]);
 
   assert.equal(shallot.food?.description, "Onions, Yellow, Raw");
@@ -420,6 +496,10 @@ test("category fallback keeps future ingredient families from losing nutrition d
   assert.equal(plantain.food?.description, "Plantains, Raw");
   assert.equal(cassava.food?.description, "Cassava, Raw");
   assert.equal(fishSauce.food?.description, "Sauce, Fish");
+  assert.equal(chickenStock.food?.description, "Soup, Chicken Broth, Ready-To-Serve");
+  assert.equal(vegetableStock.food?.description, "Soup, Vegetable Broth, Ready To Serve");
+  assert.equal(kosherSalt.food?.description, "Salt, Table");
+  assert.equal(seaSalt.food?.description, "Salt, Table");
 });
 
 function food(fdcId, description, dataType, brandName = undefined) {
