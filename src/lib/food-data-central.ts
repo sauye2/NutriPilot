@@ -962,8 +962,14 @@ export async function searchFoodDataCentral(
   return payload.foods ?? [];
 }
 
-export async function searchFoods(query: string): Promise<FoodSearchResult[]> {
-  const resolution = await resolveIngredientMatch(query, { includeFoodDetails: false });
+export async function searchFoods(
+  query: string,
+  options?: { preferCooked?: boolean },
+): Promise<FoodSearchResult[]> {
+  const resolution = await resolveIngredientMatch(query, {
+    includeFoodDetails: false,
+    preferCooked: options?.preferCooked,
+  });
   return resolution.candidates;
 }
 

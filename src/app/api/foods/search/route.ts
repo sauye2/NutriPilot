@@ -11,8 +11,8 @@ export async function GET(request: Request) {
 
   try {
     const [foods, resolution] = await Promise.all([
-      searchFoods(query),
-      resolveIngredientMatch(query),
+      searchFoods(query, { preferCooked: true }),
+      resolveIngredientMatch(query, { preferCooked: true }),
     ]);
     return NextResponse.json({ foods, resolution });
   } catch (error) {
