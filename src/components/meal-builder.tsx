@@ -300,23 +300,24 @@ export function MealBuilder() {
           Meal builder
         </p>
         <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-[var(--foreground)] sm:text-5xl">
-          Already know what you want to cook? Calculate it, then tune it.
+          Already know what you want to cook? We’ll help you total it and tune it.
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--muted)]">
-          Search real USDA foods, enter precise quantities, compare the meal
-          against your targets, and make cleaner ingredient decisions fast.
+          Add the ingredients you already have in mind, check how the meal stacks
+          up against your targets, and make a few confident tweaks without turning
+          dinner into a spreadsheet.
         </p>
       </section>
 
       {importedRecipe ? (
-        <div className="mb-6 rounded-[8px] border border-[var(--border)] bg-white/80 px-5 py-4 shadow-sm">
+        <div className="mb-6 rounded-[14px] border border-[var(--border)] bg-white/80 px-5 py-4 shadow-sm">
           <p className="text-sm font-semibold text-[var(--foreground)]">
             Imported from {importedRecipe.title}
           </p>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Exact ingredient lines were brought into the builder. NutriPilot already
-            picked generic USDA matches where it could, and every row stays editable if
-            you want to fine-tune the match.
+            We pulled the ingredient list straight into the builder and matched what
+            we could to reliable USDA nutrition data. Every row still stays editable
+            if you want to tighten anything up.
           </p>
         </div>
       ) : null}
@@ -410,18 +411,18 @@ function IngredientTable({
 }) {
   return (
     <SectionCard
-      eyebrow="Primary workflow"
+      eyebrow="Main workflow"
       title="Ingredients"
       action={
         <div className="flex items-center gap-2">
           <Link
-            className="rounded-[8px] border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--muted-soft)]"
+            className="rounded-[10px] border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition duration-200 hover:bg-[var(--muted-soft)] active:scale-[0.99]"
             href="/import-recipe"
           >
             Import recipe
           </Link>
           <button
-            className="rounded-[8px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--primary-strong)]"
+            className="rounded-[10px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition duration-200 hover:bg-[var(--primary-strong)] active:scale-[0.99]"
             type="button"
             onClick={onAdd}
           >
@@ -494,14 +495,14 @@ function IngredientRow({
     : false;
 
   return (
-    <div className="grid gap-3 rounded-[8px] border border-[var(--border)] bg-white/70 p-3 md:grid-cols-[1.5fr_0.55fr_0.75fr_0.8fr_44px] md:items-start">
+    <div className="ingredient-row grid gap-3 rounded-[14px] border border-[var(--border)] bg-white/78 p-3 md:grid-cols-[1.5fr_0.55fr_0.75fr_0.8fr_44px] md:items-start">
       <div className="relative">
         <label className="block">
           <span className="mb-1 block text-xs font-semibold text-[var(--muted)] md:hidden">
             Food
           </span>
           <input
-            className="focus-ring h-11 w-full rounded-[8px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
+            className="focus-ring h-11 w-full rounded-[12px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
             placeholder="Chicken breast"
             value={ingredient.name}
             onFocus={() => onOpenSearch(ingredient.id)}
@@ -525,9 +526,9 @@ function IngredientRow({
         ) : null}
 
         {isOpen && (searchResults.length > 0 || isSearching) ? (
-          <div className="absolute z-10 mt-2 w-full rounded-[8px] border border-[var(--border)] bg-white shadow-[var(--shadow)]">
+          <div className="absolute z-10 mt-2 w-full rounded-[12px] border border-[var(--border)] bg-white shadow-[var(--shadow)]">
             {isSearching ? (
-              <p className="px-3 py-3 text-sm text-[var(--muted)]">Searching USDA...</p>
+              <p className="px-3 py-3 text-sm text-[var(--muted)]">Looking for a good match...</p>
             ) : (
               <ul className="max-h-72 overflow-y-auto py-2">
                 {searchResults.map((result) => (
@@ -558,7 +559,7 @@ function IngredientRow({
           Amount
         </span>
         <input
-          className="focus-ring h-11 w-full rounded-[8px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
+          className="focus-ring h-11 w-full rounded-[12px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
           min="0"
           step="0.1"
           type="number"
@@ -577,7 +578,7 @@ function IngredientRow({
           Unit
         </span>
         <select
-          className="focus-ring h-11 w-full rounded-[8px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
+          className="focus-ring h-11 w-full rounded-[12px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
           value={ingredient.unit}
           onChange={(event) =>
             onUpdate(ingredient.id, { unit: event.target.value as Unit })
@@ -604,35 +605,35 @@ function IngredientRow({
         <span className="mb-1 block text-xs font-semibold text-[var(--muted)] md:hidden">
           Match
         </span>
-        <div className="rounded-[8px] bg-[var(--muted-soft)] px-3 py-2">
-          <p className="text-sm font-semibold text-[var(--foreground)]">
-            {isResolving
-              ? "Loading..."
-              : calculated.supported
-                ? ingredient.resolution?.needsReview
-                  ? "Using closest match"
-                  : "Matched automatically"
+          <div className="rounded-[12px] bg-[var(--muted-soft)] px-3 py-2">
+            <p className="text-sm font-semibold text-[var(--foreground)]">
+              {isResolving
+                ? "Loading..."
+                : calculated.supported
+                  ? ingredient.resolution?.needsReview
+                    ? "Using a close match"
+                    : "Matched automatically"
                 : ingredient.name.trim()
-                  ? "Needs a closer match"
+                  ? "Take a quick look"
                   : "Blank"}
-          </p>
-          <p className="text-xs text-[var(--muted)]">
-            {isResolving
-              ? "Fetching live nutrition data"
-              : calculated.supported
-                ? `${calculated.totals.calories} kcal`
-                : ingredient.name.trim()
-                  ? searchResults.length > 0
-                    ? "Pick a different match if you want"
-                    : "Try a broader food name"
-                  : "Start typing a food"}
-          </p>
-        </div>
+            </p>
+            <p className="text-xs text-[var(--muted)]">
+              {isResolving
+                ? "Pulling in live nutrition data"
+                : calculated.supported
+                  ? `${calculated.totals.calories} kcal`
+                  : ingredient.name.trim()
+                    ? searchResults.length > 0
+                      ? "You can swap this if you want something closer"
+                      : "Try a broader ingredient name"
+                    : "Start typing an ingredient"}
+            </p>
+          </div>
       </div>
 
       <button
         aria-label="Remove ingredient"
-        className="h-11 rounded-[8px] border border-[var(--border)] bg-white text-lg leading-none text-[var(--muted)] transition hover:border-[var(--danger-soft)] hover:bg-[var(--danger-soft)] hover:text-[var(--danger)]"
+        className="h-11 rounded-[12px] border border-[var(--border)] bg-white text-lg leading-none text-[var(--muted)] transition duration-200 hover:border-[var(--danger-soft)] hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] active:scale-[0.99]"
         type="button"
         onClick={() => onRemove(ingredient.id)}
       >
@@ -669,7 +670,7 @@ function CaloriesCard({
           <p className="text-5xl font-semibold leading-none">{totals.calories}</p>
           <p className="mt-2 text-sm text-white/75">calories</p>
         </div>
-        <div className="rounded-[8px] bg-white/10 px-3 py-2 text-right">
+        <div className="rounded-[12px] bg-white/10 px-3 py-2 text-right">
           <p className="text-xs text-white/70">Goal</p>
           <p className="text-sm font-semibold">
             {hasAnyGoal ? `${goals.calories} kcal` : "Example: 650 kcal"}
@@ -691,7 +692,7 @@ function MacroSummaryCard({
   hasAnyGoal: boolean;
 }) {
   return (
-    <SectionCard title="Macros" eyebrow="Live totals">
+    <SectionCard title="Meal Summary" eyebrow="Live totals">
       <div className="space-y-4">
         {(["protein", "carbs", "fat"] as MacroKey[]).map((key) => (
           <MacroBar
@@ -744,7 +745,7 @@ function MacroBar({
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-[var(--muted-soft)]">
         <div
-          className="h-full rounded-full transition-all"
+          className="h-full rounded-full transition-all duration-300"
           style={{ width: `${percent}%`, background: color }}
         />
       </div>
@@ -765,10 +766,10 @@ function GoalsCard({
         {(Object.keys(goals) as MacroKey[]).map((key) => (
           <label key={key} className="block">
             <span className="mb-1 block text-xs font-semibold text-[var(--muted)]">
-              {macroMeta[key].label}
+              {macroMeta[key].label} ({macroMeta[key].unit})
             </span>
             <input
-              className="focus-ring h-11 w-full rounded-[8px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
+              className="focus-ring h-11 w-full rounded-[12px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
               min="0"
               step={key === "calories" ? 10 : 1}
               type="number"
@@ -791,13 +792,13 @@ function GoalGapCard({
   hasAnyGoal: boolean;
 }) {
   return (
-    <SectionCard title="Goal Gap" eyebrow="What needs tuning">
+    <SectionCard title="How It Compares" eyebrow="At a glance">
       {hasAnyGoal ? (
         <div className="space-y-3">
           {gaps.map((gap) => (
             <div
               key={gap.key}
-              className="flex items-center justify-between gap-3 rounded-[8px] bg-[var(--muted-soft)] px-3 py-3"
+              className="flex items-center justify-between gap-3 rounded-[12px] bg-[var(--muted-soft)] px-3 py-3"
             >
               <div>
                 <p className="text-sm font-semibold text-[var(--foreground)]">
@@ -814,7 +815,8 @@ function GoalGapCard({
         </div>
       ) : (
         <p className="text-sm leading-6 text-[var(--muted)]">
-          Add calorie or macro targets to compare this meal against a goal.
+          Add a few targets and we’ll show where this meal lands, what feels close,
+          and what might need a little nudge.
         </p>
       )}
     </SectionCard>
@@ -846,12 +848,12 @@ function GapBadge({ gap }: { gap: GoalGap }) {
 
 function SuggestionsCard({ suggestions }: { suggestions: Suggestion[] }) {
   return (
-    <SectionCard title="Suggestions" eyebrow="Next best changes">
+    <SectionCard title="What to Tweak" eyebrow="Helpful recommendations">
       <div className="space-y-3">
         {suggestions.map((suggestion) => (
           <article
             key={suggestion.id}
-            className="rounded-[8px] border border-[var(--border)] bg-white/70 p-4"
+            className="rounded-[12px] border border-[var(--border)] bg-white/70 p-4"
           >
             <p className="text-sm font-semibold text-[var(--foreground)]">
               {suggestion.title}
@@ -868,14 +870,14 @@ function SuggestionsCard({ suggestions }: { suggestions: Suggestion[] }) {
 
 function UnsupportedFoods({ names }: { names: string[] }) {
   return (
-    <SectionCard title="Review Matches" eyebrow="Friendly note">
+    <SectionCard title="Take a Quick Look" eyebrow="A couple of ingredients may need help">
       <p className="text-sm leading-6 text-[var(--muted)]">
-        NutriPilot still needs a closer nutrition match for{" "}
+        We couldn’t confidently match{" "}
         <span className="font-semibold text-[var(--foreground)]">
           {names.join(", ")}
         </span>
-        . Most ingredients resolve automatically, but these few may need a lighter edit
-        or a manual pick from the USDA list.
+        {" "}yet. Most ingredients resolve automatically, but these few may need a
+        broader search term or a quick manual pick from the USDA list.
       </p>
     </SectionCard>
   );

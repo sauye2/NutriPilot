@@ -337,6 +337,11 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     searchExpansions: ["vinegar rice", "vinegar rice wine"],
   },
   {
+    canonical: "lemon juice",
+    aliases: ["lemon juice", "fresh lemon juice", "juice of lemon", "juice from lemon"],
+    searchExpansions: ["lemon juice raw", "juice lemon"],
+  },
+  {
     canonical: "sesame oil",
     aliases: ["sesame oil", "toasted sesame oil"],
     searchExpansions: ["oil sesame", "sesame seed oil"],
@@ -467,6 +472,70 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
       servingText: null,
       per100g: { calories: 381, protein: 0.3, carbs: 91.3, fat: 0.1 },
       gramsByUnit: { g: 1, tbsp: 8, tsp: 2.7 },
+    },
+  },
+  {
+    canonicalQuery: "rice vinegar",
+    confidence: 0.93,
+    rationale: "Matched automatically using a preferred USDA pantry entry.",
+    food: {
+      fdcId: 171265,
+      description: "Vinegar, Distilled",
+      displayName: "Vinegar, Distilled",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 18, protein: 0, carbs: 0, fat: 0 },
+      gramsByUnit: { g: 1, tbsp: 15, tsp: 5 },
+    },
+  },
+  {
+    canonicalQuery: "lemon juice",
+    confidence: 0.94,
+    rationale: "Matched automatically using a preferred USDA pantry entry.",
+    food: {
+      fdcId: 167747,
+      description: "Lemon Juice, Raw",
+      displayName: "Lemon Juice, Raw",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 22, protein: 0.4, carbs: 6.9, fat: 0.2 },
+      gramsByUnit: { g: 1, tbsp: 15, tsp: 5, piece: 48 },
+    },
+  },
+  {
+    canonicalQuery: "soy sauce",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA pantry entry.",
+    food: {
+      fdcId: 172231,
+      description: "Sauce, Soy Sauce Made From Soy And Wheat (Shoyu), Low Sodium",
+      displayName: "Sauce, Soy Sauce, Low Sodium",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 53, protein: 8.1, carbs: 4.9, fat: 0.6 },
+      gramsByUnit: { g: 1, tbsp: 16, tsp: 5.3 },
+    },
+  },
+  {
+    canonicalQuery: "oyster sauce",
+    confidence: 0.93,
+    rationale: "Matched automatically using a preferred USDA pantry entry.",
+    food: {
+      fdcId: 174279,
+      description: "Sauce, Oyster, Ready-To-Serve",
+      displayName: "Sauce, Oyster",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 51, protein: 1.4, carbs: 10, fat: 0.1 },
+      gramsByUnit: { g: 1, tbsp: 18, tsp: 6 },
     },
   },
   {
@@ -721,6 +790,10 @@ export function expandSynonyms(normalizedText: string): string[] {
     queries.push("vinegar rice", "vinegar rice wine");
   }
 
+  if (/lemon juice/.test(normalizedText)) {
+    queries.push("lemon juice raw", "juice lemon");
+  }
+
   if (/cornstarch/.test(normalizedText)) {
     queries.push("cornstarch", "corn starch");
   }
@@ -917,6 +990,22 @@ function getPreferredGenericProfile(
 
   if (query === "cornstarch") {
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "cornstarch") ?? null;
+  }
+
+  if (query === "rice vinegar") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "rice vinegar") ?? null;
+  }
+
+  if (query === "lemon juice") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "lemon juice") ?? null;
+  }
+
+  if (query === "soy sauce") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "soy sauce") ?? null;
+  }
+
+  if (query === "oyster sauce") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "oyster sauce") ?? null;
   }
 
   if (/\bsirloin steak\b/.test(query) || /\bsirloin steak\b/.test(raw)) {

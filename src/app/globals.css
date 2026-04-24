@@ -1,20 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4f7f4;
-  --foreground: #1f2a24;
+  --background: #f7f3ed;
+  --foreground: #243029;
   --card: #ffffff;
-  --muted: #6d746d;
-  --muted-soft: #edf3ef;
-  --border: #dce7df;
-  --primary: #26745f;
-  --primary-strong: #145641;
+  --muted: #6f756e;
+  --muted-soft: #f3efe7;
+  --border: #e5ddd2;
+  --primary: #2f7a67;
+  --primary-strong: #1b5c4b;
   --primary-soft: #dceee7;
   --warning: #ad6d22;
   --warning-soft: #faead4;
   --danger: #a94d45;
   --danger-soft: #f7dfdc;
-  --shadow: 0 20px 70px rgba(35, 47, 40, 0.08);
+  --shadow: 0 18px 48px rgba(51, 43, 33, 0.08);
 }
 
 * {
@@ -31,16 +31,40 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
 button {
   cursor: pointer;
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+input,
+select,
+textarea {
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
 }
 
 ::selection {
@@ -56,4 +80,30 @@ button {
 .focus-ring:focus {
   border-color: rgba(38, 116, 95, 0.55);
   box-shadow: 0 0 0 4px rgba(38, 116, 95, 0.12);
+}
+
+.surface-card {
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease,
+    border-color 220ms ease,
+    background-color 220ms ease;
+}
+
+.surface-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 22px 56px rgba(51, 43, 33, 0.1);
+}
+
+.ingredient-row {
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease,
+    border-color 220ms ease,
+    background-color 220ms ease;
+}
+
+.ingredient-row:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(51, 43, 33, 0.06);
 }

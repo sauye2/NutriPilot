@@ -17,13 +17,13 @@ export function SectionCard({
 }: SectionCardProps) {
   return (
     <section
-      className={`rounded-[8px] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow)] ${className}`}
+      className={`surface-card rounded-[14px] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow)] ${className}`}
     >
       {(title || eyebrow || action) && (
-        <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-5 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-5 py-4 sm:px-6">
           <div>
             {eyebrow ? (
-              <p className="mb-1 text-xs font-semibold uppercase text-[var(--primary)]">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--primary)]">
                 {eyebrow}
               </p>
             ) : null}
@@ -36,7 +36,7 @@ export function SectionCard({
           {action}
         </div>
       )}
-      <div className="p-5">{children}</div>
+      <div className="p-5 sm:p-6">{children}</div>
     </section>
   );
 }

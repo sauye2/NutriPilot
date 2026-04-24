@@ -167,8 +167,8 @@ export function generateSuggestions(
   if (unsupportedCount > 0) {
     suggestions.push({
       id: "unsupported-foods",
-      title: "Check unresolved ingredients",
-      body: "At least one ingredient is still unmatched, so the meal total may read low. Pick a USDA result from the search list or switch that ingredient to grams.",
+      title: "A couple of ingredients still need a closer match",
+      body: "The total may read a little low until those ingredients are matched. Try a broader ingredient name or pick one of the USDA options from the search list.",
       tone: "balance",
     });
   }
@@ -176,8 +176,8 @@ export function generateSuggestions(
   if (byKey.protein.status === "under") {
     suggestions.push({
       id: "add-protein",
-      title: `Add about ${Math.ceil(Math.abs(byKey.protein.delta))}g protein`,
-      body: "Add 75-120g chicken breast, an egg, or a little more lean steak to raise protein without pushing carbs up.",
+      title: "You’re a little low on protein",
+      body: `Add about ${Math.ceil(Math.abs(byKey.protein.delta))}g more protein with a lean option like chicken breast, eggs, or a smaller bump of steak.`,
       tone: "add",
     });
   }
@@ -185,8 +185,8 @@ export function generateSuggestions(
   if (byKey.carbs.status === "under" && byKey.calories.status !== "over") {
     suggestions.push({
       id: "add-carbs",
-      title: "Bring carbs closer to target",
-      body: "Add 1/3 cup cooked rice or half a potato for a steady carb bump that keeps the meal simple.",
+      title: "A small carb boost would round this out",
+      body: "A little rice, noodles, or potato would bring the meal closer to target without changing the feel of it too much.",
       tone: "add",
     });
   }
@@ -194,8 +194,8 @@ export function generateSuggestions(
   if (byKey.fat.status === "over") {
     suggestions.push({
       id: "reduce-fat",
-      title: "Trim calorie-dense fats first",
-      body: "Reduce olive oil by 1-2 teaspoons or swap some steak for chicken breast to lower fat while preserving meal size.",
+      title: "You could trim a richer ingredient first",
+      body: "Pull back a little oil or swap part of a fattier protein for something leaner to lower fat without shrinking the plate too much.",
       tone: "reduce",
     });
   }
@@ -203,8 +203,8 @@ export function generateSuggestions(
   if (byKey.calories.status === "over") {
     suggestions.push({
       id: "reduce-calories",
-      title: "Lower calories without shrinking the plate",
-      body: "Start by cutting oil or fattier protein portions, then keep rice or potato steady if you still need workout fuel.",
+      title: "A few easy changes could bring this closer to your goals",
+      body: "Start with the most calorie-dense ingredients like oil or richer cuts of meat, then keep the vegetables and lighter sides steady.",
       tone: "swap",
     });
   }
@@ -212,8 +212,8 @@ export function generateSuggestions(
   if (suggestions.length === 0) {
     suggestions.push({
       id: "balanced",
-      title: "This meal is close",
-      body: "Your totals are sitting near the goals. Minor seasoning or vegetable additions should not change the macro picture much.",
+      title: "This meal already looks pretty balanced",
+      body: "You’re close enough that small seasoning or vegetable changes should not move the nutrition picture much.",
       tone: "balance",
     });
   }

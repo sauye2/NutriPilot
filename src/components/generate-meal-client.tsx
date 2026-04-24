@@ -13,7 +13,6 @@ import {
 import type {
   GeneratedMeal,
   GeneratedMealFeedback,
-  GeneratedMealRevision,
   GoalGap,
   MacroKey,
   NutritionGoals,
@@ -37,6 +36,7 @@ const goalLabels: Record<MacroKey, string> = {
 
 type OptimizationSuggestion = {
   id: string;
+  kind: "Add" | "Reduce" | "Swap";
   title: string;
   body: string;
   prompt: string;
@@ -54,12 +54,12 @@ export function GenerateMealClient() {
   const [dietaryNotes, setDietaryNotes] = useState("");
   const [feedback, setFeedback] = useState("");
   const [meal, setMeal] = useState<GeneratedMeal | null>(null);
-  const [revision, setRevision] = useState<GeneratedMealRevision | null>(null);
   const [acceptedMeal, setAcceptedMeal] = useState<GeneratedMeal | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRevising, setIsRevising] = useState(false);
-  const [dismissedOptimizationIds, setDismissedOptimizationIds] = useState<string[]>([]);
+  const [hiddenOptimizationIds, setHiddenOptimizationIds] = useState<string[]>([]);
+  const greeting = useMemo(() => getGreeting(), []);
 
   const parsedGoals = useMemo<NutritionGoals>(
     () => ({
@@ -72,23 +72,22 @@ export function GenerateMealClient() {
   );
 
   const hasGoals = Object.values(parsedGoals).some((value) => value > 0);
-  const activeMeal = revision?.updatedMeal ?? meal;
   const optimizationSuggestions = useMemo(
     () =>
-      activeMeal
-        ? buildOptimizationSuggestions(activeMeal).filter(
-            (suggestion) => !dismissedOptimizationIds.includes(suggestion.id),
+      meal
+        ? buildOptimizationSuggestions(meal).filter(
+            (suggestion) => !hiddenOptimizationIds.includes(suggestion.id),
           )
         : [],
-    [activeMeal, dismissedOptimizationIds],
+    [meal, hiddenOptimizationIds],
   );
 
   async function handleGenerate() {
     setIsGenerating(true);
     setError(null);
-    setRevision(null);
     setAcceptedMeal(null);
-    setDismissedOptimizationIds([]);
+    setHiddenOptimizationIds([]);
+    setFeedback("");
 
     try {
       const response = await fetch("/api/generate-meal", {
@@ -137,7 +136,7 @@ export function GenerateMealClient() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          meal: revision?.updatedMeal ?? meal,
+          meal,
           goals: parsedGoals,
           feedback: {
             accepted,
@@ -146,7 +145,9 @@ export function GenerateMealClient() {
         }),
       });
 
-      const payload = (await response.json()) as GeneratedMealRevision & {
+      const payload = (await response.json()) as {
+        summary?: string;
+        updatedMeal?: GeneratedMeal;
         error?: string;
       };
 
@@ -155,11 +156,13 @@ export function GenerateMealClient() {
         return;
       }
 
-      setRevision({
-        summary: payload.summary,
-        updatedMeal: payload.updatedMeal,
-      });
-      setDismissedOptimizationIds([]);
+      setMeal(payload.updatedMeal);
+      setAcceptedMeal(null);
+
+      if (!overrideFeedback) {
+        setFeedback("");
+        setHiddenOptimizationIds([]);
+      }
     } catch {
       setError("Lazy Mode could not revise the meal.");
     } finally {
@@ -168,25 +171,25 @@ export function GenerateMealClient() {
   }
 
   async function applyOptimizationSuggestion(suggestion: OptimizationSuggestion) {
-    setFeedback(suggestion.prompt);
+    setHiddenOptimizationIds((current) =>
+      current.includes(suggestion.id) ? current : [...current, suggestion.id],
+    );
     await handleRevise(true, suggestion.prompt);
   }
 
   function dismissOptimizationSuggestion(id: string) {
-    setDismissedOptimizationIds((current) => [...current, id]);
+    setHiddenOptimizationIds((current) =>
+      current.includes(id) ? current : [...current, id],
+    );
   }
 
   function acceptCurrentMeal() {
-    if (!activeMeal) {
+    if (!meal) {
       return;
     }
 
-    setAcceptedMeal(activeMeal);
-    saveAcceptedGeneratedMeal(activeMeal);
-  }
-
-  function keepOriginalMeal() {
-    setRevision(null);
+    setAcceptedMeal(meal);
+    saveAcceptedGeneratedMeal(meal);
   }
 
   return (
@@ -194,20 +197,20 @@ export function GenerateMealClient() {
       <div className="mx-auto w-full max-w-7xl px-5 pb-12 pt-4 sm:px-8">
         <section className="mb-8 max-w-4xl">
           <p className="mb-3 text-sm font-semibold uppercase text-[var(--primary)]">
-            Optional workflow
+            {greeting}
           </p>
           <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-[var(--foreground)] sm:text-5xl">
-            Let AI build a meal that sounds good and aims for your targets.
+            Need a starting point? We&apos;ll sketch a meal that feels good to eat.
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--muted)]">
-            Give NutriPilot your calorie and macro targets, then steer the meal with a
-            cuisine or anchor ingredient like steak, pasta, or salmon. You can revise
-            the meal with feedback before accepting it and exporting a grocery list.
+            Set your targets, pick a cuisine or anchor ingredient, and NutriPilot will
+            put together a meal idea, check the numbers, and smooth out obvious portion
+            issues before it lands here.
           </p>
         </section>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(340px,0.9fr)_minmax(0,1.1fr)]">
-          <SectionCard title="Lazy Mode" eyebrow="Generate a meal">
+          <SectionCard title="Build a Meal for Me" eyebrow="A gentle shortcut">
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 {(Object.keys(goals) as MacroKey[]).map((key) => (
@@ -273,9 +276,9 @@ export function GenerateMealClient() {
               </button>
 
               <div className="rounded-[8px] bg-[var(--muted-soft)] px-4 py-4 text-sm leading-6 text-[var(--muted)]">
-                AI proposes the dish, then NutriPilot reruns the ingredient list through
-                the app&apos;s USDA-backed nutrition pipeline and trims obviously oversized
-                portions to bring the meal closer to the target before showing it.
+                NutriPilot checks the ingredient list against USDA-backed nutrition data,
+                trims oversized portions, and fills in missing calorie sources when a
+                meal lands far off target.
               </div>
 
               {error ? (
@@ -288,10 +291,10 @@ export function GenerateMealClient() {
 
           <div className="space-y-6">
             <SectionCard
-              title={activeMeal ? activeMeal.title : "Generated Meal"}
-              eyebrow={revision ? "Revision preview" : "AI meal"}
+              title={meal ? meal.title : "Meal Preview"}
+              eyebrow={meal ? "Meal idea" : "Preview"}
               action={
-                activeMeal ? (
+                meal ? (
                   <button
                     className="rounded-[8px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--primary-strong)]"
                     type="button"
@@ -302,18 +305,18 @@ export function GenerateMealClient() {
                 ) : undefined
               }
             >
-              {activeMeal ? (
+              {meal ? (
                 <div className="space-y-5">
                   <div className="grid gap-3 sm:grid-cols-4">
-                    <Metric label="Calories" value={String(activeMeal.totals.calories)} />
-                    <Metric label="Protein" value={`${activeMeal.totals.protein}g`} />
-                    <Metric label="Carbs" value={`${activeMeal.totals.carbs}g`} />
-                    <Metric label="Fat" value={`${activeMeal.totals.fat}g`} />
+                    <Metric label="Calories" value={String(meal.totals.calories)} />
+                    <Metric label="Protein" value={`${meal.totals.protein}g`} />
+                    <Metric label="Carbs" value={`${meal.totals.carbs}g`} />
+                    <Metric label="Fat" value={`${meal.totals.fat}g`} />
                   </div>
 
                   <div className="rounded-[8px] bg-[var(--muted-soft)] px-4 py-4 text-sm leading-6 text-[var(--muted)]">
-                    <p className="font-semibold text-[var(--foreground)]">{activeMeal.cuisine}</p>
-                    <p className="mt-2">{activeMeal.summary}</p>
+                    <p className="font-semibold text-[var(--foreground)]">{meal.cuisine}</p>
+                    <p className="mt-2">{meal.summary}</p>
                   </div>
 
                   <div className="grid gap-5 lg:grid-cols-2">
@@ -322,10 +325,10 @@ export function GenerateMealClient() {
                         Ingredients
                       </h3>
                       <div className="space-y-2">
-                        {activeMeal.ingredients.map((ingredient) => (
+                        {meal.ingredients.map((ingredient) => (
                           <div
                             key={ingredient.id}
-                            className="rounded-[8px] border border-[var(--border)] bg-white/80 px-3 py-3"
+                            className="ingredient-row rounded-[8px] border border-[var(--border)] bg-white/80 px-3 py-3"
                           >
                             <p className="text-sm font-medium text-[var(--foreground)]">
                               {formatIngredientLine(
@@ -348,10 +351,10 @@ export function GenerateMealClient() {
                     <div className="space-y-5">
                       <div>
                         <h3 className="mb-3 text-sm font-semibold text-[var(--foreground)]">
-                          Why it works
+                          Why this feels satisfying
                         </h3>
                         <div className="space-y-2">
-                          {activeMeal.whyItWorks.map((point) => (
+                          {meal.whyItWorks.map((point) => (
                             <div
                               key={point}
                               className="rounded-[8px] border border-[var(--border)] bg-white/80 px-3 py-3 text-sm leading-6 text-[var(--muted)]"
@@ -367,7 +370,7 @@ export function GenerateMealClient() {
                           Instructions
                         </h3>
                         <div className="space-y-2">
-                          {activeMeal.instructions.map((step, index) => (
+                          {meal.instructions.map((step, index) => (
                             <div
                               key={`${index + 1}-${step}`}
                               className="rounded-[8px] border border-[var(--border)] bg-white/80 px-3 py-3 text-sm leading-6 text-[var(--muted)]"
@@ -382,37 +385,36 @@ export function GenerateMealClient() {
                       </div>
                     </div>
                   </div>
-
-                  {revision ? (
-                    <div className="rounded-[8px] bg-[var(--primary-soft)] px-4 py-4 text-sm text-[var(--primary-strong)]">
-                      {revision.summary}
-                    </div>
-                  ) : null}
                 </div>
               ) : (
                 <div className="rounded-[8px] border border-dashed border-[var(--border)] bg-[var(--muted-soft)] px-4 py-8 text-center">
                   <p className="text-sm font-medium text-[var(--foreground)]">
-                    Generate a meal to preview it here.
+                    Start with a few goals and we&apos;ll sketch out a meal here.
                   </p>
                   <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--muted)]">
-                    Lazy Mode works best when you provide goals and a little steering like
-                    cuisine or a protein you want included.
+                    A little direction goes a long way. Choose a cuisine, pick a food to
+                    build around, and we&apos;ll handle the first draft.
                   </p>
                 </div>
               )}
             </SectionCard>
 
-            {activeMeal && optimizationSuggestions.length > 0 ? (
-              <SectionCard title="Optimization Pass" eyebrow="Optional">
+            {meal && optimizationSuggestions.length > 0 ? (
+              <SectionCard title="Suggested Optimizations" eyebrow="A few easy ways to tune it">
                 <div className="space-y-3">
                   {optimizationSuggestions.map((suggestion) => (
                     <article
                       key={suggestion.id}
                       className="rounded-[8px] border border-[var(--border)] bg-white/80 p-4"
                     >
-                      <p className="text-sm font-semibold text-[var(--foreground)]">
-                        {suggestion.title}
-                      </p>
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm font-semibold text-[var(--foreground)]">
+                          {suggestion.title}
+                        </p>
+                        <span className="shrink-0 rounded-full bg-[var(--primary-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--primary-strong)]">
+                          {suggestion.kind}
+                        </span>
+                      </div>
                       <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                         {suggestion.body}
                       </p>
@@ -437,18 +439,24 @@ export function GenerateMealClient() {
                   ))}
                 </div>
                 <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
-                  NutriPilot keeps these tweaks optional. Apply a suggestion to revise
-                  the meal, or dismiss it and keep the current version.
+                  These stay optional. Apply one to update the meal right away, or leave
+                  the meal as-is if it already feels close enough.
+                </p>
+              </SectionCard>
+            ) : meal ? (
+              <SectionCard title="Suggested Optimizations" eyebrow="A few easy ways to tune it">
+                <p className="text-sm leading-6 text-[var(--muted)]">
+                  This meal already looks pretty balanced for the goals you set.
                 </p>
               </SectionCard>
             ) : null}
 
             {meal ? (
-              <SectionCard title="Refine the Meal" eyebrow="Feedback loop">
+              <SectionCard title="Make It Your Own" eyebrow="Add a note">
                 <div className="space-y-4">
                   <textarea
                     className="focus-ring min-h-28 w-full rounded-[8px] border border-[var(--border)] bg-white px-3 py-3 text-sm text-[var(--foreground)]"
-                    placeholder="Ask for more vegetables, remove an ingredient you dislike, change the cuisine feel, or nudge the macros..."
+                    placeholder="Want a little more heat, fewer onions, another side, or a different feel? Add a note here."
                     value={feedback}
                     onChange={(event) => setFeedback(event.target.value)}
                   />
@@ -462,20 +470,10 @@ export function GenerateMealClient() {
                     >
                       {isRevising ? "Revising..." : "Revise from feedback"}
                     </button>
-                    {revision ? (
-                      <button
-                        className="rounded-[8px] border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--muted-soft)]"
-                        type="button"
-                        onClick={keepOriginalMeal}
-                      >
-                        Keep Original
-                      </button>
-                    ) : null}
                   </div>
 
                   <p className="text-sm leading-6 text-[var(--muted)]">
-                    If the revision looks better, accept it. If not, keep the original
-                    version and move on.
+                    This space stays blank until you want to steer the meal yourself.
                   </p>
                 </div>
               </SectionCard>
@@ -510,7 +508,7 @@ export function GenerateMealClient() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[8px] border border-[var(--border)] bg-white/80 px-4 py-4">
+    <div className="rounded-[8px] border border-[var(--border)] bg-white/80 px-4 py-4 transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-sm">
       <p className="text-xs font-semibold uppercase text-[var(--muted)]">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-[var(--foreground)]">{value}</p>
     </div>
@@ -518,7 +516,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function buildOptimizationSuggestions(meal: GeneratedMeal): OptimizationSuggestion[] {
-  const suggestions: OptimizationSuggestion[] = [];
+  const suggestions = new Map<string, OptimizationSuggestion>();
   const byKey = Object.fromEntries(meal.goalGaps.map((gap) => [gap.key, gap])) as Record<
     MacroKey,
     GoalGap
@@ -528,56 +526,70 @@ function buildOptimizationSuggestions(meal: GeneratedMeal): OptimizationSuggesti
   const hasChicken = ingredientNames.some((name) => name.includes("chicken"));
   const hasOil = ingredientNames.some((name) => name.includes("oil"));
   const hasPorkBelly = ingredientNames.some((name) => name.includes("pork belly"));
+  const hasNoodles = ingredientNames.some((name) => name.includes("noodle"));
 
   if (byKey.calories?.status === "over" || byKey.fat?.status === "over") {
-    suggestions.push({
+    suggestions.set("trim-richness", {
       id: "trim-richness",
+      kind: "Reduce",
       title: "Trim the richest parts a little",
-      body: "Keep the same dish, but slightly reduce the fattiest ingredients and let vegetables or lettuce carry more of the plate.",
+      body: "A slightly smaller portion of the richest ingredients would bring this closer to your target without changing the spirit of the dish.",
       prompt:
         "Revise this meal so it is a bit lighter while keeping the same overall dish and flavor profile. Trim the richest fats first, keep it tasty, and stay close enough to the original goals.",
     });
   }
 
   if (byKey.protein?.status === "under" && !hasChicken) {
-    suggestions.push({
+    suggestions.set("boost-protein", {
       id: "boost-protein",
+      kind: "Add",
       title: "Add a modest lean protein boost",
-      body: "A lean supporting protein can pull the meal closer to target without changing the whole identity of the dish.",
+      body: "A small lean add-in could raise protein without changing the whole personality of the meal.",
       prompt:
         "Revise this meal to raise protein modestly while keeping it appetizing and reasonably close to the current calories. Favor a practical lean protein boost.",
     });
   }
 
-  if (byKey.carbs?.status === "under" && !hasRice) {
-    suggestions.push({
+  if (byKey.carbs?.status === "under" && !hasRice && !hasNoodles) {
+    suggestions.set("steady-carbs", {
       id: "steady-carbs",
+      kind: "Add",
       title: "Add a steadier carb base",
-      body: "A small rice or noodle addition can make the meal feel more complete while bringing carbs a bit closer to the target.",
+      body: "A little rice or noodles would make this feel more complete and help close the calorie gap at the same time.",
       prompt:
         "Revise this meal by adding a coherent carb element like rice or noodles so it lands a bit closer to the carb target without wrecking the cuisine.",
     });
   }
 
   if (hasPorkBelly && byKey.fat?.status === "over") {
-    suggestions.push({
+    suggestions.set("balance-pork-belly", {
       id: "balance-pork-belly",
+      kind: "Swap",
       title: "Balance the pork belly",
-      body: "Keep pork belly as the anchor, but let a slightly smaller portion and more greens or lean support carry the meal.",
+      body: "Keep pork belly as the anchor, but lean on a slightly smaller portion and more supporting volume so the meal stays satisfying.",
       prompt:
         "Keep pork belly as the anchor food, but revise the meal so it is a little more balanced and not quite as fat-heavy. Preserve the cuisine and make the result still sound genuinely good.",
     });
   }
 
   if (hasOil && byKey.calories?.status === "over") {
-    suggestions.push({
+    suggestions.set("pull-back-oil", {
       id: "pull-back-oil",
+      kind: "Reduce",
       title: "Use a lighter hand on oils",
-      body: "A smaller oil or sauce finish often lowers calories without making the meal feel stripped down.",
+      body: "A lighter hand with oil or sauce can pull calories down without making the meal feel stripped back.",
       prompt:
         "Revise this meal with a lighter hand on added oils or rich sauces while preserving flavor, texture, and the same overall style.",
     });
   }
 
-  return suggestions.slice(0, 3);
+  return Array.from(suggestions.values()).slice(0, 3);
+}
+
+function getGreeting() {
+  const hour = new Date().getHours();
+
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
 }
