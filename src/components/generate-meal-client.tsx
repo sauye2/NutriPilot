@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { AppShell } from "@/components/app-shell";
 import { GroceryListPanel } from "@/components/grocery-list-panel";
 import { SectionCard } from "@/components/section-card";
@@ -338,10 +338,26 @@ export function GenerateMealClient() {
                 {meal ? (
                   <div className="space-y-5">
                   <div className="grid gap-3 sm:grid-cols-4">
-                    <Metric label="Calories" value={String(meal.totals.calories)} />
-                    <Metric label="Protein" value={`${meal.totals.protein}g`} />
-                    <Metric label="Carbs" value={`${meal.totals.carbs}g`} />
-                    <Metric label="Fat" value={`${meal.totals.fat}g`} />
+                    <AnimatedMetric
+                      label="Calories"
+                      value={meal.totals.calories}
+                      formatValue={(value) => formatAnimatedNumber(value, 0)}
+                    />
+                    <AnimatedMetric
+                      label="Protein"
+                      value={meal.totals.protein}
+                      formatValue={(value) => `${formatAnimatedNumber(value, 1)}g`}
+                    />
+                    <AnimatedMetric
+                      label="Carbs"
+                      value={meal.totals.carbs}
+                      formatValue={(value) => `${formatAnimatedNumber(value, 1)}g`}
+                    />
+                    <AnimatedMetric
+                      label="Fat"
+                      value={meal.totals.fat}
+                      formatValue={(value) => `${formatAnimatedNumber(value, 1)}g`}
+                    />
                   </div>
 
                   <div className="rounded-[8px] bg-[var(--muted-soft)] px-4 py-4 text-sm leading-6 text-[var(--muted)]">
@@ -596,6 +612,73 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="mt-2 text-2xl font-semibold text-[var(--foreground)]">{value}</p>
     </div>
   );
+}
+
+function AnimatedMetric({
+  label,
+  value,
+  formatValue,
+}: {
+  label: string;
+  value: number;
+  formatValue: (value: number) => string;
+}) {
+  const [displayValue, setDisplayValue] = useState(value);
+  const previousValueRef = useRef(value);
+  const initialRenderRef = useRef(true);
+
+  useEffect(() => {
+    if (initialRenderRef.current) {
+      initialRenderRef.current = false;
+      previousValueRef.current = value;
+      setDisplayValue(value);
+      return;
+    }
+
+    const startValue = previousValueRef.current;
+    const endValue = value;
+    const durationMs = 1100;
+    let animationFrame = 0;
+    let startTime: number | null = null;
+
+    const step = (timestamp: number) => {
+      if (startTime === null) {
+        startTime = timestamp;
+      }
+
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / durationMs, 1);
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+      const nextValue = startValue + (endValue - startValue) * easedProgress;
+
+      setDisplayValue(nextValue);
+
+      if (progress < 1) {
+        animationFrame = window.requestAnimationFrame(step);
+      } else {
+        previousValueRef.current = endValue;
+      }
+    };
+
+    animationFrame = window.requestAnimationFrame(step);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      previousValueRef.current = endValue;
+    };
+  }, [value]);
+
+  return <Metric label={label} value={formatValue(displayValue)} />;
+}
+
+function formatAnimatedNumber(value: number, decimals: number) {
+  const rounded = Number(value.toFixed(decimals));
+
+  if (decimals === 0) {
+    return String(Math.round(rounded));
+  }
+
+  return rounded.toFixed(decimals).replace(/\.0$/, "");
 }
 
 function buildOptimizationSuggestions(meal: GeneratedMeal): OptimizationSuggestion[] {
