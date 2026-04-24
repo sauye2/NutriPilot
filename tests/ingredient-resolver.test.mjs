@@ -259,6 +259,22 @@ for (const ingredient of [
   });
 }
 
+for (const ingredient of [
+  "shallot",
+  "red onion",
+  "serrano pepper",
+  "poblano pepper",
+  "fresno pepper",
+]) {
+  test(`falls back to a usable generic family match for ${ingredient}`, async () => {
+    const resolution = await resolveIngredientMatch(ingredient);
+
+    assert.ok(resolution.food, `${ingredient} should still resolve to a usable USDA food`);
+    assert.equal(resolution.needsReview, false);
+    assert.ok(resolution.confidence >= 0.5);
+  });
+}
+
 test("batch resolution keeps common ingredients auto-matched", async () => {
   const results = await resolveIngredientsBatch([
     "hanger steak",
@@ -315,6 +331,22 @@ test("preferred pantry profiles keep spices and produce on sensible generic valu
   assert.equal(chili.food?.gramsByUnit.tsp, 2.7);
   assert.equal(limeJuice.food?.gramsByUnit.tbsp, 15);
   assert.equal(scotchBonnet.food?.gramsByUnit.piece, 14);
+});
+
+test("category fallback keeps future onion and pepper variants from losing nutrition data", async () => {
+  const [shallot, redOnion, serrano, poblano, fresno] = await Promise.all([
+    resolveIngredientMatch("shallot"),
+    resolveIngredientMatch("red onion"),
+    resolveIngredientMatch("serrano pepper"),
+    resolveIngredientMatch("poblano pepper"),
+    resolveIngredientMatch("fresno pepper"),
+  ]);
+
+  assert.equal(shallot.food?.description, "Onions, Yellow, Raw");
+  assert.equal(redOnion.food?.description, "Onions, Yellow, Raw");
+  assert.equal(serrano.food?.description, "Peppers, Hot, Raw");
+  assert.equal(poblano.food?.description, "Peppers, Hot, Raw");
+  assert.equal(fresno.food?.description, "Peppers, Hot, Raw");
 });
 
 function food(fdcId, description, dataType, brandName = undefined) {

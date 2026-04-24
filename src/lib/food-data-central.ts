@@ -211,6 +211,12 @@ type PreferredGenericProfile = {
   rationale: string;
 };
 
+type CategoryFallbackRule = {
+  test: (ingredient: NormalizedIngredient, rawText: string) => boolean;
+  queries: string[];
+  rationale: string;
+};
+
 type FdcFoodDetail = {
   fdcId: number;
   description: string;
@@ -746,6 +752,73 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
   },
 ];
 
+const CATEGORY_FALLBACK_RULES: CategoryFallbackRule[] = [
+  {
+    test: (ingredient, rawText) =>
+      /\bshallot|red onion|sweet onion|white onion|vidalia onion|onion\b/.test(
+        `${ingredient.canonicalQuery} ${rawText}`.toLowerCase(),
+      ),
+    queries: ["onions yellow raw", "onions raw"],
+    rationale: "Used a generic USDA onion profile to keep the estimate usable.",
+  },
+  {
+    test: (ingredient, rawText) =>
+      /\bserrano|jalapeno|jalapeño|habanero|scotch bonnet|thai chili|thai chile|bird.?s eye|birds eye|fresno|anaheim|poblano|hot pepper|chili pepper|chile pepper\b/.test(
+        `${ingredient.canonicalQuery} ${rawText}`.toLowerCase(),
+      ),
+    queries: ["peppers hot raw", "hot pepper raw", "jalapeno pepper raw"],
+    rationale: "Used a generic USDA hot pepper profile for a close family match.",
+  },
+  {
+    test: (ingredient, rawText) =>
+      /\bbell pepper|sweet pepper|capsicum\b/.test(
+        `${ingredient.canonicalQuery} ${rawText}`.toLowerCase(),
+      ),
+    queries: ["sweet pepper", "bell pepper raw"],
+    rationale: "Used a generic USDA bell pepper profile for a close family match.",
+  },
+  {
+    test: (ingredient, rawText) =>
+      /\b(extra virgin olive oil|olive oil|sesame oil|vegetable oil|canola oil|avocado oil|grapeseed oil|neutral oil|oil)\b/.test(
+        `${ingredient.canonicalQuery} ${rawText}`.toLowerCase(),
+      ),
+    queries: ["vegetable oil", "olive oil"],
+    rationale: "Used a generic USDA cooking oil profile to avoid a missing estimate.",
+  },
+  {
+    test: (ingredient, rawText) =>
+      /\blemon juice|lime juice|juice of lemon|juice of lime|juice lemon|juice lime\b/.test(
+        `${ingredient.canonicalQuery} ${rawText}`.toLowerCase(),
+      ),
+    queries: ["lime juice raw", "lemon juice raw"],
+    rationale: "Used a generic USDA citrus juice profile for a close family match.",
+  },
+  {
+    test: (ingredient, rawText) =>
+      /\bblack pepper|peppercorn|ground pepper\b/.test(
+        `${ingredient.canonicalQuery} ${rawText}`.toLowerCase(),
+      ),
+    queries: ["spices pepper black", "pepper black"],
+    rationale: "Used a generic USDA black pepper profile for the estimate.",
+  },
+  {
+    test: (ingredient, rawText) =>
+      /\bcumin|coriander seed|caraway\b/.test(
+        `${ingredient.canonicalQuery} ${rawText}`.toLowerCase(),
+      ),
+    queries: ["spices cumin seed", "cumin seed"],
+    rationale: "Used a close USDA spice profile to keep the estimate usable.",
+  },
+  {
+    test: (ingredient, rawText) =>
+      /\bchili powder|chile powder|paprika|red pepper flakes|chili flakes|chile flakes|gochugaru\b/.test(
+        `${ingredient.canonicalQuery} ${rawText}`.toLowerCase(),
+      ),
+    queries: ["spices chili powder", "pepper red or cayenne"],
+    rationale: "Used a generic USDA chile spice profile for a close pantry match.",
+  },
+];
+
 function getApiKey() {
   const key = process.env.USDA_FOODDATA_API_KEY;
 
@@ -1113,10 +1186,30 @@ export async function resolveIngredientMatch(
   }
 
   const topCandidates = ranked.slice(0, 3);
-  const chosen = await hydrateBestCandidate(topCandidates, options?.includeFoodDetails ?? true);
+  let chosen = await hydrateBestCandidate(topCandidates, options?.includeFoodDetails ?? true);
+
+  if (!chosen?.food) {
+    const categoryFallback = await resolveCategoryFallback(
+      normalized,
+      rawText,
+      ingredientType,
+      preferCooked,
+      options?.includeFoodDetails ?? true,
+    );
+
+    if (categoryFallback) {
+      chosen = categoryFallback;
+      if (!topCandidates.some((candidate) => candidate.fdcId === categoryFallback.candidate.fdcId)) {
+        topCandidates.unshift(categoryFallback.candidate);
+      }
+    }
+  }
+
   const confidence = chosen?.candidate._confidence ?? 0;
   const needsReview = chosen ? chosen.candidate._needsReview : true;
-  const rationale = chosen?.candidate._rationale ?? "No confident USDA match yet.";
+  const rationale =
+    chosen?.candidate._rationale ??
+    "We couldn't confidently match this ingredient yet, so it still needs a quick look.";
 
   logResolution({
     ingredientText: rawText,
@@ -1155,6 +1248,53 @@ export async function resolveIngredientMatch(
     candidates: topCandidates.map(toSearchResult),
     food: chosen?.food ?? null,
   };
+}
+
+async function resolveCategoryFallback(
+  normalized: NormalizedIngredient,
+  rawText: string,
+  ingredientType: IngredientKind,
+  preferCooked: boolean,
+  includeFoodDetails: boolean,
+): Promise<{ candidate: RankedCandidate; food: ResolvedFood | null } | null> {
+  const fallbackQueries = getCategoryFallbackQueries(normalized, rawText);
+
+  if (!fallbackQueries.length) {
+    return null;
+  }
+
+  const fallbackResults = await Promise.all(
+    fallbackQueries.map((query) => searchFoodDataCentral(query, GENERIC_DATA_TYPES)),
+  );
+  const ranked = rankCandidates(
+    normalized,
+    dedupeFoods(fallbackResults.flat()),
+    ingredientType,
+    fallbackQueries,
+    preferCooked,
+  );
+  const fallback = ranked[0];
+
+  if (!fallback || fallback._confidence < 0.38) {
+    return null;
+  }
+
+  const rule = getCategoryFallbackRule(normalized, rawText);
+  const candidate: RankedCandidate = {
+    ...fallback,
+    _confidence: Math.max(fallback._confidence, 0.52),
+    _needsReview: false,
+    _rationale:
+      rule?.rationale ??
+      "Used a close generic USDA ingredient profile so the meal still has a usable estimate.",
+  };
+  const food = includeFoodDetails ? await getFoodDetails(candidate.fdcId) : null;
+
+  if (includeFoodDetails && !food) {
+    return null;
+  }
+
+  return { candidate, food };
 }
 
 function getPreferredGenericProfile(
@@ -1249,6 +1389,22 @@ function preferredProfileToCandidate(profile: PreferredGenericProfile): RankedCa
     _needsReview: false,
     _rationale: profile.rationale,
   };
+}
+
+function getCategoryFallbackQueries(
+  normalized: NormalizedIngredient,
+  rawText: string,
+): string[] {
+  return getCategoryFallbackRule(normalized, rawText)?.queries ?? [];
+}
+
+function getCategoryFallbackRule(
+  normalized: NormalizedIngredient,
+  rawText: string,
+): CategoryFallbackRule | null {
+  return (
+    CATEGORY_FALLBACK_RULES.find((rule) => rule.test(normalized, rawText)) ?? null
+  );
 }
 
 function rankCandidates(
