@@ -137,6 +137,7 @@ export function GenerateMealClient() {
       return null;
     }
 
+    scrollToMealSummary(mealSummaryRef);
     setIsRevising(true);
     setError(null);
 
@@ -178,7 +179,6 @@ export function GenerateMealClient() {
         );
       }
 
-      scrollToMealSummary(mealSummaryRef);
       return payload.updatedMeal;
     } catch {
       setError("Lazy Mode could not revise the meal.");
