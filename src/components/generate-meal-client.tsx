@@ -42,6 +42,12 @@ type OptimizationSuggestion = {
   prompt: string;
 };
 
+type OptimizationStatus = "active" | "accepted" | "dismissed";
+
+type OptimizationSuggestionState = OptimizationSuggestion & {
+  status: OptimizationStatus;
+};
+
 export function GenerateMealClient() {
   const [goals, setGoals] = useState<GoalDraft>({
     calories: "",
@@ -58,8 +64,9 @@ export function GenerateMealClient() {
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRevising, setIsRevising] = useState(false);
-  const [dismissedOptimizationIds, setDismissedOptimizationIds] = useState<string[]>([]);
-  const [acceptedOptimizationIds, setAcceptedOptimizationIds] = useState<string[]>([]);
+  const [optimizationSuggestions, setOptimizationSuggestions] = useState<
+    OptimizationSuggestionState[]
+  >([]);
   const greeting = useMemo(() => getGreeting(), []);
 
   const parsedGoals = useMemo<NutritionGoals>(
@@ -73,22 +80,12 @@ export function GenerateMealClient() {
   );
 
   const hasGoals = Object.values(parsedGoals).some((value) => value > 0);
-  const optimizationSuggestions = useMemo(
-    () =>
-      meal
-        ? buildOptimizationSuggestions(meal).filter(
-            (suggestion) => !dismissedOptimizationIds.includes(suggestion.id),
-          )
-        : [],
-    [meal, dismissedOptimizationIds],
-  );
 
   async function handleGenerate() {
     setIsGenerating(true);
     setError(null);
     setAcceptedMeal(null);
-    setDismissedOptimizationIds([]);
-    setAcceptedOptimizationIds([]);
+    setOptimizationSuggestions([]);
     setFeedback("");
 
     try {
@@ -115,6 +112,12 @@ export function GenerateMealClient() {
       }
 
       setMeal(payload.meal);
+      setOptimizationSuggestions(
+        buildOptimizationSuggestions(payload.meal).map((suggestion) => ({
+          ...suggestion,
+          status: "active",
+        })),
+      );
     } catch {
       setMeal(null);
       setError("Lazy Mode could not generate a meal.");
@@ -123,11 +126,14 @@ export function GenerateMealClient() {
     }
   }
 
-  async function handleRevise(accepted: boolean, overrideFeedback?: string) {
+  async function handleRevise(
+    accepted: boolean,
+    overrideFeedback?: string,
+  ): Promise<GeneratedMeal | null> {
     const feedbackText = overrideFeedback?.trim() || feedback.trim();
 
     if (!meal || !feedbackText) {
-      return false;
+      return null;
     }
 
     setIsRevising(true);
@@ -155,7 +161,7 @@ export function GenerateMealClient() {
 
       if (!response.ok || !payload.updatedMeal) {
         setError(payload.error ?? "Lazy Mode could not revise the meal.");
-        return false;
+        return null;
       }
 
       setMeal(payload.updatedMeal);
@@ -163,33 +169,43 @@ export function GenerateMealClient() {
 
       if (!overrideFeedback) {
         setFeedback("");
-        setDismissedOptimizationIds([]);
-        setAcceptedOptimizationIds([]);
+        setOptimizationSuggestions(
+          buildOptimizationSuggestions(payload.updatedMeal).map((suggestion) => ({
+            ...suggestion,
+            status: "active",
+          })),
+        );
       }
-      return true;
+      return payload.updatedMeal;
     } catch {
       setError("Lazy Mode could not revise the meal.");
-      return false;
+      return null;
     } finally {
       setIsRevising(false);
     }
   }
 
   async function applyOptimizationSuggestion(suggestion: OptimizationSuggestion) {
-    const didRevise = await handleRevise(true, suggestion.prompt);
+    const updatedMeal = await handleRevise(true, suggestion.prompt);
 
-    if (!didRevise) {
+    if (!updatedMeal) {
       return;
     }
 
-    setAcceptedOptimizationIds((current) =>
-      current.includes(suggestion.id) ? current : [...current, suggestion.id],
-    );
+    setOptimizationSuggestions((current) => {
+      const accepted = current.map((item) =>
+        item.id === suggestion.id ? { ...item, status: "accepted" as const } : item,
+      );
+
+      return mergeOptimizationSuggestions(accepted, buildOptimizationSuggestions(updatedMeal));
+    });
   }
 
   function dismissOptimizationSuggestion(id: string) {
-    setDismissedOptimizationIds((current) =>
-      current.includes(id) ? current : [...current, id],
+    setOptimizationSuggestions((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, status: "dismissed" as const } : item,
+      ),
     );
   }
 
@@ -286,9 +302,9 @@ export function GenerateMealClient() {
               </button>
 
               <div className="rounded-[8px] bg-[var(--muted-soft)] px-4 py-4 text-sm leading-6 text-[var(--muted)]">
-                NutriPilot checks the ingredient list against USDA-backed nutrition data,
-                trims oversized portions, and fills in missing calorie sources when a
-                meal lands far off target.
+                NutriPilot shapes a meal around your goals and preferences, then checks
+                the ingredient list against USDA-backed nutrition data before showing
+                it here.
               </div>
 
               {error ? (
@@ -409,11 +425,14 @@ export function GenerateMealClient() {
               )}
             </SectionCard>
 
-            {meal && optimizationSuggestions.length > 0 ? (
+            {meal &&
+            optimizationSuggestions.some((suggestion) => suggestion.status !== "dismissed") ? (
               <SectionCard title="Suggested Optimizations" eyebrow="A few easy ways to tune it">
                 <div className="space-y-3">
-                  {optimizationSuggestions.map((suggestion) => {
-                    const isAccepted = acceptedOptimizationIds.includes(suggestion.id);
+                  {optimizationSuggestions
+                    .filter((suggestion) => suggestion.status !== "dismissed")
+                    .map((suggestion) => {
+                    const isAccepted = suggestion.status === "accepted";
 
                     return (
                       <article
@@ -467,10 +486,6 @@ export function GenerateMealClient() {
                     );
                   })}
                 </div>
-                <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
-                  These stay optional. Apply one to update the meal right away, or leave
-                  the meal as-is if it already feels close enough.
-                </p>
               </SectionCard>
             ) : meal ? (
               <SectionCard title="Suggested Optimizations" eyebrow="A few easy ways to tune it">
@@ -500,10 +515,6 @@ export function GenerateMealClient() {
                       {isRevising ? "Revising..." : "Revise from feedback"}
                     </button>
                   </div>
-
-                  <p className="text-sm leading-6 text-[var(--muted)]">
-                    This space stays blank until you want to steer the meal yourself.
-                  </p>
                 </div>
               </SectionCard>
             ) : null}
@@ -533,6 +544,35 @@ export function GenerateMealClient() {
       </div>
     </AppShell>
   );
+}
+
+function mergeOptimizationSuggestions(
+  current: OptimizationSuggestionState[],
+  next: OptimizationSuggestion[],
+) {
+  const nextById = new Map(next.map((suggestion) => [suggestion.id, suggestion]));
+  const merged = current.map((suggestion) => {
+    const replacement = nextById.get(suggestion.id);
+    nextById.delete(suggestion.id);
+
+    if (!replacement) {
+      return suggestion;
+    }
+
+    return {
+      ...replacement,
+      status: suggestion.status,
+    };
+  });
+
+  for (const suggestion of nextById.values()) {
+    merged.push({
+      ...suggestion,
+      status: "active",
+    });
+  }
+
+  return merged;
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
