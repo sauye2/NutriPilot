@@ -33,6 +33,18 @@ const SEARCH_FIXTURES = [
     foods: [food(212, "Cornstarch", "SR Legacy")],
   },
   {
+    match: ["bell pepper", "bell pepper raw", "sweet pepper"],
+    foods: [food(213, "Peppers, bell, green, raw", "Foundation")],
+  },
+  {
+    match: ["yellow onion", "onions yellow raw", "onions raw"],
+    foods: [food(214, "Onions, yellow, raw", "Foundation")],
+  },
+  {
+    match: ["avocado", "avocados raw", "avocado raw"],
+    foods: [food(215, "Avocados, raw, california", "SR Legacy")],
+  },
+  {
     match: ["white rice", "rice white", "rice"],
     foods: [
       food(301, "Rice, white, long-grain, regular, cooked", "SR Legacy"),
@@ -100,6 +112,14 @@ const SEARCH_FIXTURES = [
     ],
   },
   {
+    match: ["ground cumin", "cumin", "spices cumin seed", "cumin seed"],
+    foods: [food(1173, "Spices, cumin seed", "SR Legacy")],
+  },
+  {
+    match: ["chili powder", "spices chili powder"],
+    foods: [food(1174, "Spices, chili powder", "SR Legacy")],
+  },
+  {
     match: ["gochugaru", "pepper red or cayenne", "red pepper flakes", "chili flakes"],
     foods: [food(1181, "Spices, pepper, red or cayenne", "SR Legacy")],
   },
@@ -121,6 +141,9 @@ const DETAIL_FIXTURES = {
   201: detail(201, "Oil, olive, salad or cooking", "Foundation", { tbsp: 13.5, tsp: 4.5 }),
   211: detailWithMacros(211, "Oil, vegetable, soybean, salad or cooking", "SR Legacy", { calories: 884, protein: 0, carbs: 0, fat: 100 }, { tbsp: 13.6, tsp: 4.5 }),
   212: detailWithMacros(212, "Cornstarch", "SR Legacy", { calories: 381, protein: 0.3, carbs: 91.3, fat: 0.1 }, { tbsp: 8, tsp: 2.7 }),
+  213: detailWithMacros(213, "Peppers, bell, green, raw", "Foundation", { calories: 20, protein: 0.86, carbs: 4.64, fat: 0.17 }, { piece: 119, cup: 92 }),
+  214: detailWithMacros(214, "Onions, yellow, raw", "Foundation", { calories: 37, protein: 0.77, carbs: 8.61, fat: 0.09 }, { piece: 110, cup: 160 }),
+  215: detailWithMacros(215, "Avocados, raw, california", "SR Legacy", { calories: 167, protein: 2, carbs: 8.6, fat: 15.4 }, { piece: 150, cup: 150 }),
   301: detail(301, "Rice, white, long-grain, regular, cooked", "SR Legacy", { cup: 158 }),
   311: detailWithMacros(311, "Beef, top sirloin, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, grilled", "SR Legacy", { calories: 206, protein: 28.6, carbs: 0, fat: 10.6 }, { piece: 170 }),
   401: detail(401, "Chicken, broilers or fryers, breast, meat only, cooked, roasted", "Foundation"),
@@ -134,6 +157,8 @@ const DETAIL_FIXTURES = {
   1151: detail(1151, "Vinegar, rice", "SR Legacy", { tbsp: 15, tsp: 5 }),
   1161: detail(1161, "Oil, sesame, salad or cooking", "Foundation", { tbsp: 13.5, tsp: 4.5 }),
   1171: detail(1171, "Spices, pepper, black", "SR Legacy", { tbsp: 6.8, tsp: 2.3 }),
+  1173: detailWithMacros(1173, "Spices, cumin seed", "SR Legacy", { calories: 375, protein: 17.8, carbs: 44.2, fat: 22.3 }, { tbsp: 6, tsp: 2 }),
+  1174: detailWithMacros(1174, "Spices, chili powder", "SR Legacy", { calories: 282, protein: 13.5, carbs: 49.7, fat: 14.3 }, { tbsp: 8, tsp: 2.7 }),
   1181: detail(1181, "Spices, pepper, red or cayenne", "SR Legacy", { tbsp: 6.8, tsp: 2.3 }),
   1191: detail(1191, "Egg, whole, raw, fresh", "Foundation", { piece: 50 }),
   1201: detail(1201, "Pork, fresh, belly, raw", "Foundation"),
@@ -181,6 +206,9 @@ for (const ingredient of [
   "extra virgin olive oil",
   "neutral oil",
   "cornstarch",
+  "bell pepper",
+  "yellow onion",
+  "avocado",
   "white rice",
   "sirloin steak",
   "chicken breast",
@@ -194,6 +222,8 @@ for (const ingredient of [
   "rice vinegar",
   "sesame oil",
   "black pepper",
+  "ground cumin",
+  "chili powder",
   "gochugaru",
   "eggs",
   "pork belly",
@@ -224,8 +254,8 @@ test("batch resolution keeps common ingredients auto-matched", async () => {
   assert.equal(results.every((item) => item.food), true);
 });
 
-test("preferred pantry profiles keep black pepper and gochugaru on sensible generic values", async () => {
-  const [pepper, gochugaru, rice, eggs, oil, starch, steak] = await Promise.all([
+test("preferred pantry profiles keep spices and produce on sensible generic values", async () => {
+  const [pepper, gochugaru, rice, eggs, oil, starch, steak, onion, avocado, bellPepper, cumin, chili] = await Promise.all([
     resolveIngredientMatch("black pepper"),
     resolveIngredientMatch("gochugaru"),
     resolveIngredientMatch("rice cooked"),
@@ -233,6 +263,11 @@ test("preferred pantry profiles keep black pepper and gochugaru on sensible gene
     resolveIngredientMatch("neutral oil"),
     resolveIngredientMatch("cornstarch"),
     resolveIngredientMatch("sirloin steak"),
+    resolveIngredientMatch("yellow onion"),
+    resolveIngredientMatch("avocado"),
+    resolveIngredientMatch("bell pepper"),
+    resolveIngredientMatch("ground cumin"),
+    resolveIngredientMatch("chili powder"),
   ]);
 
   assert.equal(pepper.matchedFoodId, 170931);
@@ -244,6 +279,11 @@ test("preferred pantry profiles keep black pepper and gochugaru on sensible gene
   assert.equal(oil.food?.gramsByUnit.tbsp, 13.6);
   assert.equal(starch.food?.gramsByUnit.tbsp, 8);
   assert.equal(steak.food?.per100g.calories, 206);
+  assert.equal(onion.food?.gramsByUnit.piece, 110);
+  assert.equal(avocado.food?.gramsByUnit.piece, 150);
+  assert.equal(bellPepper.food?.gramsByUnit.piece, 119);
+  assert.equal(cumin.food?.gramsByUnit.tsp, 2);
+  assert.equal(chili.food?.gramsByUnit.tsp, 2.7);
 });
 
 function food(fdcId, description, dataType, brandName = undefined) {

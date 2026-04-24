@@ -40,7 +40,7 @@ export function formatIngredientLine(
   }
 
   if (/cucumber/.test(lowerName)) {
-    return `${formattedAmount} ${pluralize("cucumber", amount)}`;
+    return `${formatWholeCount(amount)} ${pluralize("cucumber", amount)}`;
   }
 
   if (/egg/.test(lowerName)) {
@@ -53,6 +53,14 @@ export function formatIngredientLine(
 
   if (/steak/.test(lowerName)) {
     return `${formattedAmount} ${amount === 1 ? normalizedName : `${normalizedName}s`}`;
+  }
+
+  if (/avocado/.test(lowerName)) {
+    return `${formattedAmount} ${pluralize("avocado", amount)}`;
+  }
+
+  if (/bell pepper|yellow onion|white onion|red onion|onion|lime|lemon/.test(lowerName)) {
+    return `${formatWholeCount(amount)} ${pluralize(normalizedName, amount)}`;
   }
 
   return `${formattedAmount} ${pluralize("piece", amount)} ${normalizedName}`;
@@ -97,7 +105,15 @@ export function formatGroceryQuantity(
   }
 
   if (/cucumber/.test(lowerLabel)) {
-    return `${formattedAmount} ${pluralize("cucumber", amount)}`;
+    return `${formatWholeCount(amount)} ${pluralize("cucumber", amount)}`;
+  }
+
+  if (/avocado/.test(lowerLabel)) {
+    return `${formattedAmount} ${pluralize("avocado", amount)}`;
+  }
+
+  if (/bell pepper|yellow onion|white onion|red onion|onion|lime|lemon/.test(lowerLabel)) {
+    return `${formatWholeCount(amount)} ${pluralize(label, amount)}`;
   }
 
   return `${formattedAmount} ${pluralize("piece", amount)}`;
@@ -108,6 +124,13 @@ export function formatIngredientCalories(ingredient: GeneratedMealIngredient) {
 }
 
 function formatAmount(value: number) {
+  if (Math.abs(value - 0.25) < 0.01) return "1/4";
+  if (Math.abs(value - 0.5) < 0.01) return "1/2";
+  if (Math.abs(value - 0.75) < 0.01) return "3/4";
+  if (Math.abs(value - 1.25) < 0.01) return "1 1/4";
+  if (Math.abs(value - 1.5) < 0.01) return "1 1/2";
+  if (Math.abs(value - 1.75) < 0.01) return "1 3/4";
+
   if (Number.isInteger(value)) {
     return String(value);
   }
@@ -115,6 +138,14 @@ function formatAmount(value: number) {
   return (Math.round(value * 10) / 10).toString();
 }
 
+function formatWholeCount(amount: number) {
+  if (Math.abs(amount - 1) < 0.01) {
+    return "1 whole";
+  }
+
+  return formatAmount(amount);
+}
+
 function pluralize(noun: string, amount: number) {
-  return Math.abs(amount) === 1 ? noun : `${noun}s`;
+  return Math.abs(amount) === 1 || Math.abs(amount) < 1 ? noun : `${noun}s`;
 }

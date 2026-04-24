@@ -287,6 +287,16 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     searchExpansions: ["sweet pepper"],
   },
   {
+    canonical: "yellow onion",
+    aliases: ["yellow onion", "yellow onions", "onion", "onions"],
+    searchExpansions: ["onions yellow raw", "onions raw"],
+  },
+  {
+    canonical: "avocado",
+    aliases: ["avocado", "avocados"],
+    searchExpansions: ["avocados raw", "avocado raw"],
+  },
+  {
     canonical: "olive oil",
     aliases: ["extra virgin olive oil", "olive oil", "evoo"],
     searchExpansions: ["olive oil"],
@@ -352,6 +362,16 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     searchExpansions: ["spices pepper black", "pepper black"],
   },
   {
+    canonical: "ground cumin",
+    aliases: ["ground cumin", "cumin"],
+    searchExpansions: ["spices cumin seed", "cumin seed"],
+  },
+  {
+    canonical: "chili powder",
+    aliases: ["chili powder"],
+    searchExpansions: ["spices chili powder"],
+  },
+  {
     canonical: "gochugaru",
     aliases: ["gochugaru", "korean chili flakes", "korean chile flakes"],
     searchExpansions: ["pepper red or cayenne", "chili flakes", "red pepper flakes"],
@@ -411,6 +431,38 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
     },
   },
   {
+    canonicalQuery: "ground cumin",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA spice entry.",
+    food: {
+      fdcId: 170923,
+      description: "Spices, Cumin Seed",
+      displayName: "Spices, Cumin Seed",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 375, protein: 17.8, carbs: 44.2, fat: 22.3 },
+      gramsByUnit: { g: 1, tbsp: 6, tsp: 2 },
+    },
+  },
+  {
+    canonicalQuery: "chili powder",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA spice entry.",
+    food: {
+      fdcId: 171319,
+      description: "Spices, Chili Powder",
+      displayName: "Spices, Chili Powder",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 282, protein: 13.5, carbs: 49.7, fat: 14.3 },
+      gramsByUnit: { g: 1, tbsp: 8, tsp: 2.7 },
+    },
+  },
+  {
     canonicalQuery: "gochugaru",
     confidence: 0.92,
     rationale: "Matched automatically using a preferred USDA generic red pepper equivalent.",
@@ -456,6 +508,54 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
       servingText: null,
       per100g: { calories: 884, protein: 0, carbs: 0, fat: 100 },
       gramsByUnit: { g: 1, tbsp: 13.6, tsp: 4.5 },
+    },
+  },
+  {
+    canonicalQuery: "yellow onion",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA produce entry.",
+    food: {
+      fdcId: 790646,
+      description: "Onions, Yellow, Raw",
+      displayName: "Onions, Yellow, Raw",
+      dataType: "Foundation",
+      brandName: null,
+      sourceLabel: "USDA Foundation",
+      servingText: null,
+      per100g: { calories: 37, protein: 0.77, carbs: 8.61, fat: 0.09 },
+      gramsByUnit: { g: 1, piece: 110, cup: 160 },
+    },
+  },
+  {
+    canonicalQuery: "bell pepper",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA produce entry.",
+    food: {
+      fdcId: 2258588,
+      description: "Peppers, Bell, Green, Raw",
+      displayName: "Bell Pepper, Raw",
+      dataType: "Foundation",
+      brandName: null,
+      sourceLabel: "USDA Foundation",
+      servingText: null,
+      per100g: { calories: 20, protein: 0.86, carbs: 4.64, fat: 0.17 },
+      gramsByUnit: { g: 1, piece: 119, cup: 92 },
+    },
+  },
+  {
+    canonicalQuery: "avocado",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA produce entry.",
+    food: {
+      fdcId: 171706,
+      description: "Avocados, Raw, California",
+      displayName: "Avocado, Raw",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 167, protein: 2, carbs: 8.6, fat: 15.4 },
+      gramsByUnit: { g: 1, piece: 150, cup: 150 },
     },
   },
   {
@@ -774,6 +874,14 @@ export function expandSynonyms(normalizedText: string): string[] {
     queries.push("spices pepper black", "pepper black");
   }
 
+  if (/ground cumin|cumin/.test(normalizedText)) {
+    queries.push("spices cumin seed", "cumin seed");
+  }
+
+  if (/chili powder/.test(normalizedText)) {
+    queries.push("spices chili powder");
+  }
+
   if (/gochugaru/.test(normalizedText)) {
     queries.push("pepper red or cayenne", "red pepper flakes", "chili flakes");
   }
@@ -792,6 +900,18 @@ export function expandSynonyms(normalizedText: string): string[] {
 
   if (/lemon juice/.test(normalizedText)) {
     queries.push("lemon juice raw", "juice lemon");
+  }
+
+  if (/yellow onion|onion/.test(normalizedText)) {
+    queries.push("onions yellow raw", "onions raw");
+  }
+
+  if (/bell pepper/.test(normalizedText)) {
+    queries.push("bell pepper raw", "sweet pepper");
+  }
+
+  if (/avocado/.test(normalizedText)) {
+    queries.push("avocados raw", "avocado raw");
   }
 
   if (/cornstarch/.test(normalizedText)) {
@@ -988,6 +1108,18 @@ function getPreferredGenericProfile(
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "neutral oil") ?? null;
   }
 
+  if (query === "yellow onion" || query === "onion") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "yellow onion") ?? null;
+  }
+
+  if (query === "bell pepper") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "bell pepper") ?? null;
+  }
+
+  if (query === "avocado") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "avocado") ?? null;
+  }
+
   if (query === "cornstarch") {
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "cornstarch") ?? null;
   }
@@ -1006,6 +1138,14 @@ function getPreferredGenericProfile(
 
   if (query === "oyster sauce") {
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "oyster sauce") ?? null;
+  }
+
+  if (query === "ground cumin" || query === "cumin") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "ground cumin") ?? null;
+  }
+
+  if (query === "chili powder") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "chili powder") ?? null;
   }
 
   if (/\bsirloin steak\b/.test(query) || /\bsirloin steak\b/.test(raw)) {
@@ -1521,6 +1661,14 @@ function getHeuristicUnitWeights(description: string): Partial<Record<Unit, numb
     return { tbsp: 6.8, tsp: 2.3 };
   }
 
+  if (/cumin/.test(description)) {
+    return { tbsp: 6, tsp: 2 };
+  }
+
+  if (/chili powder/.test(description)) {
+    return { tbsp: 8, tsp: 2.7 };
+  }
+
   if (/gochujang|chili paste|pepper paste/.test(description)) {
     return { tbsp: 17, tsp: 5.7 };
   }
@@ -1549,8 +1697,20 @@ function getHeuristicUnitWeights(description: string): Partial<Record<Unit, numb
     return { piece: 50 };
   }
 
-  if (/jalapeno|serrano|chili pepper|bell pepper/.test(description)) {
+  if (/jalapeno|serrano|chili pepper/.test(description)) {
     return { piece: 45 };
+  }
+
+  if (/bell pepper|sweet pepper/.test(description)) {
+    return { piece: 119 };
+  }
+
+  if (/yellow onion|onions, raw|onions, yellow/.test(description)) {
+    return { piece: 110 };
+  }
+
+  if (/avocado/.test(description)) {
+    return { piece: 150 };
   }
 
   if (/lemon|lime/.test(description)) {
