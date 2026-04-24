@@ -25,10 +25,28 @@ const SEARCH_FIXTURES = [
     ],
   },
   {
+    match: ["neutral oil", "vegetable oil", "oil vegetable", "canola oil"],
+    foods: [food(211, "Oil, vegetable, soybean, salad or cooking", "SR Legacy")],
+  },
+  {
+    match: ["cornstarch", "corn starch"],
+    foods: [food(212, "Cornstarch", "SR Legacy")],
+  },
+  {
     match: ["white rice", "rice white", "rice"],
     foods: [
       food(301, "Rice, white, long-grain, regular, cooked", "SR Legacy"),
       food(302, "Rice bowl with vegetables", "Survey (FNDDS)"),
+    ],
+  },
+  {
+    match: ["sirloin steak", "beef top sirloin cooked", "beef sirloin steak cooked", "beef steak cooked"],
+    foods: [
+      food(
+        311,
+        "Beef, top sirloin, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, grilled",
+        "SR Legacy",
+      ),
     ],
   },
   {
@@ -101,7 +119,10 @@ const SEARCH_FIXTURES = [
 const DETAIL_FIXTURES = {
   101: detail(101, "Beef, hanging tender steak, separable lean only, trimmed to 0\" fat, choice, raw", "Foundation"),
   201: detail(201, "Oil, olive, salad or cooking", "Foundation", { tbsp: 13.5, tsp: 4.5 }),
+  211: detailWithMacros(211, "Oil, vegetable, soybean, salad or cooking", "SR Legacy", { calories: 884, protein: 0, carbs: 0, fat: 100 }, { tbsp: 13.6, tsp: 4.5 }),
+  212: detailWithMacros(212, "Cornstarch", "SR Legacy", { calories: 381, protein: 0.3, carbs: 91.3, fat: 0.1 }, { tbsp: 8, tsp: 2.7 }),
   301: detail(301, "Rice, white, long-grain, regular, cooked", "SR Legacy", { cup: 158 }),
+  311: detailWithMacros(311, "Beef, top sirloin, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, grilled", "SR Legacy", { calories: 206, protein: 28.6, carbs: 0, fat: 10.6 }, { piece: 170 }),
   401: detail(401, "Chicken, broilers or fryers, breast, meat only, cooked, roasted", "Foundation"),
   501: detail(501, "Tomatoes, red, ripe, raw, year round average", "Foundation", { piece: 123 }),
   601: detail(601, "Mushrooms, white, raw", "Foundation", { cup: 70 }),
@@ -158,7 +179,10 @@ test("normalization preserves meaningful descriptors and strips recipe noise", (
 for (const ingredient of [
   "hanger steak",
   "extra virgin olive oil",
+  "neutral oil",
+  "cornstarch",
   "white rice",
+  "sirloin steak",
   "chicken breast",
   "roma tomatoes",
   "baby bella mushrooms",
@@ -201,11 +225,14 @@ test("batch resolution keeps common ingredients auto-matched", async () => {
 });
 
 test("preferred pantry profiles keep black pepper and gochugaru on sensible generic values", async () => {
-  const [pepper, gochugaru, rice, eggs] = await Promise.all([
+  const [pepper, gochugaru, rice, eggs, oil, starch, steak] = await Promise.all([
     resolveIngredientMatch("black pepper"),
     resolveIngredientMatch("gochugaru"),
     resolveIngredientMatch("rice cooked"),
     resolveIngredientMatch("eggs"),
+    resolveIngredientMatch("neutral oil"),
+    resolveIngredientMatch("cornstarch"),
+    resolveIngredientMatch("sirloin steak"),
   ]);
 
   assert.equal(pepper.matchedFoodId, 170931);
@@ -214,6 +241,9 @@ test("preferred pantry profiles keep black pepper and gochugaru on sensible gene
   assert.equal(gochugaru.food?.gramsByUnit.tbsp, 6.8);
   assert.equal(rice.matchedFoodId, 168878);
   assert.equal(eggs.matchedFoodId, 171287);
+  assert.equal(oil.food?.gramsByUnit.tbsp, 13.6);
+  assert.equal(starch.food?.gramsByUnit.tbsp, 8);
+  assert.equal(steak.food?.per100g.calories, 206);
 });
 
 function food(fdcId, description, dataType, brandName = undefined) {
@@ -226,6 +256,16 @@ function food(fdcId, description, dataType, brandName = undefined) {
 }
 
 function detail(fdcId, description, dataType, gramsByUnit = { g: 1, piece: 100 }) {
+  return detailWithMacros(
+    fdcId,
+    description,
+    dataType,
+    { calories: 200, protein: 20, carbs: 10, fat: 8 },
+    gramsByUnit,
+  );
+}
+
+function detailWithMacros(fdcId, description, dataType, per100g, gramsByUnit = { g: 1, piece: 100 }) {
   const foodPortions = [];
 
   for (const [unit, grams] of Object.entries(gramsByUnit)) {
@@ -249,10 +289,10 @@ function detail(fdcId, description, dataType, gramsByUnit = { g: 1, piece: 100 }
     description,
     dataType,
     foodNutrients: [
-      { nutrient: { id: 1008 }, amount: 200 },
-      { nutrient: { id: 1003 }, amount: 20 },
-      { nutrient: { id: 1005 }, amount: 10 },
-      { nutrient: { id: 1004 }, amount: 8 },
+      { nutrient: { id: 1008 }, amount: per100g.calories },
+      { nutrient: { id: 1003 }, amount: per100g.protein },
+      { nutrient: { id: 1005 }, amount: per100g.carbs },
+      { nutrient: { id: 1004 }, amount: per100g.fat },
     ],
     foodPortions,
   };

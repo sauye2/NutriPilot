@@ -65,6 +65,7 @@ export async function generateMealDraft(
     "Prefer common grocery ingredients and avoid obscure supplements or duplicate ingredients.",
     "Being close to the nutrition targets is fine; the meal does not need to match them exactly.",
     "Draft a realistic single serving. If the anchor ingredient is rich, reduce the portion size instead of massively overshooting calories, protein, or fat.",
+    "If the calorie target is much higher than the protein target, include a coherent calorie source like rice, noodles, potatoes, or cooking fat so the meal does not undershoot calories by hundreds.",
     "Aim for variety in dish format and do not default to lettuce wraps when other strong options fit the brief.",
     "For Korean-inspired meals with pork belly, consider a broader range of formats like rice bowls, stir-fries, ssam, noodle dishes, stews, and skillet meals.",
     `Variety direction for this draft: ${varietyDirection}`,
@@ -267,7 +268,9 @@ async function hydrateGeneratedMeal(
 ): Promise<GeneratedMeal> {
   const hydratedIngredients = await Promise.all(
     draft.ingredients.map(async (ingredient) => {
-      const resolution = await resolveIngredientMatch(ingredient.name);
+      const resolution = await resolveIngredientMatch(
+        getGeneratedLookupQuery(ingredient.name, ingredient.unit),
+      );
       const food = resolution.food;
       const chosenUnit = chooseGeneratedUnit(
         ingredient.unit,
@@ -404,6 +407,32 @@ function chooseGeneratedUnit(
   }
 
   return preferredUnit;
+}
+
+function getGeneratedLookupQuery(name: string, unit: Unit) {
+  const lower = name.toLowerCase().trim();
+
+  if (/(neutral oil|vegetable oil|canola oil|avocado oil|grapeseed oil)/.test(lower)) {
+    return "neutral oil";
+  }
+
+  if (/cornstarch|corn starch/.test(lower)) {
+    return "cornstarch";
+  }
+
+  if (
+    unit === "g" &&
+    !/\b(?:raw|cooked)\b/.test(lower) &&
+    /(sirloin steak|top sirloin steak)/.test(lower)
+  ) {
+    return "sirloin steak cooked";
+  }
+
+  if (unit === "g" && !/\b(?:raw|cooked)\b/.test(lower) && /\bsteak\b/.test(lower)) {
+    return `${name} cooked`;
+  }
+
+  return name;
 }
 
 function extractStructuredText(payload: ResponsesApiPayload) {

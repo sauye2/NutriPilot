@@ -19,12 +19,16 @@ export function optimizeGeneratedIngredientsForGoals(
   }));
   const totals = summarizeIngredients(current);
   const thresholds = getGoalThresholds(goals);
+  const calorieFloorForTrim = goals.calories > 0 ? goals.calories * 0.85 : 0;
   const needsTrim = (Object.keys(thresholds) as Array<keyof MacroTotals>).some(
-    (key) => thresholds[key] > 0 && totals[key] > thresholds[key],
+    (key) =>
+      thresholds[key] > 0 &&
+      totals[key] > thresholds[key] &&
+      (key === "calories" || !goals.calories || totals.calories >= calorieFloorForTrim),
   );
 
   if (!needsTrim) {
-    return current;
+    return boostGeneratedIngredientsTowardGoals(current, goals);
   }
 
   const scaleFactors = (Object.keys(thresholds) as Array<keyof MacroTotals>)
@@ -64,7 +68,7 @@ export function optimizeGeneratedIngredientsForGoals(
     current = current.map((ingredient) => (ingredient.id === candidate.id ? next : ingredient));
   }
 
-  return current;
+  return boostGeneratedIngredientsTowardGoals(current, goals);
 }
 
 function getGoalThresholds(goals: NutritionGoals): NutritionGoals {
@@ -342,4 +346,156 @@ function roundTotals(totals: MacroTotals): MacroTotals {
     carbs: roundValue(totals.carbs),
     fat: roundValue(totals.fat),
   };
+}
+
+function boostGeneratedIngredientsTowardGoals(
+  ingredients: GeneratedMealIngredient[],
+  goals: NutritionGoals,
+) {
+  if (!goals.calories) {
+    return ingredients;
+  }
+
+  let current = ingredients.map((ingredient) => ({
+    ...ingredient,
+    totals: { ...ingredient.totals },
+  }));
+
+  for (let iteration = 0; iteration < 8; iteration += 1) {
+    const totals = summarizeIngredients(current);
+    const calorieFloor = goals.calories * 0.82;
+
+    if (totals.calories >= calorieFloor || !shouldAttemptCalorieBoost(totals, goals)) {
+      break;
+    }
+
+    const candidate = pickBoostCandidate(current, totals, goals);
+
+    if (!candidate) {
+      break;
+    }
+
+    const next = rescaleIngredient(candidate, getBoostFactor(candidate, totals, goals));
+
+    if (next.amount === candidate.amount) {
+      break;
+    }
+
+    current = current.map((ingredient) => (ingredient.id === candidate.id ? next : ingredient));
+  }
+
+  return current;
+}
+
+function shouldAttemptCalorieBoost(totals: MacroTotals, goals: NutritionGoals) {
+  const proteinCap = goals.protein > 0 ? Math.max(goals.protein * 1.2, goals.protein + 15) : Infinity;
+  const fatCap = goals.fat > 0 ? Math.max(goals.fat * 1.35, goals.fat + 12) : Infinity;
+
+  return totals.protein <= proteinCap && totals.fat <= fatCap;
+}
+
+function pickBoostCandidate(
+  ingredients: GeneratedMealIngredient[],
+  totals: MacroTotals,
+  goals: NutritionGoals,
+) {
+  const scored = ingredients
+    .filter((ingredient) => ingredient.supported && ingredient.food && ingredient.totals.calories > 0)
+    .map((ingredient) => ({
+      ingredient,
+      score: scoreBoostCandidate(ingredient, totals, goals),
+    }))
+    .filter((entry) => entry.score > 0)
+    .sort((left, right) => right.score - left.score);
+
+  return scored[0]?.ingredient ?? null;
+}
+
+function scoreBoostCandidate(
+  ingredient: GeneratedMealIngredient,
+  totals: MacroTotals,
+  goals: NutritionGoals,
+) {
+  const category = categorizeIngredientForOptimization(ingredient.name);
+  const maxAmount = getMaximumAmount(ingredient);
+
+  if (ingredient.amount >= maxAmount) {
+    return 0;
+  }
+
+  if (category === "protein" && goals.protein > 0 && totals.protein >= goals.protein) {
+    return 0;
+  }
+
+  let score = ingredient.totals.calories;
+
+  if (goals.calories > 0 && totals.calories < goals.calories * 0.82) {
+    score += ingredient.totals.calories * 0.8;
+  }
+
+  if (category === "carb") {
+    score += 120;
+  } else if (category === "fat") {
+    score += 95;
+  } else if (
+    category === "protein" &&
+    goals.protein > 0 &&
+    totals.protein < goals.protein * 0.95
+  ) {
+    score += 70;
+  } else if (category === "produce") {
+    score -= 40;
+  } else if (category === "seasoning" || category === "aromatic") {
+    score -= 70;
+  }
+
+  if (goals.protein > 0 && totals.protein > goals.protein * 1.25 && category === "protein") {
+    score -= 120;
+  }
+
+  return score;
+}
+
+function getBoostFactor(
+  ingredient: GeneratedMealIngredient,
+  totals: MacroTotals,
+  goals: NutritionGoals,
+) {
+  const category = categorizeIngredientForOptimization(ingredient.name);
+  const severeUndershoot = goals.calories > 0 && totals.calories < goals.calories * 0.65;
+
+  if (category === "carb") {
+    return severeUndershoot ? 1.45 : 1.28;
+  }
+
+  if (category === "fat") {
+    return severeUndershoot ? 1.4 : 1.22;
+  }
+
+  if (category === "protein") {
+    return severeUndershoot ? 1.22 : 1.12;
+  }
+
+  return 1.1;
+}
+
+function getMaximumAmount(ingredient: GeneratedMealIngredient) {
+  if (ingredient.unit === "g") {
+    const category = categorizeIngredientForOptimization(ingredient.name);
+    if (category === "protein") return Math.max(ingredient.amount * 1.5, 260);
+    if (category === "carb") return Math.max(ingredient.amount * 1.85, 260);
+    if (category === "fat") return Math.max(ingredient.amount * 2, 28);
+    if (category === "produce") return Math.max(ingredient.amount * 1.6, 240);
+    return Math.max(ingredient.amount * 1.5, 60);
+  }
+
+  if (ingredient.unit === "tbsp" || ingredient.unit === "tsp") {
+    return Math.max(ingredient.amount * 2, 2.5);
+  }
+
+  if (ingredient.unit === "cup") {
+    return Math.max(ingredient.amount * 1.6, 1.5);
+  }
+
+  return Math.max(ingredient.amount * 1.4, 3);
 }

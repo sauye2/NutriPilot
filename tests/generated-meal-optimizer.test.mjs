@@ -48,6 +48,33 @@ test("optimizer rescales very rich pork belly meals instead of leaving them thou
   assert.ok(totals.calories < 1300, `calories should be much closer to target, got ${totals.calories}`);
 });
 
+test("optimizer can nudge light meals upward with existing carb and fat ingredients", () => {
+  const ingredients = [
+    ingredient("sirloin steak", 190, "g", { calories: 206, protein: 28.6, carbs: 0, fat: 10.6 }),
+    ingredient("broccoli florets", 150, "g", { calories: 34, protein: 2.8, carbs: 6.6, fat: 0.4 }),
+    ingredient("neutral oil", 0.8, "tbsp", { calories: 884, protein: 0, carbs: 0, fat: 100 }, { tbsp: 13.6 }),
+    ingredient("cornstarch", 0.8, "tbsp", { calories: 381, protein: 0.3, carbs: 91.3, fat: 0.1 }, { tbsp: 8 }),
+  ];
+
+  const optimized = optimizeGeneratedIngredientsForGoals(ingredients, {
+    calories: 1000,
+    protein: 50,
+    carbs: 60,
+    fat: 24,
+  });
+
+  const totals = sumTotals(optimized);
+  const oil = optimized.find((ingredient) => ingredient.name === "neutral oil");
+  const starch = optimized.find((ingredient) => ingredient.name === "cornstarch");
+
+  assert.ok(oil);
+  assert.ok(
+    (oil?.amount ?? 0) > 0.8 || (starch?.amount ?? 0) > 0.8,
+    "existing calorie sources should be increased when meal is too light",
+  );
+  assert.ok(totals.calories > 500, `calories should come up meaningfully, got ${totals.calories}`);
+});
+
 function ingredient(name, amount, unit, per100g, gramsByUnit = { g: 1 }) {
   return {
     id: `${name}-${unit}`,

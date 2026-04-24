@@ -292,6 +292,11 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     searchExpansions: ["olive oil"],
   },
   {
+    canonical: "neutral oil",
+    aliases: ["neutral oil", "vegetable oil", "canola oil", "avocado oil", "grapeseed oil"],
+    searchExpansions: ["vegetable oil", "oil vegetable", "canola oil"],
+  },
+  {
     canonical: "caster sugar",
     aliases: ["caster sugar", "superfine sugar"],
     searchExpansions: ["sugar"],
@@ -371,6 +376,16 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     aliases: ["chicken breast", "boneless skinless chicken breast"],
     searchExpansions: ["chicken breast"],
   },
+  {
+    canonical: "sirloin steak",
+    aliases: ["sirloin steak", "top sirloin steak"],
+    searchExpansions: ["beef top sirloin cooked", "beef sirloin steak cooked"],
+  },
+  {
+    canonical: "steak",
+    aliases: ["steak", "beef steak"],
+    searchExpansions: ["beef steak cooked", "beef sirloin steak cooked"],
+  },
 ];
 
 const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
@@ -423,6 +438,38 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
     },
   },
   {
+    canonicalQuery: "neutral oil",
+    confidence: 0.97,
+    rationale: "Matched automatically using a preferred USDA generic pantry entry.",
+    food: {
+      fdcId: 171413,
+      description: "Oil, Vegetable, Soybean, Salad Or Cooking",
+      displayName: "Oil, Vegetable, Soybean, Salad Or Cooking",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 884, protein: 0, carbs: 0, fat: 100 },
+      gramsByUnit: { g: 1, tbsp: 13.6, tsp: 4.5 },
+    },
+  },
+  {
+    canonicalQuery: "cornstarch",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA generic pantry entry.",
+    food: {
+      fdcId: 168811,
+      description: "Cornstarch",
+      displayName: "Cornstarch",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 381, protein: 0.3, carbs: 91.3, fat: 0.1 },
+      gramsByUnit: { g: 1, tbsp: 8, tsp: 2.7 },
+    },
+  },
+  {
     canonicalQuery: "egg",
     confidence: 0.96,
     rationale: "Matched automatically using a preferred USDA generic pantry entry.",
@@ -452,6 +499,38 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
       servingText: null,
       per100g: { calories: 130, protein: 2.69, carbs: 28.2, fat: 0.28 },
       gramsByUnit: { g: 1, cup: 158 },
+    },
+  },
+  {
+    canonicalQuery: "sirloin steak cooked",
+    confidence: 0.96,
+    rationale: "Matched automatically using a preferred USDA cooked beef entry.",
+    food: {
+      fdcId: 2342376,
+      description: "Beef, Top Sirloin, Cooked",
+      displayName: "Beef, Top Sirloin, Cooked",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 206, protein: 28.6, carbs: 0, fat: 10.6 },
+      gramsByUnit: { g: 1, piece: 170 },
+    },
+  },
+  {
+    canonicalQuery: "steak cooked",
+    confidence: 0.94,
+    rationale: "Matched automatically using a preferred USDA cooked beef entry.",
+    food: {
+      fdcId: 2342376,
+      description: "Beef, Top Sirloin, Cooked",
+      displayName: "Beef, Top Sirloin, Cooked",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 206, protein: 28.6, carbs: 0, fat: 10.6 },
+      gramsByUnit: { g: 1, piece: 170 },
     },
   },
 ];
@@ -634,8 +713,24 @@ export function expandSynonyms(normalizedText: string): string[] {
     queries.push("oil sesame", "sesame seed oil");
   }
 
+  if (/neutral oil/.test(normalizedText)) {
+    queries.push("vegetable oil", "oil vegetable", "canola oil");
+  }
+
   if (/rice vinegar/.test(normalizedText)) {
     queries.push("vinegar rice", "vinegar rice wine");
+  }
+
+  if (/cornstarch/.test(normalizedText)) {
+    queries.push("cornstarch", "corn starch");
+  }
+
+  if (/sirloin steak/.test(normalizedText)) {
+    queries.push("beef top sirloin cooked", "beef sirloin steak cooked");
+  }
+
+  if (/\bsteak\b/.test(normalizedText) && !/\braw\b/.test(normalizedText)) {
+    queries.push("beef steak cooked", "beef sirloin steak cooked");
   }
 
   return Array.from(new Set(queries.map((query) => query.trim()).filter(Boolean)));
@@ -814,6 +909,22 @@ function getPreferredGenericProfile(
 
   if (/\beggs?\b/.test(raw) || query === "egg") {
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "egg") ?? null;
+  }
+
+  if (query === "neutral oil") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "neutral oil") ?? null;
+  }
+
+  if (query === "cornstarch") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "cornstarch") ?? null;
+  }
+
+  if (/\bsirloin steak\b/.test(query) || /\bsirloin steak\b/.test(raw)) {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "sirloin steak cooked") ?? null;
+  }
+
+  if ((/\bsteak\b/.test(query) || /\bsteak\b/.test(raw)) && !/\braw\b/.test(raw)) {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "steak cooked") ?? null;
   }
 
   return (
@@ -1303,6 +1414,10 @@ function parseLeadingAmount(value: string) {
 function getHeuristicUnitWeights(description: string): Partial<Record<Unit, number>> {
   if (/olive oil|sesame oil|vegetable oil|canola oil|oil,/.test(description)) {
     return { tbsp: 13.5, tsp: 4.5 };
+  }
+
+  if (/cornstarch|corn starch/.test(description)) {
+    return { tbsp: 8, tsp: 2.7 };
   }
 
   if (/vinegar/.test(description)) {
