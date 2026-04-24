@@ -39,6 +39,23 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
       </header>
       <main>{children}</main>
+      <footer className="mx-auto mt-12 flex w-full max-w-7xl flex-col gap-3 px-5 pb-8 sm:px-8 md:flex-row md:items-center md:justify-between">
+        <p className="text-xs leading-6 text-[var(--muted)]">
+          NutriPilot uses USDA as its primary nutrition source, with Edamam helping on
+          harder ingredient lines when needed.
+        </p>
+        <div className="flex items-center gap-3">
+          <div id="edamam-badge" data-color="transparent" />
+          <Link
+            href="https://developer.edamam.com"
+            className="text-xs font-medium text-[var(--muted)] underline-offset-4 transition hover:text-[var(--foreground)] hover:underline"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Edamam
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }
