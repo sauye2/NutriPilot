@@ -1,13 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { GeneratedMeal, GroceryListItem } from "@/lib/types";
+import type { GroceryListItem, GroceryListSection } from "@/lib/types";
 
 export function GroceryListPanel({
   meal,
   heading = "Grocery List",
 }: {
-  meal: GeneratedMeal;
+  meal: {
+    title: string;
+    groceryList: GroceryListSection[];
+  };
   heading?: string;
 }) {
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});

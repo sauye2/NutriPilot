@@ -302,7 +302,7 @@ export function GenerateMealClient() {
         return;
       }
 
-      setAcceptMessage("Meal accepted and saved to your account.");
+      setAcceptMessage("Meal accepted and saved to your dashboard.");
     } catch {
       setAcceptError("We couldn’t save that accepted meal yet.");
     } finally {

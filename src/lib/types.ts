@@ -171,6 +171,9 @@ export type PersistableMeal = {
 
 export type SavedMeal = PersistableMeal & {
   id: string;
+  instructions: string[];
+  whyItWorks: string[];
+  groceryList: GroceryListSection[];
   createdAt: string;
 };
 

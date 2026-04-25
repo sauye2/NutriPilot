@@ -1,4 +1,4 @@
-import type { GeneratedMealIngredient, Unit } from "@/lib/types";
+import type { Unit } from "@/lib/types";
 
 export function formatIngredientLine(
   amount: number,
@@ -119,7 +119,11 @@ export function formatGroceryQuantity(
   return `${formattedAmount} ${pluralize("piece", amount)}`;
 }
 
-export function formatIngredientCalories(ingredient: GeneratedMealIngredient) {
+export function formatIngredientCalories(ingredient: {
+  totals: {
+    calories: number;
+  };
+}) {
   return `${ingredient.totals.calories} kcal`;
 }
 

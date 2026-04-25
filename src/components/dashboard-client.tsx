@@ -284,6 +284,20 @@ export function DashboardClient() {
                           </div>
                         </div>
                         <div className="mt-4 flex flex-wrap gap-2">
+                          <Link
+                            className="rounded-[10px] border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--foreground)] transition duration-200 hover:bg-[var(--muted-soft)] active:scale-[0.99]"
+                            href={`/meals/${meal.id}`}
+                          >
+                            Open Meal
+                          </Link>
+                          {meal.groceryList.length > 0 ? (
+                            <Link
+                              className="rounded-[10px] border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--foreground)] transition duration-200 hover:bg-[var(--muted-soft)] active:scale-[0.99]"
+                              href={`/shopping-list?mealId=${meal.id}`}
+                            >
+                              Grocery List
+                            </Link>
+                          ) : null}
                           <button
                             className="rounded-[10px] bg-[var(--primary)] px-3 py-2 text-sm font-semibold text-white transition duration-200 hover:bg-[var(--primary-strong)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                             disabled={activeMealId === meal.id}
