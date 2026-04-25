@@ -782,23 +782,15 @@ function CaloriesCard({
   goals: NutritionGoals;
   hasAnyGoal: boolean;
 }) {
-  const delta = totals.calories - goals.calories;
-  const label =
-    !hasAnyGoal
-      ? "set a calorie target"
-      : Math.abs(delta) <= 35
-        ? "near target"
-        : delta > 0
-          ? `${Math.abs(delta)} over`
-          : `${Math.abs(delta)} under`;
-
   return (
     <SectionCard className="!bg-[var(--primary-strong)] text-white">
       <p className="text-sm font-medium text-white/75">Meal total</p>
       <div className="mt-3 flex items-end justify-between gap-4">
         <div>
-          <p className="text-5xl font-semibold leading-none">{totals.calories}</p>
-          <p className="mt-2 text-sm text-white/75">calories</p>
+          <p className="flex items-end gap-3 text-5xl font-semibold leading-none">
+            <span>{totals.calories}</span>
+            <span className="pb-1 text-base font-medium text-white/75">calories</span>
+          </p>
         </div>
         <div className="rounded-[12px] bg-white/10 px-3 py-2 text-right">
           <p className="text-xs text-white/70">Goal</p>
@@ -807,7 +799,6 @@ function CaloriesCard({
           </p>
         </div>
       </div>
-      <p className="mt-4 text-sm font-medium text-white/80">{label}</p>
     </SectionCard>
   );
 }
@@ -824,9 +815,10 @@ function MacroSummaryCard({
   return (
     <SectionCard title="Meal Summary" eyebrow="Live totals">
       <div className="space-y-4">
-        {(["protein", "carbs", "fat"] as MacroKey[]).map((key) => (
+        {(["calories", "protein", "carbs", "fat"] as MacroKey[]).map((key) => (
           <MacroBar
             key={key}
+            macroKey={key}
             label={macroMeta[key].label}
             actual={totals[key]}
             goal={goals[key]}
@@ -841,6 +833,7 @@ function MacroSummaryCard({
 }
 
 function MacroBar({
+  macroKey,
   label,
   actual,
   goal,
@@ -848,6 +841,7 @@ function MacroBar({
   unit,
   color,
 }: {
+  macroKey: MacroKey;
   label: string;
   actual: number;
   goal: number;
@@ -856,6 +850,21 @@ function MacroBar({
   color: string;
 }) {
   const percent = goal > 0 ? Math.min((actual / goal) * 100, 130) : 0;
+  const delta = actual - goal;
+  const helper =
+    !hasGoal
+      ? unit
+      : macroKey === "calories"
+        ? Math.abs(delta) <= 35
+          ? "near target"
+          : delta > 0
+            ? `${Math.abs(delta)} over`
+            : `${Math.abs(delta)} under`
+        : Math.abs(delta) <= 3
+          ? "near target"
+          : delta > 0
+            ? `${Math.abs(roundToTenth(delta))}${unit} over`
+            : `${Math.abs(roundToTenth(delta))}${unit} under`;
 
   return (
     <div>
@@ -879,8 +888,13 @@ function MacroBar({
           style={{ width: `${percent}%`, background: color }}
         />
       </div>
+      <p className="mt-2 text-xs text-[var(--muted)]">{helper}</p>
     </div>
   );
+}
+
+function roundToTenth(value: number) {
+  return Math.round(value * 10) / 10;
 }
 
 function GoalsPreviewCard({

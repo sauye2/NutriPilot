@@ -5,6 +5,7 @@ import {
   normalizeIngredientText,
   resolveIngredientMatch,
   resolveIngredientsBatch,
+  searchFoods,
 } from "../src/lib/food-data-central.ts";
 
 const originalFetch = globalThis.fetch;
@@ -79,7 +80,38 @@ const SEARCH_FIXTURES = [
   },
   {
     match: ["chicken breast"],
-    foods: [food(401, "Chicken, broilers or fryers, breast, meat only, cooked, roasted", "Foundation")],
+    foods: [
+      food(171477, "Chicken, broilers or fryers, breast, meat only, cooked, roasted", "SR Legacy"),
+      food(171514, "Chicken breast tenders, breaded, cooked, microwaved", "SR Legacy"),
+      food(2705954, "Chicken breast, NS as to cooking method, skin not eaten", "Survey (FNDDS)"),
+      food(171075, "Chicken, broilers or fryers, breast, meat and skin, cooked, roasted", "SR Legacy"),
+    ],
+  },
+  {
+    match: ["beef ribeye lean and fat eaten", "beef ribeye cooked", "beef ribeye steak"],
+    foods: [
+      food(2705829, "Beef, steak, ribeye, lean and fat eaten", "Survey (FNDDS)"),
+      food(2705830, "Beef, steak, ribeye, lean only eaten", "Survey (FNDDS)"),
+      food(172599, "Game meat, bison, ribeye, separable lean only, 1\" steak, cooked, broiled", "SR Legacy"),
+      food(2646172, "Beef, ribeye, steak, boneless, choice, raw", "Foundation"),
+    ],
+  },
+  {
+    match: ["fish salmon atlantic cooked dry heat", "fish salmon cooked dry heat", "salmon cooked"],
+    foods: [
+      food(175168, "Fish, salmon, Atlantic, farmed, cooked, dry heat", "SR Legacy"),
+      food(171998, "Fish, salmon, Atlantic, wild, cooked, dry heat", "SR Legacy"),
+      food(171999, "Fish, salmon, chinook, cooked, dry heat", "SR Legacy"),
+      food(173750, "Fish oil, salmon", "SR Legacy"),
+      food(173722, "Salmon nuggets, cooked as purchased, unheated", "SR Legacy"),
+    ],
+  },
+  {
+    match: ["spices lemon grass citronella raw", "citronella raw"],
+    foods: [
+      food(168573, "Lemon grass (citronella), raw", "SR Legacy"),
+      food(2709168, "Lemon, raw", "Survey (FNDDS)"),
+    ],
   },
   {
     match: ["roma tomato", "tomato"],
@@ -248,6 +280,9 @@ const DETAIL_FIXTURES = {
   303: detailWithMacros(303, "Potatoes, flesh and skin, raw", "SR Legacy", { calories: 77, protein: 2, carbs: 17.5, fat: 0.1 }, { piece: 173, cup: 150 }),
   311: detailWithMacros(311, "Beef, top sirloin, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, grilled", "SR Legacy", { calories: 206, protein: 28.6, carbs: 0, fat: 10.6 }, { piece: 170 }),
   401: detail(401, "Chicken, broilers or fryers, breast, meat only, cooked, roasted", "Foundation"),
+  171477: detailWithMacros(171477, "Chicken, broilers or fryers, breast, meat only, cooked, roasted", "SR Legacy", { calories: 165, protein: 31.02, carbs: 0, fat: 3.57 }, { piece: 120 }),
+  171075: detailWithMacros(171075, "Chicken, broilers or fryers, breast, meat and skin, cooked, roasted", "SR Legacy", { calories: 197, protein: 30.5, carbs: 0, fat: 7.7 }, { piece: 120 }),
+  2705954: detailWithMacros(2705954, "Chicken breast, NS as to cooking method, skin not eaten", "Survey (FNDDS)", { calories: 172, protein: 29.8, carbs: 0, fat: 5.4 }, { piece: 120 }),
   501: detail(501, "Tomatoes, red, ripe, raw, year round average", "Foundation", { piece: 123 }),
   601: detail(601, "Mushrooms, white, raw", "Foundation", { cup: 70 }),
   611: detailWithMacros(611, "Basil, fresh", "Foundation", { calories: 23, protein: 3.2, carbs: 2.7, fat: 0.6 }, { cup: 21 }),
@@ -260,6 +295,8 @@ const DETAIL_FIXTURES = {
   801: detail(801, "Onions, young green, tops and bulb, raw", "Foundation", { cup: 100 }),
   901: detail(901, "Beef, ground, 90% lean meat / 10% fat, raw", "SR Legacy"),
   903: detailWithMacros(903, "Beef, ground, unspecified fat content, cooked", "SR Legacy", { calories: 254, protein: 25.9, carbs: 0, fat: 17.4 }, { g: 1 }),
+  2705829: detailWithMacros(2705829, "Beef, steak, ribeye, lean and fat eaten", "Survey (FNDDS)", { calories: 289, protein: 23.5, carbs: 0, fat: 21.6 }, { piece: 150 }),
+  2705830: detailWithMacros(2705830, "Beef, steak, ribeye, lean only eaten", "Survey (FNDDS)", { calories: 230, protein: 26.5, carbs: 0, fat: 13.8 }, { piece: 150 }),
   1001: detail(1001, "Cheese, cheddar", "Foundation", { cup: 113 }),
   1101: detail(1101, "Sauce, soy, made from soy and wheat", "SR Legacy", { tbsp: 16 }),
   1102: detailWithMacros(1102, "Sauce, fish", "SR Legacy", { calories: 35, protein: 6, carbs: 3.6, fat: 0 }, { tbsp: 18, tsp: 6 }),
@@ -284,6 +321,9 @@ const DETAIL_FIXTURES = {
   1182: detailWithMacros(1182, "Peppers, hot, raw", "Survey (FNDDS)", { calories: 40, protein: 2, carbs: 9.5, fat: 0.2 }, { piece: 14 }),
   1191: detail(1191, "Egg, whole, raw, fresh", "Foundation", { piece: 50 }),
   1201: detail(1201, "Pork, fresh, belly, raw", "Foundation"),
+  168573: detailWithMacros(168573, "Lemon grass (citronella), raw", "SR Legacy", { calories: 99, protein: 1.82, carbs: 25.31, fat: 0.49 }, { piece: 67, cup: 67, tbsp: 5, tsp: 1.7 }),
+  175168: detailWithMacros(175168, "Fish, salmon, Atlantic, farmed, cooked, dry heat", "SR Legacy", { calories: 206, protein: 22.1, carbs: 0, fat: 12.35 }, { piece: 154 }),
+  171998: detailWithMacros(171998, "Fish, salmon, Atlantic, wild, cooked, dry heat", "SR Legacy", { calories: 182, protein: 25.4, carbs: 0, fat: 8.13 }, { piece: 154 }),
 };
 
 test.before(() => {
@@ -353,6 +393,7 @@ for (const ingredient of [
   "soy sauce",
   "rice vinegar",
   "lemon",
+  "lemongrass",
   "lime juice",
   "lime",
   "sesame oil",
@@ -419,6 +460,40 @@ test("batch resolution keeps common ingredients auto-matched", async () => {
   assert.equal(results.every((item) => item.food), true);
 });
 
+test("common protein searches surface sensible generic options first", async () => {
+  const [chickenResults, ribeyeResults, salmonResults] = await Promise.all([
+    searchFoods("chicken breast", { preferCooked: true }),
+    searchFoods("ribeye", { preferCooked: true }),
+    searchFoods("salmon", { preferCooked: true }),
+  ]);
+
+  assert.equal(chickenResults[0]?.description, "Chicken, Broilers Or Fryers, Breast, Meat Only, Cooked, Roasted");
+  assert.ok(chickenResults.every((result) => !/tenders|breaded/i.test(result.description)));
+
+  assert.equal(ribeyeResults[0]?.description, "Beef, Steak, Ribeye, Lean And Fat Eaten");
+  assert.ok(ribeyeResults.slice(0, 2).every((result) => /beef/i.test(result.description)));
+
+  assert.equal(salmonResults[0]?.description, "Fish, Salmon, Atlantic, Farmed, Cooked, Dry Heat");
+  assert.ok(salmonResults.every((result) => !/fish oil/i.test(result.description)));
+});
+
+test("common protein auto-matches use sensible cooked generic profiles", async () => {
+  const [chicken, ribeye, salmon] = await Promise.all([
+    resolveIngredientMatch("chicken breast", { preferCooked: true }),
+    resolveIngredientMatch("ribeye", { preferCooked: true }),
+    resolveIngredientMatch("salmon", { preferCooked: true }),
+  ]);
+
+  assert.equal(chicken.food?.description, "Chicken, Broilers Or Fryers, Breast, Meat Only, Cooked, Roasted");
+  assert.equal(chicken.food?.per100g.calories, 165);
+
+  assert.equal(ribeye.food?.description, "Beef, Steak, Ribeye, Lean And Fat Eaten");
+  assert.equal(ribeye.food?.per100g.calories, 289);
+
+  assert.equal(salmon.food?.description, "Fish, Salmon, Atlantic, Farmed, Cooked, Dry Heat");
+  assert.equal(salmon.food?.per100g.calories, 206);
+});
+
 test("preferCooked biases ambiguous proteins toward cooked USDA entries", async () => {
   const resolution = await resolveIngredientMatch("ground beef cooked", {
     preferCooked: true,
@@ -430,7 +505,7 @@ test("preferCooked biases ambiguous proteins toward cooked USDA entries", async 
 });
 
 test("preferred pantry profiles keep spices and produce on sensible generic values", async () => {
-  const [pepper, gochugaru, rice, eggs, oil, butter, heavyCream, halfAndHalf, chickenBroth, beefBroth, vegetableBroth, coconutMilk, salt, water, potatoes, starch, steak, onion, avocado, bellPepper, cumin, chili, lemon, limeJuice, lime, scotchBonnet] = await Promise.all([
+  const [pepper, gochugaru, rice, eggs, oil, butter, heavyCream, halfAndHalf, chickenBroth, beefBroth, vegetableBroth, coconutMilk, salt, water, potatoes, starch, steak, onion, avocado, bellPepper, cumin, chili, lemon, lemongrass, limeJuice, lime, scotchBonnet] = await Promise.all([
     resolveIngredientMatch("black pepper"),
     resolveIngredientMatch("gochugaru"),
     resolveIngredientMatch("rice cooked"),
@@ -454,6 +529,7 @@ test("preferred pantry profiles keep spices and produce on sensible generic valu
     resolveIngredientMatch("ground cumin"),
     resolveIngredientMatch("chili powder"),
     resolveIngredientMatch("lemon"),
+    resolveIngredientMatch("lemongrass"),
     resolveIngredientMatch("lime juice"),
     resolveIngredientMatch("lime"),
     resolveIngredientMatch("scotch bonnet pepper"),
@@ -491,6 +567,8 @@ test("preferred pantry profiles keep spices and produce on sensible generic valu
   assert.equal(chili.food?.gramsByUnit.tsp, 2.7);
   assert.equal(lemon.food?.per100g.calories, 29);
   assert.equal(lemon.food?.gramsByUnit.piece, 58);
+  assert.equal(lemongrass.food?.per100g.calories, 99);
+  assert.equal(lemongrass.food?.description, "Lemon Grass (Citronella), Raw");
   assert.equal(limeJuice.food?.gramsByUnit.tbsp, 15);
   assert.equal(lime.food?.per100g.calories, 30);
   assert.equal(scotchBonnet.food?.gramsByUnit.piece, 14);

@@ -58,6 +58,23 @@ const BAD_PACKAGED_TERMS = [
   "instant",
   "meal kit",
 ];
+const STRONGLY_PROCESSED_FORM_TERMS = [
+  "breaded",
+  "battered",
+  "tenders",
+  "tenderloins",
+  "nuggets",
+  "patty",
+  "patties",
+  "microwaved",
+  "smoked",
+  "jerky",
+  "deli",
+  "luncheon",
+  "salad",
+  "spread",
+  "roll",
+];
 const SPECIAL_FORM_PENALTIES: Array<{ query: RegExp; forbidden: RegExp }> = [
   { query: /\brice\b/, forbidden: /\bcracker|crackers|cake|cakes|sushi\b/ },
   { query: /\begg|eggs\b/, forbidden: /\byolk|white|whites|dried\b/ },
@@ -519,8 +536,30 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
   },
   {
     canonical: "chicken breast",
-    aliases: ["chicken breast", "boneless skinless chicken breast"],
-    searchExpansions: ["chicken breast roasted", "chicken breast cooked", "chicken breast"],
+    aliases: [
+      "chicken breast",
+      "boneless skinless chicken breast",
+      "skinless chicken breast",
+      "boneless chicken breast",
+      "chicken breast filet",
+      "chicken breast fillet",
+    ],
+    searchExpansions: [
+      "chicken broilers fryers breast meat only cooked roasted",
+      "chicken breast meat only cooked roasted",
+      "chicken breast roasted",
+      "chicken breast cooked",
+      "chicken breast",
+    ],
+  },
+  {
+    canonical: "ribeye steak",
+    aliases: ["ribeye", "ribeye steak", "rib eye", "rib eye steak"],
+    searchExpansions: [
+      "beef ribeye lean and fat eaten",
+      "beef ribeye cooked",
+      "beef ribeye steak",
+    ],
   },
   {
     canonical: "sirloin steak",
@@ -531,6 +570,20 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     canonical: "steak",
     aliases: ["steak", "beef steak"],
     searchExpansions: ["beef steak cooked", "beef sirloin steak cooked"],
+  },
+  {
+    canonical: "salmon",
+    aliases: ["salmon", "salmon fillet", "salmon filet"],
+    searchExpansions: [
+      "fish salmon atlantic cooked dry heat",
+      "fish salmon cooked dry heat",
+      "salmon cooked",
+    ],
+  },
+  {
+    canonical: "lemongrass",
+    aliases: ["lemongrass", "lemon grass"],
+    searchExpansions: ["spices lemon grass citronella raw", "citronella raw"],
   },
 ];
 
@@ -629,6 +682,22 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
       servingText: null,
       per100g: { calories: 884, protein: 0, carbs: 0, fat: 100 },
       gramsByUnit: { g: 1, tbsp: 13.6, tsp: 4.5 },
+    },
+  },
+  {
+    canonicalQuery: "olive oil",
+    confidence: 0.97,
+    rationale: "Matched automatically using a preferred USDA generic pantry entry.",
+    food: {
+      fdcId: 171413,
+      description: "Oil, Olive, Salad Or Cooking",
+      displayName: "Olive Oil",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 884, protein: 0, carbs: 0, fat: 100 },
+      gramsByUnit: { g: 1, tbsp: 13.5, tsp: 4.5 },
     },
   },
   {
@@ -1000,6 +1069,22 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
     },
   },
   {
+    canonicalQuery: "chicken breast cooked",
+    confidence: 0.97,
+    rationale: "Matched automatically using a preferred USDA cooked chicken breast entry.",
+    food: {
+      fdcId: 171477,
+      description: "Chicken, Broilers Or Fryers, Breast, Meat Only, Cooked, Roasted",
+      displayName: "Chicken Breast, Meat Only, Cooked",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 165, protein: 31.02, carbs: 0, fat: 3.57 },
+      gramsByUnit: { g: 1, piece: 120 },
+    },
+  },
+  {
     canonicalQuery: "sirloin steak cooked",
     confidence: 0.96,
     rationale: "Matched automatically using a preferred USDA cooked beef entry.",
@@ -1013,6 +1098,22 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
       servingText: null,
       per100g: { calories: 206, protein: 28.6, carbs: 0, fat: 10.6 },
       gramsByUnit: { g: 1, piece: 170 },
+    },
+  },
+  {
+    canonicalQuery: "ribeye steak cooked",
+    confidence: 0.96,
+    rationale: "Matched automatically using a preferred USDA cooked ribeye entry.",
+    food: {
+      fdcId: 2705829,
+      description: "Beef, Steak, Ribeye, Lean And Fat Eaten",
+      displayName: "Beef, Ribeye Steak, Cooked",
+      dataType: "Survey (FNDDS)",
+      brandName: null,
+      sourceLabel: "USDA Survey (FNDDS)",
+      servingText: null,
+      per100g: { calories: 289, protein: 23.5, carbs: 0, fat: 21.6 },
+      gramsByUnit: { g: 1, piece: 150 },
     },
   },
   {
@@ -1032,6 +1133,22 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
     },
   },
   {
+    canonicalQuery: "salmon cooked",
+    confidence: 0.96,
+    rationale: "Matched automatically using a preferred USDA cooked salmon entry.",
+    food: {
+      fdcId: 175168,
+      description: "Fish, Salmon, Atlantic, Farmed, Cooked, Dry Heat",
+      displayName: "Salmon, Cooked",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 206, protein: 22.1, carbs: 0, fat: 12.35 },
+      gramsByUnit: { g: 1, piece: 154 },
+    },
+  },
+  {
     canonicalQuery: "scotch bonnet pepper",
     confidence: 0.9,
     rationale: "Matched automatically using a preferred USDA hot pepper equivalent.",
@@ -1045,6 +1162,22 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
       servingText: null,
       per100g: { calories: 40, protein: 2, carbs: 9.5, fat: 0.2 },
       gramsByUnit: { g: 1, piece: 14 },
+    },
+  },
+  {
+    canonicalQuery: "lemongrass",
+    confidence: 0.94,
+    rationale: "Matched automatically using a preferred USDA lemongrass entry.",
+    food: {
+      fdcId: 168573,
+      description: "Lemon Grass (Citronella), Raw",
+      displayName: "Lemongrass, Raw",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 99, protein: 1.82, carbs: 25.31, fat: 0.49 },
+      gramsByUnit: { g: 1, piece: 67, cup: 67, tbsp: 5, tsp: 1.7 },
     },
   },
 ];
@@ -1490,12 +1623,29 @@ export function expandSynonyms(normalizedText: string): string[] {
     queries.push("beef top sirloin cooked", "beef sirloin steak cooked");
   }
 
+  if (/ribeye|rib eye/.test(normalizedText)) {
+    queries.push("beef ribeye lean and fat eaten", "beef ribeye cooked", "beef ribeye steak");
+  }
+
   if (/chicken breast/.test(normalizedText) && !/\braw\b/.test(normalizedText)) {
-    queries.push("chicken breast roasted", "chicken breast cooked");
+    queries.push(
+      "chicken broilers fryers breast meat only cooked roasted",
+      "chicken breast meat only cooked roasted",
+      "chicken breast roasted",
+      "chicken breast cooked",
+    );
   }
 
   if (/ground beef/.test(normalizedText) && /\bcooked\b/.test(normalizedText)) {
     queries.push("ground beef cooked");
+  }
+
+  if (/salmon/.test(normalizedText) && !/\braw\b/.test(normalizedText)) {
+    queries.push("fish salmon atlantic cooked dry heat", "fish salmon cooked dry heat");
+  }
+
+  if (/lemongrass|lemon grass/.test(normalizedText)) {
+    queries.push("spices lemon grass citronella raw", "citronella raw");
   }
 
   if (/\bsteak\b/.test(normalizedText) && !/\braw\b/.test(normalizedText)) {
@@ -1534,11 +1684,22 @@ export async function searchFoods(
   query: string,
   options?: { preferCooked?: boolean },
 ): Promise<FoodSearchResult[]> {
-  const resolution = await resolveIngredientMatch(query, {
-    includeFoodDetails: false,
-    preferCooked: options?.preferCooked,
-  });
-  return resolution.candidates;
+  const normalized = normalizeIngredientText(query);
+  const preferCooked = Boolean(options?.preferCooked && !normalized.cookedState);
+  const preferred = getPreferredGenericProfile(normalized.canonicalQuery, query);
+  const ranked = await gatherRankedCandidates(
+    normalized,
+    classifyIngredientType(normalized.canonicalQuery),
+    expandSynonyms(normalized.canonicalQuery),
+    preferCooked,
+  );
+  const preferredCandidate = preferred ? preferredProfileToCandidate(preferred) : null;
+  const candidates = dedupeRankedCandidates(
+    [preferredCandidate, ...ranked].filter(Boolean) as RankedCandidate[],
+  );
+  const filtered = candidates.filter((candidate) => candidate._confidence >= 0.42);
+
+  return (filtered.length > 0 ? filtered : candidates).slice(0, 6).map(toSearchResult);
 }
 
 export async function resolveFoodMatch(query: string) {
@@ -1592,43 +1753,12 @@ export async function resolveIngredientMatch(
 
   const ingredientType = classifyIngredientType(normalized.canonicalQuery);
   const expandedQueries = expandSynonyms(normalized.canonicalQuery);
-
-  const genericResults = await Promise.all(
-    expandedQueries.map((query) => searchFoodDataCentral(query, GENERIC_DATA_TYPES)),
-  );
-  let ranked = rankCandidates(
+  const ranked = await gatherRankedCandidates(
     normalized,
-    dedupeFoods(genericResults.flat()),
     ingredientType,
     expandedQueries,
     preferCooked,
   );
-
-  if ((!ranked[0] || ranked[0]._confidence < 0.6) && ingredientType === "generic") {
-    const brandedFallback = await Promise.all(
-      expandedQueries.map((query) => searchFoodDataCentral(query, ALL_DATA_TYPES)),
-    );
-    ranked = rankCandidates(
-      normalized,
-      dedupeFoods(brandedFallback.flat()),
-      ingredientType,
-      expandedQueries,
-      preferCooked,
-    );
-  }
-
-  if (ingredientType === "branded" && (!ranked[0] || ranked[0]._confidence < 0.6)) {
-    const allResults = await Promise.all(
-      expandedQueries.map((query) => searchFoodDataCentral(query, ALL_DATA_TYPES)),
-    );
-    ranked = rankCandidates(
-      normalized,
-      dedupeFoods(allResults.flat()),
-      ingredientType,
-      expandedQueries,
-      preferCooked,
-    );
-  }
 
   const topCandidates = ranked.slice(0, 3);
   let chosen = await hydrateBestCandidate(topCandidates, options?.includeFoodDetails ?? true);
@@ -1693,6 +1823,52 @@ export async function resolveIngredientMatch(
     candidates: topCandidates.map(toSearchResult),
     food: chosen?.food ?? null,
   };
+}
+
+async function gatherRankedCandidates(
+  normalized: NormalizedIngredient,
+  ingredientType: IngredientKind,
+  expandedQueries: string[],
+  preferCooked: boolean,
+) {
+  const genericResults = await Promise.all(
+    expandedQueries.map((query) => searchFoodDataCentral(query, GENERIC_DATA_TYPES)),
+  );
+  let ranked = rankCandidates(
+    normalized,
+    dedupeFoods(genericResults.flat()),
+    ingredientType,
+    expandedQueries,
+    preferCooked,
+  );
+
+  if ((!ranked[0] || ranked[0]._confidence < 0.6) && ingredientType === "generic") {
+    const brandedFallback = await Promise.all(
+      expandedQueries.map((query) => searchFoodDataCentral(query, ALL_DATA_TYPES)),
+    );
+    ranked = rankCandidates(
+      normalized,
+      dedupeFoods(brandedFallback.flat()),
+      ingredientType,
+      expandedQueries,
+      preferCooked,
+    );
+  }
+
+  if (ingredientType === "branded" && (!ranked[0] || ranked[0]._confidence < 0.6)) {
+    const allResults = await Promise.all(
+      expandedQueries.map((query) => searchFoodDataCentral(query, ALL_DATA_TYPES)),
+    );
+    ranked = rankCandidates(
+      normalized,
+      dedupeFoods(allResults.flat()),
+      ingredientType,
+      expandedQueries,
+      preferCooked,
+    );
+  }
+
+  return ranked;
 }
 
 async function resolveCategoryFallback(
@@ -1847,6 +2023,22 @@ function getPreferredGenericProfile(
 
   if (query === "scotch bonnet pepper" || query === "scotch bonnet") {
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "scotch bonnet pepper") ?? null;
+  }
+
+  if (/\blemongrass\b|\blemon grass\b/.test(query) || /\blemongrass\b|\blemon grass\b/.test(raw)) {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "lemongrass") ?? null;
+  }
+
+  if ((/\bchicken breast\b/.test(query) || /\bchicken breast\b/.test(raw)) && !/\braw\b/.test(raw)) {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "chicken breast cooked") ?? null;
+  }
+
+  if ((/\bribeye\b/.test(query) || /\brib eye\b/.test(raw)) && !/\braw\b/.test(raw)) {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "ribeye steak cooked") ?? null;
+  }
+
+  if ((/\bsalmon\b/.test(query) || /\bsalmon\b/.test(raw)) && !/\braw\b/.test(raw)) {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "salmon cooked") ?? null;
   }
 
   if (/\bsirloin steak\b/.test(query) || /\bsirloin steak\b/.test(raw)) {
@@ -2030,6 +2222,89 @@ function rankCandidates(
         score -= 42;
       }
 
+      if (
+        STRONGLY_PROCESSED_FORM_TERMS.some((term) => description.includes(term)) &&
+        !STRONGLY_PROCESSED_FORM_TERMS.some((term) => queryText.includes(term))
+      ) {
+        score -= 70;
+      }
+
+      if (/\bchicken breast\b/.test(queryText)) {
+        if (!/\bchicken\b/.test(description) || !/\bbreast\b/.test(description)) {
+          score -= 140;
+        }
+
+        if (/breaded|tenders|tenderloins|nuggets|patty|patties|roll|microwaved/.test(description)) {
+          score -= 110;
+        }
+
+        if (/meat only|skin not eaten/.test(description)) {
+          score += 26;
+        }
+
+        if (/cooked|roasted|grilled|broiled/.test(description)) {
+          score += 18;
+        }
+
+        if (/meat and skin|skin eaten/.test(description) && !/\bskin on\b|\bwith skin\b/.test(queryText)) {
+          score -= 18;
+        }
+      }
+
+      if (/\bribeye\b|\brib eye\b/.test(queryText)) {
+        if (!/\bribeye\b/.test(description)) {
+          score -= 145;
+        }
+
+        if (/\bbison|game meat\b/.test(description) && !/\bbison\b|\bgame\b/.test(queryText)) {
+          score -= 150;
+        }
+
+        if (/\bbeef\b/.test(description)) {
+          score += 24;
+        }
+
+        if (/lean and fat eaten/.test(description)) {
+          score += 16;
+        }
+      }
+
+      if (/\bsalmon\b/.test(queryText)) {
+        if (!/\bsalmon\b/.test(description)) {
+          score -= 150;
+        }
+
+        if (/fish oil| oil,/.test(description)) {
+          score -= 200;
+        }
+
+        if (/smoked|nuggets|spread|salad/.test(description) && !/smoked/.test(queryText)) {
+          score -= 90;
+        }
+
+        if (/cooked, dry heat/.test(description)) {
+          score += 18;
+        }
+
+        if (/atlantic/.test(description)) {
+          score += 6;
+        }
+      }
+
+      if (/\blemongrass\b|\blemon grass\b/.test(queryText)) {
+        if (!/\blemon grass\b|\bcitronella\b|\blemongrass\b/.test(description)) {
+          score -= 220;
+        }
+      }
+
+      if (/\boil\b/.test(description) && !/\boil\b/.test(queryText) && /\bsalmon|fish|tuna\b/.test(queryText)) {
+        score -= 180;
+      }
+
+      if (/\bbeef|steak|ribeye|sirloin\b/.test(queryText) && /\bbison|game meat\b/.test(description) && !/\bbison\b|\bgame\b/.test(queryText)) {
+        score -= 120;
+      }
+
       for (const penalty of SPECIAL_FORM_PENALTIES) {
         if (penalty.query.test(queryText) && penalty.forbidden.test(description)) {
           score -= 44;
@@ -2120,6 +2395,20 @@ function dedupeFoods(foods: FdcSearchFood[]) {
   return Array.from(seen.values());
 }
 
+function dedupeRankedCandidates(candidates: RankedCandidate[]) {
+  const seen = new Map<number, RankedCandidate>();
+
+  for (const candidate of candidates) {
+    const existing = seen.get(candidate.fdcId);
+
+    if (!existing || candidate._score > existing._score) {
+      seen.set(candidate.fdcId, candidate);
+    }
+  }
+
+  return Array.from(seen.values()).sort((left, right) => right._score - left._score);
+}
+
 function tokenize(value: string) {
   return value
     .toLowerCase()
@@ -2152,8 +2441,15 @@ function lookupSynonym(value: string) {
   const normalized = value.trim().toLowerCase();
 
   return SYNONYM_DICTIONARY.find((entry) =>
-    entry.aliases.some((alias) => normalized.includes(alias.toLowerCase())),
+    entry.aliases.some((alias) => matchesAliasPhrase(normalized, alias.toLowerCase())),
   );
+}
+
+function matchesAliasPhrase(value: string, alias: string) {
+  const escapedAlias = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`(^|\\s)${escapedAlias}(?=\\s|$)`);
+
+  return pattern.test(value);
 }
 
 function toSearchResult(candidate: RankedCandidate): FoodSearchResult {

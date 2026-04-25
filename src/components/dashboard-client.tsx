@@ -17,6 +17,13 @@ const goalPlaceholders: Record<MacroKey, string> = {
   fat: "70",
 };
 
+const dashboardMacroColors: Record<MacroKey, string> = {
+  calories: "var(--primary)",
+  protein: "#336d9d",
+  carbs: "#9b6a2f",
+  fat: "#8f5f74",
+};
+
 export function DashboardClient() {
   const { user, isLoading: authLoading } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -270,27 +277,17 @@ export function DashboardClient() {
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)]">
             <div className="space-y-6">
               <SectionCard title="Today's Progress" eyebrow="Daily totals">
-                <div className="grid gap-3 sm:grid-cols-4">
-                  <SummaryStat
-                    label="Calories"
-                    value={`${summary.today.totals.calories}`}
-                    helper={`${summary.today.remaining.calories} left`}
-                  />
-                  <SummaryStat
-                    label="Protein"
-                    value={`${summary.today.totals.protein}g`}
-                    helper={`${summary.today.remaining.protein}g left`}
-                  />
-                  <SummaryStat
-                    label="Carbs"
-                    value={`${summary.today.totals.carbs}g`}
-                    helper={`${summary.today.remaining.carbs}g left`}
-                  />
-                  <SummaryStat
-                    label="Fat"
-                    value={`${summary.today.totals.fat}g`}
-                    helper={`${summary.today.remaining.fat}g left`}
-                  />
+                <div className="space-y-4">
+                  {(["calories", "protein", "carbs", "fat"] as MacroKey[]).map((key) => (
+                    <DashboardProgressBar
+                      key={key}
+                      label={labelForMacro(key)}
+                      actual={summary.today.totals[key]}
+                      goal={displayedGoals[key]}
+                      unit={unitForMacro(key)}
+                      color={dashboardMacroColors[key]}
+                    />
+                  ))}
                 </div>
               </SectionCard>
 
@@ -335,7 +332,7 @@ export function DashboardClient() {
 
               <SectionCard title="Last 7 Days" eyebrow="Weekly rhythm">
                 <div className="space-y-3">
-                  {summary.weekly.map((day) => (
+                  {[...summary.weekly].reverse().map((day) => (
                     <div
                       key={day.date}
                       className="grid grid-cols-[1fr_auto] items-start gap-4 rounded-[12px] border border-[var(--border)] bg-white/80 px-4 py-3"
@@ -349,7 +346,7 @@ export function DashboardClient() {
                         <p className="text-sm font-semibold text-[var(--foreground)]">
                           {day.totals.calories} kcal
                         </p>
-                        <p className="mt-1 text-[11px] text-[var(--muted)]">
+                        <p className="mt-1 text-[10px] text-[var(--muted)]">
                           {day.totals.protein}P / {day.totals.carbs}C / {day.totals.fat}F
                         </p>
                       </div>
@@ -538,6 +535,40 @@ function SummaryStat({
       <p className="text-xs font-semibold uppercase text-[var(--muted)]">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-[var(--foreground)]">{value}</p>
       <p className="mt-1 text-xs text-[var(--muted)]">{helper}</p>
+    </div>
+  );
+}
+
+function DashboardProgressBar({
+  label,
+  actual,
+  goal,
+  unit,
+  color,
+}: {
+  label: string;
+  actual: number;
+  goal: number;
+  unit: string;
+  color: string;
+}) {
+  const percent = goal > 0 ? Math.min((actual / goal) * 100, 100) : 0;
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-4">
+        <span className="text-sm font-medium text-[var(--foreground)]">{label}</span>
+        <span className="text-sm text-[var(--muted)]">
+          <strong className="font-semibold text-[var(--foreground)]">{actual}</strong> / {goal}
+          {unit}
+        </span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-[var(--muted-soft)]">
+        <div
+          className="h-full rounded-full transition-all duration-300"
+          style={{ width: `${percent}%`, background: color }}
+        />
+      </div>
     </div>
   );
 }
