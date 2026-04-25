@@ -3,16 +3,22 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { useAuth } from "@/components/auth-provider";
+import { SignInPrompt } from "@/components/sign-in-prompt";
 import { SectionCard } from "@/components/section-card";
 import { saveImportedRecipe } from "@/lib/imported-recipe-storage";
 import type { ImportedRecipe } from "@/lib/types";
 
 export function ImportRecipeClient() {
+  const { user } = useAuth();
   const router = useRouter();
   const [url, setUrl] = useState("");
   const [recipe, setRecipe] = useState<ImportedRecipe | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   async function handleImport() {
     setIsLoading(true);
@@ -52,6 +58,43 @@ export function ImportRecipeClient() {
 
     saveImportedRecipe(recipe);
     router.push("/meal-builder");
+  }
+
+  async function handleSaveRecipe() {
+    setSaveMessage(null);
+    setSaveError(null);
+
+    if (!recipe) {
+      return;
+    }
+
+    if (!user) {
+      setSaveError("Log in to keep imported recipes in your account.");
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const response = await fetch("/api/imported-recipes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipe }),
+      });
+
+      const payload = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        setSaveError(payload.error ?? "We couldn’t save that recipe yet.");
+        return;
+      }
+
+      setSaveMessage("Recipe saved. You can still send it to Meal Builder whenever you want.");
+    } catch {
+      setSaveError("We couldn’t save that recipe yet.");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   const matchedCount =
@@ -116,13 +159,22 @@ export function ImportRecipeClient() {
             eyebrow={recipe ? "Ready to send over" : "What lands in the builder"}
             action={
               recipe ? (
-                <button
-                  className="rounded-[12px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition duration-200 hover:bg-[var(--primary-strong)] active:scale-[0.99]"
-                  type="button"
-                  onClick={handleSendToBuilder}
-                >
-                  Add to Meal Builder
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    className="rounded-[12px] border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition duration-200 hover:bg-[var(--muted-soft)] active:scale-[0.99]"
+                    type="button"
+                    onClick={() => void handleSaveRecipe()}
+                  >
+                    {isSaving ? "Saving..." : "Save Recipe"}
+                  </button>
+                  <button
+                    className="rounded-[12px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition duration-200 hover:bg-[var(--primary-strong)] active:scale-[0.99]"
+                    type="button"
+                    onClick={handleSendToBuilder}
+                  >
+                    Add to Meal Builder
+                  </button>
+                </div>
               ) : undefined
             }
           >
@@ -201,6 +253,18 @@ export function ImportRecipeClient() {
                       </div>
                     ))}
                   </div>
+                ) : null}
+                {saveMessage ? (
+                  <div className="rounded-[12px] bg-[var(--muted-soft)] px-4 py-3 text-sm text-[var(--foreground)]">
+                    {saveMessage}
+                  </div>
+                ) : null}
+                {saveError ? user ? (
+                  <div className="rounded-[12px] border border-[var(--danger-soft)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
+                    {saveError}
+                  </div>
+                ) : (
+                  <SignInPrompt message={saveError} />
                 ) : null}
               </div>
             ) : (

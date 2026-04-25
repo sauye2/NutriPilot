@@ -17,6 +17,7 @@ export type MacroTotals = {
 };
 
 export type NutritionGoals = MacroTotals;
+export type MealSource = "manual" | "generated" | "imported";
 
 export type Meal = {
   id: string;
@@ -135,6 +136,69 @@ export type GeneratedMeal = {
   groceryList: GroceryListSection[];
   totals: MacroTotals;
   goalGaps: GoalGap[];
+};
+
+export type MealIngredientRecord = {
+  id?: string;
+  name: string;
+  amount: number;
+  unit: Unit;
+  notes?: string | null;
+  fdcId?: number | null;
+  foodDescription?: string | null;
+  foodDataType?: string | null;
+  sourceLabel?: string | null;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+};
+
+export type PersistableMeal = {
+  title: string;
+  cuisine?: string | null;
+  summary?: string | null;
+  source: MealSource;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  instructions?: string[];
+  whyItWorks?: string[];
+  groceryList?: GroceryListSection[];
+  ingredients: MealIngredientRecord[];
+};
+
+export type SavedMeal = PersistableMeal & {
+  id: string;
+  createdAt: string;
+};
+
+export type DailyLogEntry = {
+  id: string;
+  mealId?: string | null;
+  logDate: string;
+  title: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  createdAt: string;
+};
+
+export type DashboardSummary = {
+  goals: NutritionGoals;
+  today: {
+    date: string;
+    totals: MacroTotals;
+    remaining: MacroTotals;
+    logs: DailyLogEntry[];
+  };
+  recentMeals: SavedMeal[];
+  weekly: Array<{
+    date: string;
+    totals: MacroTotals;
+  }>;
 };
 
 export type GeneratedMealRequest = {

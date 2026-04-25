@@ -10,9 +10,12 @@ import {
   type RefObject,
 } from "react";
 import { AppShell } from "@/components/app-shell";
+import { useAuth } from "@/components/auth-provider";
 import { GroceryListPanel } from "@/components/grocery-list-panel";
 import { SectionCard } from "@/components/section-card";
+import { SignInPrompt } from "@/components/sign-in-prompt";
 import { saveAcceptedGeneratedMeal } from "@/lib/generated-meal-storage";
+import { buildGeneratedMealPayload } from "@/lib/meal-persistence";
 import {
   formatIngredientCalories,
   formatIngredientLine,
@@ -56,6 +59,7 @@ type OptimizationSuggestionState = OptimizationSuggestion & {
 };
 
 export function GenerateMealClient() {
+  const { user } = useAuth();
   const mealSummaryRef = useRef<HTMLDivElement | null>(null);
   const [goals, setGoals] = useState<GoalDraft>({
     calories: "",
@@ -75,6 +79,10 @@ export function GenerateMealClient() {
   const [optimizationSuggestions, setOptimizationSuggestions] = useState<
     OptimizationSuggestionState[]
   >([]);
+  const [acceptMessage, setAcceptMessage] = useState<string | null>(null);
+  const [acceptError, setAcceptError] = useState<string | null>(null);
+  const [isSavingAcceptedMeal, setIsSavingAcceptedMeal] = useState(false);
+  const loadedGoalsForUser = useRef<string | null>(null);
   const greeting = useMemo(() => getGreeting(), []);
 
   const parsedGoals = useMemo<NutritionGoals>(
@@ -88,6 +96,46 @@ export function GenerateMealClient() {
   );
 
   const hasGoals = Object.values(parsedGoals).some((value) => value > 0);
+
+  useEffect(() => {
+    if (!user) {
+      loadedGoalsForUser.current = null;
+      return;
+    }
+
+    if (loadedGoalsForUser.current === user.id) {
+      return;
+    }
+
+    let cancelled = false;
+    loadedGoalsForUser.current = user.id;
+
+    const loadGoals = async () => {
+      try {
+        const response = await fetch("/api/goals");
+        const payload = (await response.json()) as { goals?: NutritionGoals };
+
+        if (!response.ok || !payload.goals || cancelled) {
+          return;
+        }
+
+        setGoals({
+          calories: payload.goals.calories.toString(),
+          protein: payload.goals.protein.toString(),
+          carbs: payload.goals.carbs.toString(),
+          fat: payload.goals.fat.toString(),
+        });
+      } catch {
+        // Leave the current goal draft alone if loading fails.
+      }
+    };
+
+    void loadGoals();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   async function handleGenerate() {
     setIsGenerating(true);
@@ -219,13 +267,47 @@ export function GenerateMealClient() {
     );
   }
 
-  function acceptCurrentMeal() {
+  async function acceptCurrentMeal() {
     if (!meal) {
       return;
     }
 
+    setAcceptError(null);
+    setAcceptMessage(null);
     setAcceptedMeal(meal);
     saveAcceptedGeneratedMeal(meal);
+
+    if (!user) {
+      setAcceptMessage(
+        "Meal accepted on this device. Log in when you want it saved to your account too.",
+      );
+      return;
+    }
+
+    setIsSavingAcceptedMeal(true);
+
+    try {
+      const response = await fetch("/api/meals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          meal: buildGeneratedMealPayload(meal),
+        }),
+      });
+
+      const payload = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        setAcceptError(payload.error ?? "We couldn’t save that accepted meal yet.");
+        return;
+      }
+
+      setAcceptMessage("Meal accepted and saved to your account.");
+    } catch {
+      setAcceptError("We couldn’t save that accepted meal yet.");
+    } finally {
+      setIsSavingAcceptedMeal(false);
+    }
   }
 
   function handleGenerateSubmit() {
@@ -372,9 +454,9 @@ export function GenerateMealClient() {
                     <button
                       className="rounded-[8px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--primary-strong)]"
                       type="button"
-                      onClick={acceptCurrentMeal}
+                      onClick={() => void acceptCurrentMeal()}
                     >
-                      Accept Meal
+                      {isSavingAcceptedMeal ? "Saving..." : "Accept Meal"}
                     </button>
                   ) : undefined
                 }
@@ -594,6 +676,16 @@ export function GenerateMealClient() {
               <>
                 <GroceryListPanel meal={acceptedMeal} heading="Grocery List" />
                 <SectionCard title="Next Step" eyebrow="Optional">
+                  {acceptMessage ? (
+                    <p className="mb-3 text-sm font-medium text-[var(--primary-strong)]">{acceptMessage}</p>
+                  ) : null}
+                  {acceptError ? user ? (
+                    <p className="mb-3 text-sm font-medium text-[var(--danger)]">{acceptError}</p>
+                  ) : (
+                    <div className="mb-4">
+                      <SignInPrompt message={acceptError} />
+                    </div>
+                  ) : null}
                   <div className="flex flex-wrap gap-2">
                     <Link
                       className="rounded-[8px] border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--muted-soft)]"
