@@ -75,6 +75,59 @@ const STRONGLY_PROCESSED_FORM_TERMS = [
   "spread",
   "roll",
 ];
+const PROCESSED_MEAT_TERMS = [
+  "sausage",
+  "chorizo",
+  "pickled",
+  "hocks",
+  "hock",
+  "cured",
+  "salt pork",
+  "cracklings",
+  "ears",
+  "bones",
+  "carnitas",
+  "ham",
+  "bacon",
+  "salami",
+  "pepperoni",
+];
+const SWEET_PREPARED_TERMS = [
+  "babyfood",
+  "juice",
+  "nectar",
+  "dried",
+  "canned",
+  "syrup",
+  "pie",
+  "strudel",
+  "cobbler",
+  "crisp",
+  "candied",
+  "cider",
+  "filling",
+  "turnover",
+  "tart",
+  "sauce",
+  "pastry",
+  "croissant",
+];
+const COMMON_FRUIT_TERMS = [
+  "apple",
+  "pear",
+  "banana",
+  "orange",
+  "grape",
+  "peach",
+  "plum",
+  "strawberry",
+  "blueberry",
+  "raspberry",
+  "blackberry",
+  "mango",
+  "pineapple",
+  "kiwi",
+];
 const SPECIAL_FORM_PENALTIES: Array<{ query: RegExp; forbidden: RegExp }> = [
   { query: /\brice\b/, forbidden: /\bcracker|crackers|cake|cakes|sushi\b/ },
   { query: /\begg|eggs\b/, forbidden: /\byolk|white|whites|dried\b/ },
@@ -412,6 +465,21 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     searchExpansions: ["potatoes raw", "potato raw"],
   },
   {
+    canonical: "apple",
+    aliases: ["apple", "apples"],
+    searchExpansions: ["apple raw", "apples raw"],
+  },
+  {
+    canonical: "pear",
+    aliases: ["pear", "pears"],
+    searchExpansions: ["pear raw", "pears raw"],
+  },
+  {
+    canonical: "pork",
+    aliases: ["pork"],
+    searchExpansions: ["pork nfs", "pork loin raw", "pork shoulder raw"],
+  },
+  {
     canonical: "soy sauce",
     aliases: ["soy sauce"],
     searchExpansions: ["soy sauce"],
@@ -666,6 +734,54 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
       servingText: null,
       per100g: { calories: 884, protein: 0, carbs: 0, fat: 100 },
       gramsByUnit: { g: 1, tbsp: 13.6, tsp: 4.5 },
+    },
+  },
+  {
+    canonicalQuery: "apple",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA whole-fruit apple entry.",
+    food: {
+      fdcId: 2709215,
+      description: "Apple, Raw",
+      displayName: "Apple, Raw",
+      dataType: "Survey (FNDDS)",
+      brandName: null,
+      sourceLabel: "USDA Survey (FNDDS)",
+      servingText: null,
+      per100g: { calories: 61, protein: 0.17, carbs: 14.8, fat: 0.15 },
+      gramsByUnit: { g: 1, piece: 182, cup: 125 },
+    },
+  },
+  {
+    canonicalQuery: "pear",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA whole-fruit pear entry.",
+    food: {
+      fdcId: 2709254,
+      description: "Pear, Raw",
+      displayName: "Pear, Raw",
+      dataType: "Survey (FNDDS)",
+      brandName: null,
+      sourceLabel: "USDA Survey (FNDDS)",
+      servingText: null,
+      per100g: { calories: 59, protein: 0.37, carbs: 15.2, fat: 0.15 },
+      gramsByUnit: { g: 1, piece: 178, cup: 140 },
+    },
+  },
+  {
+    canonicalQuery: "pork",
+    confidence: 0.91,
+    rationale: "Matched automatically using a broad USDA pork entry when no specific cut was given.",
+    food: {
+      fdcId: 2705862,
+      description: "Pork, NFS",
+      displayName: "Pork, NFS",
+      dataType: "Survey (FNDDS)",
+      brandName: null,
+      sourceLabel: "USDA Survey (FNDDS)",
+      servingText: null,
+      per100g: { calories: 192, protein: 27.1, carbs: 0, fat: 8.67 },
+      gramsByUnit: { g: 1, piece: 85 },
     },
   },
   {
@@ -2013,6 +2129,18 @@ function getPreferredGenericProfile(
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "salt") ?? null;
   }
 
+  if (query === "apple") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "apple") ?? null;
+  }
+
+  if (query === "pear") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "pear") ?? null;
+  }
+
+  if (query === "pork") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "pork") ?? null;
+  }
+
   if (query === "ground cumin" || query === "cumin") {
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "ground cumin") ?? null;
   }
@@ -2294,6 +2422,52 @@ function rankCandidates(
       if (/\blemongrass\b|\blemon grass\b/.test(queryText)) {
         if (!/\blemon grass\b|\bcitronella\b|\blemongrass\b/.test(description)) {
           score -= 220;
+        }
+      }
+
+      if (queryText === "pork") {
+        if (!/\bpork\b/.test(description)) {
+          score -= 180;
+        }
+
+        if (PROCESSED_MEAT_TERMS.some((term) => description.includes(term))) {
+          score -= 170;
+        }
+
+        if (/\bnfs\b/.test(description)) {
+          score += 42;
+        }
+
+        if (/\bground|loin|tenderloin|roast|shoulder\b/.test(description)) {
+          score += 20;
+        }
+      }
+
+      if (/\bpork belly\b/.test(queryText)) {
+        if (!/\bbelly\b/.test(description)) {
+          score -= 170;
+        }
+
+        if (PROCESSED_MEAT_TERMS.some((term) => description.includes(term))) {
+          score -= 180;
+        }
+      }
+
+      if (COMMON_FRUIT_TERMS.includes(queryText)) {
+        if (!new RegExp(`\\b${queryText}\\b`).test(description)) {
+          score -= 170;
+        }
+
+        if (SWEET_PREPARED_TERMS.some((term) => description.includes(term))) {
+          score -= 180;
+        }
+
+        if (/\braw\b/.test(description)) {
+          score += 34;
+        }
+
+        if (/\bfoundation\b/.test(food.dataType.toLowerCase()) || /\bsurvey\b/.test(food.dataType.toLowerCase())) {
+          score += 8;
         }
       }
 
@@ -2808,7 +2982,10 @@ function getHeuristicUnitWeights(description: string): Partial<Record<Unit, numb
 function formatFoodLabel(value: string) {
   const lower = value.toLowerCase();
 
-  return lower.replace(/\b\w/g, (character) => character.toUpperCase());
+  return lower
+    .replace(/\b\w/g, (character) => character.toUpperCase())
+    .replace(/\bNfs\b/g, "NFS")
+    .replace(/\bNs\b/g, "NS");
 }
 
 function roundValue(value: number) {

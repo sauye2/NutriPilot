@@ -69,6 +69,24 @@ const SEARCH_FIXTURES = [
     foods: [food(303, "Potatoes, flesh and skin, raw", "SR Legacy")],
   },
   {
+    match: ["apple", "apple raw", "apples raw"],
+    foods: [
+      food(2709215, "Apple, raw", "Survey (FNDDS)"),
+      food(174988, "Croissants, apple", "SR Legacy"),
+      food(175032, "Strudel, apple", "SR Legacy"),
+      food(2709294, "Apple, candied", "Survey (FNDDS)"),
+    ],
+  },
+  {
+    match: ["pear", "pear raw", "pears raw"],
+    foods: [
+      food(2709254, "Pear, raw", "Survey (FNDDS)"),
+      food(167718, "Babyfood, juice, pear", "SR Legacy"),
+      food(168177, "Pears, asian, raw", "SR Legacy"),
+      food(2709349, "Pear nectar", "Survey (FNDDS)"),
+    ],
+  },
+  {
     match: ["sirloin steak", "beef top sirloin cooked", "beef sirloin steak cooked", "beef steak cooked"],
     foods: [
       food(
@@ -261,7 +279,23 @@ const SEARCH_FIXTURES = [
   },
   {
     match: ["pork belly", "pork fresh belly", "pork"],
-    foods: [food(1201, "Pork, fresh, belly, raw", "Foundation")],
+    foods: [
+      food(1201, "Pork, fresh, belly, raw", "Foundation"),
+      food(1202, "Sausage, Italian, pork, mild, cooked, pan-fried", "Foundation"),
+      food(1203, "Sausage, pork, chorizo, link or ground, cooked, pan-fried", "Foundation"),
+      food(1204, "Pork, pickled pork hocks", "SR Legacy"),
+    ],
+  },
+  {
+    match: ["pork nfs", "pork loin raw", "pork shoulder raw"],
+    foods: [
+      food(2705862, "Pork, NFS", "Survey (FNDDS)"),
+      food(2646168, "Pork, loin, boneless, raw", "Foundation"),
+      food(167843, "Pork, fresh, shoulder, whole, separable lean and fat, raw", "SR Legacy"),
+      food(169157, "Pork, pickled pork hocks", "SR Legacy"),
+      food(168287, "Pork, cured, salt pork, raw", "SR Legacy"),
+      food(2705895, "Pork, cracklings", "Survey (FNDDS)"),
+    ],
   },
 ];
 
@@ -278,6 +312,8 @@ const DETAIL_FIXTURES = {
   215: detailWithMacros(215, "Avocados, raw, california", "SR Legacy", { calories: 167, protein: 2, carbs: 8.6, fat: 15.4 }, { piece: 150, cup: 150 }),
   301: detail(301, "Rice, white, long-grain, regular, cooked", "SR Legacy", { cup: 158 }),
   303: detailWithMacros(303, "Potatoes, flesh and skin, raw", "SR Legacy", { calories: 77, protein: 2, carbs: 17.5, fat: 0.1 }, { piece: 173, cup: 150 }),
+  2709215: detailWithMacros(2709215, "Apple, raw", "Survey (FNDDS)", { calories: 61, protein: 0.17, carbs: 14.8, fat: 0.15 }, { piece: 182, cup: 125 }),
+  2709254: detailWithMacros(2709254, "Pear, raw", "Survey (FNDDS)", { calories: 59, protein: 0.37, carbs: 15.2, fat: 0.15 }, { piece: 178, cup: 140 }),
   311: detailWithMacros(311, "Beef, top sirloin, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, grilled", "SR Legacy", { calories: 206, protein: 28.6, carbs: 0, fat: 10.6 }, { piece: 170 }),
   401: detail(401, "Chicken, broilers or fryers, breast, meat only, cooked, roasted", "Foundation"),
   171477: detailWithMacros(171477, "Chicken, broilers or fryers, breast, meat only, cooked, roasted", "SR Legacy", { calories: 165, protein: 31.02, carbs: 0, fat: 3.57 }, { piece: 120 }),
@@ -321,6 +357,9 @@ const DETAIL_FIXTURES = {
   1182: detailWithMacros(1182, "Peppers, hot, raw", "Survey (FNDDS)", { calories: 40, protein: 2, carbs: 9.5, fat: 0.2 }, { piece: 14 }),
   1191: detail(1191, "Egg, whole, raw, fresh", "Foundation", { piece: 50 }),
   1201: detail(1201, "Pork, fresh, belly, raw", "Foundation"),
+  2705862: detailWithMacros(2705862, "Pork, NFS", "Survey (FNDDS)", { calories: 192, protein: 27.1, carbs: 0, fat: 8.67 }, { piece: 85 }),
+  2646168: detailWithMacros(2646168, "Pork, loin, boneless, raw", "Foundation", { calories: 143, protein: 21.4, carbs: 0, fat: 5.4 }, { piece: 120 }),
+  167843: detailWithMacros(167843, "Pork, fresh, shoulder, whole, separable lean and fat, raw", "SR Legacy", { calories: 212, protein: 17.9, carbs: 0, fat: 15.2 }, { piece: 120 }),
   168573: detailWithMacros(168573, "Lemon grass (citronella), raw", "SR Legacy", { calories: 99, protein: 1.82, carbs: 25.31, fat: 0.49 }, { piece: 67, cup: 67, tbsp: 5, tsp: 1.7 }),
   175168: detailWithMacros(175168, "Fish, salmon, Atlantic, farmed, cooked, dry heat", "SR Legacy", { calories: 206, protein: 22.1, carbs: 0, fat: 12.35 }, { piece: 154 }),
   171998: detailWithMacros(171998, "Fish, salmon, Atlantic, wild, cooked, dry heat", "SR Legacy", { calories: 182, protein: 25.4, carbs: 0, fat: 8.13 }, { piece: 154 }),
@@ -378,6 +417,9 @@ for (const ingredient of [
   "avocado",
   "white rice",
   "potatoes",
+  "apple",
+  "pear",
+  "pork",
   "sirloin steak",
   "chicken breast",
   "roma tomatoes",
@@ -461,10 +503,13 @@ test("batch resolution keeps common ingredients auto-matched", async () => {
 });
 
 test("common protein searches surface sensible generic options first", async () => {
-  const [chickenResults, ribeyeResults, salmonResults] = await Promise.all([
+  const [chickenResults, ribeyeResults, salmonResults, porkResults, appleResults, pearResults] = await Promise.all([
     searchFoods("chicken breast", { preferCooked: true }),
     searchFoods("ribeye", { preferCooked: true }),
     searchFoods("salmon", { preferCooked: true }),
+    searchFoods("pork"),
+    searchFoods("apple"),
+    searchFoods("pear"),
   ]);
 
   assert.equal(chickenResults[0]?.description, "Chicken, Broilers Or Fryers, Breast, Meat Only, Cooked, Roasted");
@@ -475,13 +520,25 @@ test("common protein searches surface sensible generic options first", async () 
 
   assert.equal(salmonResults[0]?.description, "Fish, Salmon, Atlantic, Farmed, Cooked, Dry Heat");
   assert.ok(salmonResults.every((result) => !/fish oil/i.test(result.description)));
+
+  assert.equal(porkResults[0]?.description, "Pork, NFS");
+  assert.ok(porkResults.every((result) => !/sausage|chorizo|pickled|hocks|cracklings/i.test(result.description)));
+
+  assert.equal(appleResults[0]?.description, "Apple, Raw");
+  assert.ok(appleResults.every((result) => !/croissant|strudel|candied|pie/i.test(result.description)));
+
+  assert.equal(pearResults[0]?.description, "Pear, Raw");
+  assert.ok(pearResults.every((result) => !/babyfood|juice|nectar/i.test(result.description)));
 });
 
 test("common protein auto-matches use sensible cooked generic profiles", async () => {
-  const [chicken, ribeye, salmon] = await Promise.all([
+  const [chicken, ribeye, salmon, pork, apple, pear] = await Promise.all([
     resolveIngredientMatch("chicken breast", { preferCooked: true }),
     resolveIngredientMatch("ribeye", { preferCooked: true }),
     resolveIngredientMatch("salmon", { preferCooked: true }),
+    resolveIngredientMatch("pork"),
+    resolveIngredientMatch("apple"),
+    resolveIngredientMatch("pear"),
   ]);
 
   assert.equal(chicken.food?.description, "Chicken, Broilers Or Fryers, Breast, Meat Only, Cooked, Roasted");
@@ -492,6 +549,15 @@ test("common protein auto-matches use sensible cooked generic profiles", async (
 
   assert.equal(salmon.food?.description, "Fish, Salmon, Atlantic, Farmed, Cooked, Dry Heat");
   assert.equal(salmon.food?.per100g.calories, 206);
+
+  assert.equal(pork.food?.description, "Pork, NFS");
+  assert.equal(pork.food?.per100g.calories, 192);
+
+  assert.equal(apple.food?.description, "Apple, Raw");
+  assert.equal(apple.food?.per100g.calories, 61);
+
+  assert.equal(pear.food?.description, "Pear, Raw");
+  assert.equal(pear.food?.per100g.calories, 59);
 });
 
 test("preferCooked biases ambiguous proteins toward cooked USDA entries", async () => {
