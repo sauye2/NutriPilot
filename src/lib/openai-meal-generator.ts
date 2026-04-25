@@ -231,6 +231,9 @@ async function generateStructuredMeal(prompt: string): Promise<AiMealDraft> {
                 type: "array",
                 items: { type: "string" },
               },
+              // Macros are intentionally excluded from the model schema.
+              // NutriPilot calculates displayed totals deterministically after
+              // ingredient resolution against USDA-backed nutrition data.
               ingredients: {
                 type: "array",
                 items: {

@@ -318,9 +318,11 @@ test.after(() => {
 test("normalization preserves meaningful descriptors and strips recipe noise", () => {
   const oliveOil = normalizeIngredientText("2 tbsp extra virgin olive oil");
   const groundBeef = normalizeIngredientText("1 lb 90/10 ground beef");
+  const filteredWater = normalizeIngredientText("2 cups filtered water");
 
   assert.equal(oliveOil.canonicalQuery, "olive oil");
   assert.equal(groundBeef.canonicalQuery, "ground beef 90 percent lean");
+  assert.equal(filteredWater.canonicalQuery, "water");
 });
 
 for (const ingredient of [
@@ -492,6 +494,53 @@ test("preferred pantry profiles keep spices and produce on sensible generic valu
   assert.equal(limeJuice.food?.gramsByUnit.tbsp, 15);
   assert.equal(lime.food?.per100g.calories, 30);
   assert.equal(scotchBonnet.food?.gramsByUnit.piece, 14);
+});
+
+for (const ingredient of [
+  "water",
+  "tap water",
+  "plain water",
+  "filtered water",
+  "2 cups water",
+]) {
+  test(`${ingredient} resolves to the plain water profile with zero macros`, async () => {
+    const resolution = await resolveIngredientMatch(ingredient);
+
+    assert.ok(resolution.food, `${ingredient} should resolve to a USDA water entry`);
+    assert.equal(resolution.food?.description, "Water, Tap");
+    assert.equal(resolution.food?.per100g.calories, 0);
+    assert.equal(resolution.food?.per100g.protein, 0);
+    assert.equal(resolution.food?.per100g.carbs, 0);
+    assert.equal(resolution.food?.per100g.fat, 0);
+    assert.equal(resolution.needsReview, false);
+  });
+}
+
+test("water never prefers water crackers", async () => {
+  const resolution = await resolveIngredientMatch("water");
+
+  assert.equal(resolution.food?.description, "Water, Tap");
+  assert.ok(
+    resolution.candidates.every((candidate) => candidate.description !== "Crackers, Water"),
+    "water crackers should never surface once the preferred water profile is selected",
+  );
+});
+
+test("generated meal hydration math stays at zero for water", async () => {
+  const resolution = await resolveIngredientMatch("2 cups water");
+
+  assert.ok(resolution.food);
+
+  const grams = (resolution.food?.gramsByUnit.cup ?? 0) * 2;
+  const calories = (grams * (resolution.food?.per100g.calories ?? 0)) / 100;
+  const protein = (grams * (resolution.food?.per100g.protein ?? 0)) / 100;
+  const carbs = (grams * (resolution.food?.per100g.carbs ?? 0)) / 100;
+  const fat = (grams * (resolution.food?.per100g.fat ?? 0)) / 100;
+
+  assert.equal(calories, 0);
+  assert.equal(protein, 0);
+  assert.equal(carbs, 0);
+  assert.equal(fat, 0);
 });
 
 test("category fallback keeps future ingredient families from losing nutrition data", async () => {
