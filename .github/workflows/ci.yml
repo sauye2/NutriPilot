@@ -8,6 +8,12 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://example.supabase.co' }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'ci-placeholder-anon-key' }}
+      USDA_FOODDATA_API_KEY: ${{ secrets.USDA_FOODDATA_API_KEY || 'ci-placeholder-usda-key' }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'ci-placeholder-openai-key' }}
+      OPENAI_MEAL_MODEL: gpt-5.4-mini
 
     steps:
       - name: Check out repository
