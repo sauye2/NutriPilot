@@ -110,11 +110,11 @@ export function GenerateMealClient() {
   const hasGoals =
     Object.values(goals).some((value) => value.trim().length > 0) ||
     Object.values(effectiveGoalDefaults).some((value) => value > 0);
+  const activeGoalPlaceholders = user ? savedGoalPlaceholders : goalPlaceholders;
 
   useEffect(() => {
     if (!user) {
       loadedGoalsForUser.current = null;
-      setSavedGoalPlaceholders(goalPlaceholders);
       return;
     }
 
@@ -387,7 +387,7 @@ export function GenerateMealClient() {
                     </span>
                     <input
                       className="focus-ring h-11 w-full rounded-[8px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
-                      placeholder={savedGoalPlaceholders[key]}
+                      placeholder={activeGoalPlaceholders[key]}
                       value={goals[key]}
                       onKeyDown={(event) => handleEnterSubmit(event, handleGenerateSubmit)}
                       onChange={(event) =>

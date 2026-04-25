@@ -45,20 +45,6 @@ export function DashboardClient() {
     }
 
     if (!user) {
-      setSummary(null);
-      setIsLoading(false);
-      setGoals({
-        calories: "",
-        protein: "",
-        carbs: "",
-        fat: "",
-      });
-      setGoalPlaceholdersByState({
-        calories: goalPlaceholders.calories,
-        protein: goalPlaceholders.protein,
-        carbs: goalPlaceholders.carbs,
-        fat: goalPlaceholders.fat,
-      });
       return;
     }
 
@@ -249,6 +235,7 @@ export function DashboardClient() {
   }
 
   const displayedGoals = summary?.goals ?? defaultNutritionGoals;
+  const inputGoalPlaceholders = user ? goalPlaceholdersByState : goalPlaceholders;
 
   return (
     <AppShell>
@@ -398,7 +385,7 @@ export function DashboardClient() {
                         min="0"
                         step={key === "calories" ? 10 : 1}
                         type="number"
-                        placeholder={goalPlaceholdersByState[key]}
+                        placeholder={inputGoalPlaceholders[key]}
                         value={goals[key]}
                         onChange={(event) => updateGoal(key, event.target.value)}
                       />
@@ -503,7 +490,7 @@ export function DashboardClient() {
                       No saved meals yet.
                     </p>
                     <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                      Save a meal from Meal Builder or Build a Meal for Me and it'll show up
+                      Save a meal from Meal Builder or Build a Meal for Me and it&apos;ll show up
                       here.
                     </p>
                     <div className="mt-4 flex flex-wrap justify-center gap-2">
