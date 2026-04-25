@@ -78,12 +78,32 @@ const SEARCH_FIXTURES = [
     ],
   },
   {
+    match: ["banana", "bananas", "banana raw", "bananas raw"],
+    foods: [
+      food(2709224, "Banana, raw", "Survey (FNDDS)"),
+      food(173944, "Bananas, raw", "SR Legacy"),
+      food(169394, "Pepper, banana, raw", "SR Legacy"),
+      food(167629, "Melon, banana (Navajo)", "SR Legacy"),
+      food(173945, "Bananas, dehydrated, or banana powder", "SR Legacy"),
+    ],
+  },
+  {
     match: ["pear", "pear raw", "pears raw"],
     foods: [
       food(2709254, "Pear, raw", "Survey (FNDDS)"),
       food(167718, "Babyfood, juice, pear", "SR Legacy"),
       food(168177, "Pears, asian, raw", "SR Legacy"),
       food(2709349, "Pear nectar", "Survey (FNDDS)"),
+    ],
+  },
+  {
+    match: ["strawberry", "strawberries", "strawberry raw", "strawberries raw"],
+    foods: [
+      food(2709283, "Strawberries, raw", "Survey (FNDDS)"),
+      food(167762, "Strawberries, raw", "SR Legacy"),
+      food(173045, "Guavas, strawberry, raw", "SR Legacy"),
+      food(168758, "Toppings, strawberry", "SR Legacy"),
+      food(168810, "Ice creams, strawberry", "SR Legacy"),
     ],
   },
   {
@@ -313,7 +333,9 @@ const DETAIL_FIXTURES = {
   301: detail(301, "Rice, white, long-grain, regular, cooked", "SR Legacy", { cup: 158 }),
   303: detailWithMacros(303, "Potatoes, flesh and skin, raw", "SR Legacy", { calories: 77, protein: 2, carbs: 17.5, fat: 0.1 }, { piece: 173, cup: 150 }),
   2709215: detailWithMacros(2709215, "Apple, raw", "Survey (FNDDS)", { calories: 61, protein: 0.17, carbs: 14.8, fat: 0.15 }, { piece: 182, cup: 125 }),
+  2709224: detailWithMacros(2709224, "Banana, raw", "Survey (FNDDS)", { calories: 89, protein: 1.09, carbs: 22.8, fat: 0.33 }, { piece: 118, cup: 150 }),
   2709254: detailWithMacros(2709254, "Pear, raw", "Survey (FNDDS)", { calories: 59, protein: 0.37, carbs: 15.2, fat: 0.15 }, { piece: 178, cup: 140 }),
+  2709283: detailWithMacros(2709283, "Strawberries, raw", "Survey (FNDDS)", { calories: 32, protein: 0.67, carbs: 7.68, fat: 0.3 }, { piece: 12, cup: 152 }),
   311: detailWithMacros(311, "Beef, top sirloin, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, grilled", "SR Legacy", { calories: 206, protein: 28.6, carbs: 0, fat: 10.6 }, { piece: 170 }),
   401: detail(401, "Chicken, broilers or fryers, breast, meat only, cooked, roasted", "Foundation"),
   171477: detailWithMacros(171477, "Chicken, broilers or fryers, breast, meat only, cooked, roasted", "SR Legacy", { calories: 165, protein: 31.02, carbs: 0, fat: 3.57 }, { piece: 120 }),
@@ -418,8 +440,10 @@ for (const ingredient of [
   "white rice",
   "potatoes",
   "apple",
+  "banana",
   "pear",
   "pork",
+  "strawberry",
   "sirloin steak",
   "chicken breast",
   "roma tomatoes",
@@ -503,13 +527,15 @@ test("batch resolution keeps common ingredients auto-matched", async () => {
 });
 
 test("common protein searches surface sensible generic options first", async () => {
-  const [chickenResults, ribeyeResults, salmonResults, porkResults, appleResults, pearResults] = await Promise.all([
+  const [chickenResults, ribeyeResults, salmonResults, porkResults, appleResults, bananaResults, pearResults, strawberryResults] = await Promise.all([
     searchFoods("chicken breast", { preferCooked: true }),
     searchFoods("ribeye", { preferCooked: true }),
     searchFoods("salmon", { preferCooked: true }),
     searchFoods("pork"),
     searchFoods("apple"),
+    searchFoods("banana"),
     searchFoods("pear"),
+    searchFoods("strawberry"),
   ]);
 
   assert.equal(chickenResults[0]?.description, "Chicken, Broilers Or Fryers, Breast, Meat Only, Cooked, Roasted");
@@ -527,18 +553,26 @@ test("common protein searches surface sensible generic options first", async () 
   assert.equal(appleResults[0]?.description, "Apple, Raw");
   assert.ok(appleResults.every((result) => !/croissant|strudel|candied|pie/i.test(result.description)));
 
+  assert.equal(bananaResults[0]?.description, "Banana, Raw");
+  assert.ok(bananaResults.every((result) => !/pepper, banana|melon, banana|banana powder|banana chips/i.test(result.description)));
+
   assert.equal(pearResults[0]?.description, "Pear, Raw");
   assert.ok(pearResults.every((result) => !/babyfood|juice|nectar/i.test(result.description)));
+
+  assert.equal(strawberryResults[0]?.description, "Strawberries, Raw");
+  assert.ok(strawberryResults.every((result) => !/guavas, strawberry|toppings, strawberry|ice creams, strawberry/i.test(result.description)));
 });
 
 test("common protein auto-matches use sensible cooked generic profiles", async () => {
-  const [chicken, ribeye, salmon, pork, apple, pear] = await Promise.all([
+  const [chicken, ribeye, salmon, pork, apple, banana, pear, strawberry] = await Promise.all([
     resolveIngredientMatch("chicken breast", { preferCooked: true }),
     resolveIngredientMatch("ribeye", { preferCooked: true }),
     resolveIngredientMatch("salmon", { preferCooked: true }),
     resolveIngredientMatch("pork"),
     resolveIngredientMatch("apple"),
+    resolveIngredientMatch("banana"),
     resolveIngredientMatch("pear"),
+    resolveIngredientMatch("strawberry"),
   ]);
 
   assert.equal(chicken.food?.description, "Chicken, Broilers Or Fryers, Breast, Meat Only, Cooked, Roasted");
@@ -556,8 +590,28 @@ test("common protein auto-matches use sensible cooked generic profiles", async (
   assert.equal(apple.food?.description, "Apple, Raw");
   assert.equal(apple.food?.per100g.calories, 61);
 
+  assert.equal(banana.food?.description, "Banana, Raw");
+  assert.equal(banana.food?.per100g.calories, 89);
+
   assert.equal(pear.food?.description, "Pear, Raw");
   assert.equal(pear.food?.per100g.calories, 59);
+
+  assert.equal(strawberry.food?.description, "Strawberries, Raw");
+  assert.equal(strawberry.food?.per100g.calories, 32);
+});
+
+test("singular and plural fruit queries stay on the same common whole-food matches", async () => {
+  const [bananaSingular, bananaPlural, strawberrySingular, strawberryPlural] = await Promise.all([
+    resolveIngredientMatch("banana"),
+    resolveIngredientMatch("bananas"),
+    resolveIngredientMatch("strawberry"),
+    resolveIngredientMatch("strawberries"),
+  ]);
+
+  assert.equal(bananaSingular.food?.description, "Banana, Raw");
+  assert.equal(bananaPlural.food?.description, "Banana, Raw");
+  assert.equal(strawberrySingular.food?.description, "Strawberries, Raw");
+  assert.equal(strawberryPlural.food?.description, "Strawberries, Raw");
 });
 
 test("preferCooked biases ambiguous proteins toward cooked USDA entries", async () => {

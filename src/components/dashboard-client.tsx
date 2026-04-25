@@ -24,6 +24,16 @@ const dashboardMacroColors: Record<MacroKey, string> = {
   fat: "#8f5f74",
 };
 
+const weeklyCardClasses = [
+  "bg-[#f5ede0] border-[#ead9c0]",
+  "bg-[#f1efe6] border-[#e1ddd1]",
+  "bg-[#f3e6e7] border-[#e8d0d2]",
+  "bg-[#eaf1eb] border-[#d6e4d8]",
+  "bg-[#eee8f2] border-[#ddd2e6]",
+  "bg-[#f5ece7] border-[#ead8cd]",
+  "bg-[#eef2e8] border-[#dce6d1]",
+];
+
 export function DashboardClient() {
   const { user, isLoading: authLoading } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -335,7 +345,7 @@ export function DashboardClient() {
                   {[...summary.weekly].reverse().map((day) => (
                     <div
                       key={day.date}
-                      className="grid grid-cols-[1fr_auto] items-start gap-4 rounded-[12px] border border-[var(--border)] bg-white/80 px-4 py-3"
+                      className={`grid grid-cols-[1fr_auto] items-start gap-4 rounded-[12px] border px-4 py-3 ${weeklyCardClasses[getWeeklyCardIndex(day.date)]}`}
                     >
                       <div>
                         <p className="text-sm font-semibold text-[var(--foreground)]">
@@ -470,7 +480,7 @@ export function DashboardClient() {
                             {activeMealId === meal.id ? "Working..." : "Log Today"}
                           </button>
                           <button
-                            className="rounded-[10px] border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--foreground)] transition duration-200 hover:bg-[var(--muted-soft)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                            className="rounded-[10px] border border-[#e6c8c6] bg-[#fff1f0] px-3 py-2 text-sm font-semibold text-[#9b4b47] transition duration-200 hover:bg-[#fde7e5] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                             disabled={activeMealId === meal.id}
                             type="button"
                             onClick={() => void deleteMeal(meal)}
@@ -699,6 +709,13 @@ function formatCompactDate(dateString: string) {
   }
 
   return `${month}/${day}/${String(year).slice(-2)}`;
+}
+
+function getWeeklyCardIndex(dateString: string) {
+  const digits = dateString.replace(/\D/g, "");
+  const sum = digits.split("").reduce((total, digit) => total + Number(digit), 0);
+
+  return sum % weeklyCardClasses.length;
 }
 
 function labelForMacro(key: MacroKey) {

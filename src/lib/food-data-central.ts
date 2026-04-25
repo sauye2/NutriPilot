@@ -97,6 +97,8 @@ const SWEET_PREPARED_TERMS = [
   "juice",
   "nectar",
   "dried",
+  "dehydrated",
+  "chips",
   "canned",
   "syrup",
   "pie",
@@ -116,6 +118,7 @@ const COMMON_FRUIT_TERMS = [
   "apple",
   "pear",
   "banana",
+  "strawberry",
   "orange",
   "grape",
   "peach",
@@ -470,9 +473,19 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     searchExpansions: ["apple raw", "apples raw"],
   },
   {
+    canonical: "banana",
+    aliases: ["banana", "bananas"],
+    searchExpansions: ["banana raw", "bananas raw"],
+  },
+  {
     canonical: "pear",
     aliases: ["pear", "pears"],
     searchExpansions: ["pear raw", "pears raw"],
+  },
+  {
+    canonical: "strawberry",
+    aliases: ["strawberry", "strawberries"],
+    searchExpansions: ["strawberry raw", "strawberries raw"],
   },
   {
     canonical: "pork",
@@ -753,6 +766,22 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
     },
   },
   {
+    canonicalQuery: "banana",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA whole-fruit banana entry.",
+    food: {
+      fdcId: 2709224,
+      description: "Banana, Raw",
+      displayName: "Banana, Raw",
+      dataType: "Survey (FNDDS)",
+      brandName: null,
+      sourceLabel: "USDA Survey (FNDDS)",
+      servingText: null,
+      per100g: { calories: 89, protein: 1.09, carbs: 22.8, fat: 0.33 },
+      gramsByUnit: { g: 1, piece: 118, cup: 150 },
+    },
+  },
+  {
     canonicalQuery: "pear",
     confidence: 0.95,
     rationale: "Matched automatically using a preferred USDA whole-fruit pear entry.",
@@ -766,6 +795,22 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
       servingText: null,
       per100g: { calories: 59, protein: 0.37, carbs: 15.2, fat: 0.15 },
       gramsByUnit: { g: 1, piece: 178, cup: 140 },
+    },
+  },
+  {
+    canonicalQuery: "strawberry",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA whole-fruit strawberry entry.",
+    food: {
+      fdcId: 2709283,
+      description: "Strawberries, Raw",
+      displayName: "Strawberries, Raw",
+      dataType: "Survey (FNDDS)",
+      brandName: null,
+      sourceLabel: "USDA Survey (FNDDS)",
+      servingText: null,
+      per100g: { calories: 32, protein: 0.67, carbs: 7.68, fat: 0.3 },
+      gramsByUnit: { g: 1, piece: 12, cup: 152 },
     },
   },
   {
@@ -1813,7 +1858,12 @@ export async function searchFoods(
   const candidates = dedupeRankedCandidates(
     [preferredCandidate, ...ranked].filter(Boolean) as RankedCandidate[],
   );
-  const filtered = candidates.filter((candidate) => candidate._confidence >= 0.42);
+  const minimumConfidence = isWholeFoodPriorityQuery(normalized.canonicalQuery, query) ? 0.58 : 0.42;
+  const filtered = candidates.filter(
+    (candidate) =>
+      candidate._confidence >= minimumConfidence &&
+      !shouldHideForWholeFoodQuery(normalized.canonicalQuery, candidate.description),
+  );
 
   return (filtered.length > 0 ? filtered : candidates).slice(0, 6).map(toSearchResult);
 }
@@ -2129,12 +2179,20 @@ function getPreferredGenericProfile(
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "salt") ?? null;
   }
 
-  if (query === "apple") {
+  if (/\bapples?\b/.test(query) || /\bapples?\b/.test(raw)) {
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "apple") ?? null;
   }
 
-  if (query === "pear") {
+  if (/\bbananas?\b/.test(query) || /\bbananas?\b/.test(raw)) {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "banana") ?? null;
+  }
+
+  if (/\bpears?\b/.test(query) || /\bpears?\b/.test(raw)) {
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "pear") ?? null;
+  }
+
+  if (/\bstrawberries\b|\bstrawberry\b/.test(query) || /\bstrawberries\b|\bstrawberry\b/.test(raw)) {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "strawberry") ?? null;
   }
 
   if (query === "pork") {
@@ -2462,6 +2520,10 @@ function rankCandidates(
           score -= 180;
         }
 
+        if (/\bpepper|melon|guava|yogurt|ice cream|toppings|mcdonald|sundae|split|pudding\b/.test(description)) {
+          score -= 190;
+        }
+
         if (/\braw\b/.test(description)) {
           score += 34;
         }
@@ -2581,6 +2643,37 @@ function dedupeRankedCandidates(candidates: RankedCandidate[]) {
   }
 
   return Array.from(seen.values()).sort((left, right) => right._score - left._score);
+}
+
+function isWholeFoodPriorityQuery(canonicalQuery: string, rawText: string) {
+  const combined = `${canonicalQuery} ${rawText}`.toLowerCase();
+
+  return (
+    /\bapples?\b|\bbananas?\b|\bpears?\b|\bstrawberry\b|\bstrawberries\b/.test(combined) ||
+    /\bpork\b|\bpork belly\b|\bchicken breast\b|\bribeye\b|\bsalmon\b/.test(combined)
+  );
+}
+
+function shouldHideForWholeFoodQuery(canonicalQuery: string, description: string) {
+  const lower = description.toLowerCase();
+
+  if (/\bapple\b|\bpear\b|\bbanana\b|\bstrawberr/.test(canonicalQuery)) {
+    if (SWEET_PREPARED_TERMS.some((term) => lower.includes(term))) {
+      return true;
+    }
+
+    if (/\byogurt|kefir|ice cream|toppings|mcdonald|sundae|split|pudding|pepper|melon|guava\b/.test(lower)) {
+      return true;
+    }
+  }
+
+  if (canonicalQuery === "pork" || canonicalQuery === "pork belly") {
+    if (PROCESSED_MEAT_TERMS.some((term) => lower.includes(term))) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function tokenize(value: string) {

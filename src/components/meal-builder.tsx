@@ -432,44 +432,20 @@ export function MealBuilder() {
             resolvingFoodId={resolvingFoodId}
             searchLoadingId={searchLoadingId}
             searchResults={searchResults}
+            isSavingMeal={isSavingMeal}
+            savableIngredientsCount={savableIngredients.length}
+            saveMessage={saveMessage}
+            saveError={saveError}
+            showSignInPrompt={showSignInPrompt}
+            onSaveMeal={handleSaveMeal}
           />
+          <SuggestionsCard suggestions={suggestions} />
           {unsupportedIngredients.length > 0 ? (
             <UnsupportedFoods names={unsupportedIngredients.map((item) => item.name)} />
           ) : null}
         </div>
 
         <aside className="order-1 space-y-6 lg:order-2">
-          <SectionCard
-            title="Save This Meal"
-            eyebrow="Cloud saving"
-            action={
-              <button
-                className="rounded-[10px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition duration-200 hover:bg-[var(--primary-strong)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={isSavingMeal || savableIngredients.length === 0}
-                type="button"
-                onClick={() => void handleSaveMeal()}
-              >
-                {isSavingMeal ? "Saving..." : "Save Meal"}
-              </button>
-            }
-          >
-            <p className="text-sm leading-6 text-[var(--muted)]">
-              {savableIngredients.length > 0
-                ? `${mealDraftTitle} is ready to save when you are.`
-                : "As soon as you add a few ingredients, you can save this setup to your account."}
-            </p>
-            {saveMessage ? (
-              <p className="mt-3 text-sm font-medium text-[var(--primary-strong)]">{saveMessage}</p>
-            ) : null}
-            {saveError ? (
-              <p className="mt-3 text-sm font-medium text-[var(--danger)]">{saveError}</p>
-            ) : null}
-            {showSignInPrompt ? (
-              <div className="mt-4">
-                <SignInPrompt message={showSignInPrompt} />
-              </div>
-            ) : null}
-          </SectionCard>
           <CaloriesCard totals={totals} goals={parsedGoals} hasAnyGoal={hasAnyGoal} />
           <MacroSummaryCard totals={totals} goals={parsedGoals} hasAnyGoal={hasAnyGoal} />
           <GoalsPreviewCard
@@ -478,7 +454,6 @@ export function MealBuilder() {
             userEmail={user?.email ?? null}
           />
           <GoalGapCard gaps={gaps} hasAnyGoal={hasAnyGoal} />
-          <SuggestionsCard suggestions={suggestions} />
         </aside>
       </div>
     </div>
@@ -522,9 +497,15 @@ function IngredientTable({
   onSelectFood,
   openSearchId,
   onOpenSearch,
-  resolvingFoodId,
-  searchLoadingId,
-  searchResults,
+      resolvingFoodId,
+      searchLoadingId,
+      searchResults,
+      isSavingMeal,
+      savableIngredientsCount,
+      saveMessage,
+      saveError,
+      showSignInPrompt,
+      onSaveMeal,
 }: {
   ingredients: IngredientDraft[];
   calculatedIngredients: ReturnType<typeof calculateMealTotals>["calculatedIngredients"];
@@ -538,11 +519,17 @@ function IngredientTable({
   resolvingFoodId: string | null;
   searchLoadingId: string | null;
   searchResults: Record<string, FoodSearchResult[]>;
+  isSavingMeal: boolean;
+  savableIngredientsCount: number;
+  saveMessage: string | null;
+  saveError: string | null;
+  showSignInPrompt: string | null;
+  onSaveMeal: () => Promise<void>;
 }) {
   return (
     <SectionCard
-      eyebrow="Main workflow"
-      title="Ingredients"
+      eyebrow="Ingredients"
+      title="Build Your Meal"
       action={
         <div className="flex items-center gap-2">
           <Link
@@ -589,6 +576,37 @@ function IngredientTable({
               searchResults={searchResults[ingredient.id] ?? []}
             />
           ))}
+          <div className="rounded-[14px] border border-dashed border-[var(--border)] bg-[var(--muted-soft)] px-4 py-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-[var(--foreground)]">Save meal</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  {savableIngredientsCount > 0
+                    ? "Keep this version in your dashboard so you can come back to it later."
+                    : "Add at least one ingredient and amount, then you can save this meal."}
+                </p>
+              </div>
+              <button
+                className="rounded-[10px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition duration-200 hover:bg-[var(--primary-strong)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isSavingMeal || savableIngredientsCount === 0}
+                type="button"
+                onClick={() => void onSaveMeal()}
+              >
+                {isSavingMeal ? "Saving..." : "Save Meal"}
+              </button>
+            </div>
+            {saveMessage ? (
+              <p className="mt-3 text-sm font-medium text-[var(--primary-strong)]">{saveMessage}</p>
+            ) : null}
+            {saveError ? (
+              <p className="mt-3 text-sm font-medium text-[var(--danger)]">{saveError}</p>
+            ) : null}
+            {showSignInPrompt ? (
+              <div className="mt-4">
+                <SignInPrompt message={showSignInPrompt} />
+              </div>
+            ) : null}
+          </div>
         </div>
       )}
     </SectionCard>
@@ -813,7 +831,7 @@ function MacroSummaryCard({
   hasAnyGoal: boolean;
 }) {
   return (
-    <SectionCard title="Meal Summary" eyebrow="Live totals">
+    <SectionCard title="Meal Summary" eyebrow="Live Macros">
       <div className="space-y-4">
         {(["calories", "protein", "carbs", "fat"] as MacroKey[]).map((key) => (
           <MacroBar
