@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "test:resolver": "node --test tests/ingredient-resolver.test.mjs"
+    "test:resolver": "node --loader ./scripts/ts-esm-loader.mjs --test tests/ingredient-resolver.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
