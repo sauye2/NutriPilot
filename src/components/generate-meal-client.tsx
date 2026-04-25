@@ -14,6 +14,7 @@ import { useAuth } from "@/components/auth-provider";
 import { GroceryListPanel } from "@/components/grocery-list-panel";
 import { SectionCard } from "@/components/section-card";
 import { SignInPrompt } from "@/components/sign-in-prompt";
+import { defaultNutritionGoals } from "@/lib/default-goals";
 import { saveAcceptedGeneratedMeal } from "@/lib/generated-meal-storage";
 import { buildGeneratedMealPayload } from "@/lib/meal-persistence";
 import {
@@ -82,24 +83,38 @@ export function GenerateMealClient() {
   const [acceptMessage, setAcceptMessage] = useState<string | null>(null);
   const [acceptError, setAcceptError] = useState<string | null>(null);
   const [isSavingAcceptedMeal, setIsSavingAcceptedMeal] = useState(false);
+  const [savedGoalPlaceholders, setSavedGoalPlaceholders] = useState<GoalDraft>(goalPlaceholders);
   const loadedGoalsForUser = useRef<string | null>(null);
   const greeting = useMemo(() => getGreeting(), []);
 
-  const parsedGoals = useMemo<NutritionGoals>(
+  const effectiveGoalDefaults = useMemo<NutritionGoals>(
     () => ({
-      calories: Number.parseFloat(goals.calories) || 0,
-      protein: Number.parseFloat(goals.protein) || 0,
-      carbs: Number.parseFloat(goals.carbs) || 0,
-      fat: Number.parseFloat(goals.fat) || 0,
+      calories: Number.parseFloat(savedGoalPlaceholders.calories) || defaultNutritionGoals.calories,
+      protein: Number.parseFloat(savedGoalPlaceholders.protein) || defaultNutritionGoals.protein,
+      carbs: Number.parseFloat(savedGoalPlaceholders.carbs) || defaultNutritionGoals.carbs,
+      fat: Number.parseFloat(savedGoalPlaceholders.fat) || defaultNutritionGoals.fat,
     }),
-    [goals],
+    [savedGoalPlaceholders],
   );
 
-  const hasGoals = Object.values(parsedGoals).some((value) => value > 0);
+  const parsedGoals = useMemo<NutritionGoals>(
+    () => ({
+      calories: parseGoalValue(goals.calories, effectiveGoalDefaults.calories),
+      protein: parseGoalValue(goals.protein, effectiveGoalDefaults.protein),
+      carbs: parseGoalValue(goals.carbs, effectiveGoalDefaults.carbs),
+      fat: parseGoalValue(goals.fat, effectiveGoalDefaults.fat),
+    }),
+    [effectiveGoalDefaults, goals],
+  );
+
+  const hasGoals =
+    Object.values(goals).some((value) => value.trim().length > 0) ||
+    Object.values(effectiveGoalDefaults).some((value) => value > 0);
 
   useEffect(() => {
     if (!user) {
       loadedGoalsForUser.current = null;
+      setSavedGoalPlaceholders(goalPlaceholders);
       return;
     }
 
@@ -119,7 +134,7 @@ export function GenerateMealClient() {
           return;
         }
 
-        setGoals({
+        setSavedGoalPlaceholders({
           calories: payload.goals.calories.toString(),
           protein: payload.goals.protein.toString(),
           carbs: payload.goals.carbs.toString(),
@@ -372,7 +387,7 @@ export function GenerateMealClient() {
                     </span>
                     <input
                       className="focus-ring h-11 w-full rounded-[8px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
-                      placeholder={goalPlaceholders[key]}
+                      placeholder={savedGoalPlaceholders[key]}
                       value={goals[key]}
                       onKeyDown={(event) => handleEnterSubmit(event, handleGenerateSubmit)}
                       onChange={(event) =>
@@ -928,4 +943,14 @@ function getGreeting() {
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
+}
+
+function parseGoalValue(value: string, fallback: number) {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return fallback;
+  }
+
+  return Number.parseFloat(trimmed) || 0;
 }

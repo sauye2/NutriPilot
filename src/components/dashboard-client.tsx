@@ -32,6 +32,12 @@ export function DashboardClient() {
   const [isSavingGoals, setIsSavingGoals] = useState(false);
   const [goalMessage, setGoalMessage] = useState<string | null>(null);
   const [goalError, setGoalError] = useState<string | null>(null);
+  const [goalPlaceholdersByState, setGoalPlaceholdersByState] = useState<GoalDraft>({
+    calories: goalPlaceholders.calories,
+    protein: goalPlaceholders.protein,
+    carbs: goalPlaceholders.carbs,
+    fat: goalPlaceholders.fat,
+  });
 
   useEffect(() => {
     if (authLoading) {
@@ -46,6 +52,12 @@ export function DashboardClient() {
         protein: "",
         carbs: "",
         fat: "",
+      });
+      setGoalPlaceholdersByState({
+        calories: goalPlaceholders.calories,
+        protein: goalPlaceholders.protein,
+        carbs: goalPlaceholders.carbs,
+        fat: goalPlaceholders.fat,
       });
       return;
     }
@@ -74,7 +86,8 @@ export function DashboardClient() {
         }
 
         setSummary(payload.summary);
-        setGoals({
+        setGoals({ calories: "", protein: "", carbs: "", fat: "" });
+        setGoalPlaceholdersByState({
           calories: payload.summary.goals.calories.toString(),
           protein: payload.summary.goals.protein.toString(),
           carbs: payload.summary.goals.carbs.toString(),
@@ -119,7 +132,7 @@ export function DashboardClient() {
       }
 
       setSummary(payload.summary);
-      setGoals({
+      setGoalPlaceholdersByState({
         calories: payload.summary.goals.calories.toString(),
         protein: payload.summary.goals.protein.toString(),
         carbs: payload.summary.goals.carbs.toString(),
@@ -188,16 +201,18 @@ export function DashboardClient() {
     setIsSavingGoals(true);
 
     try {
+      const goalsPayload: NutritionGoals = {
+        calories: parseGoalDraftValue(goals.calories, displayedGoals.calories),
+        protein: parseGoalDraftValue(goals.protein, displayedGoals.protein),
+        carbs: parseGoalDraftValue(goals.carbs, displayedGoals.carbs),
+        fat: parseGoalDraftValue(goals.fat, displayedGoals.fat),
+      };
+
       const response = await fetch("/api/goals", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          goals: {
-            calories: Number(goals.calories) || 0,
-            protein: Number(goals.protein) || 0,
-            carbs: Number(goals.carbs) || 0,
-            fat: Number(goals.fat) || 0,
-          } satisfies NutritionGoals,
+          goals: goalsPayload,
         }),
       });
 
@@ -211,7 +226,8 @@ export function DashboardClient() {
         return;
       }
 
-      setGoals({
+      setGoals({ calories: "", protein: "", carbs: "", fat: "" });
+      setGoalPlaceholdersByState({
         calories: payload.goals.calories.toString(),
         protein: payload.goals.protein.toString(),
         carbs: payload.goals.carbs.toString(),
@@ -382,7 +398,7 @@ export function DashboardClient() {
                         min="0"
                         step={key === "calories" ? 10 : 1}
                         type="number"
-                        placeholder={goalPlaceholders[key]}
+                        placeholder={goalPlaceholdersByState[key]}
                         value={goals[key]}
                         onChange={(event) => updateGoal(key, event.target.value)}
                       />
@@ -682,4 +698,14 @@ function labelForMacro(key: MacroKey) {
 
 function unitForMacro(key: MacroKey) {
   return key === "calories" ? "kcal" : "g";
+}
+
+function parseGoalDraftValue(value: string, fallback: number) {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return fallback;
+  }
+
+  return Number(trimmed) || 0;
 }

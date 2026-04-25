@@ -28,7 +28,10 @@ export function optimizeGeneratedIngredientsForGoals(
   );
 
   if (!needsTrim) {
-    return rebalanceGeneratedIngredients(boostGeneratedIngredientsTowardGoals(current, goals), goals);
+    return finalizeOptimizedIngredients(
+      rebalanceGeneratedIngredients(boostGeneratedIngredientsTowardGoals(current, goals), goals),
+      goals,
+    );
   }
 
   const scaleFactors = (Object.keys(thresholds) as Array<keyof MacroTotals>)
@@ -68,7 +71,10 @@ export function optimizeGeneratedIngredientsForGoals(
     current = current.map((ingredient) => (ingredient.id === candidate.id ? next : ingredient));
   }
 
-  return rebalanceGeneratedIngredients(boostGeneratedIngredientsTowardGoals(current, goals), goals);
+  return finalizeOptimizedIngredients(
+    rebalanceGeneratedIngredients(boostGeneratedIngredientsTowardGoals(current, goals), goals),
+    goals,
+  );
 }
 
 function getGoalThresholds(goals: NutritionGoals): NutritionGoals {
@@ -752,4 +758,81 @@ function needsNonProteinCalorieRefill(totals: MacroTotals, goals: NutritionGoals
   }
 
   return totals.calories < goals.calories * 0.9;
+}
+
+function finalizeOptimizedIngredients(
+  ingredients: GeneratedMealIngredient[],
+  goals: NutritionGoals,
+) {
+  let current = ingredients.map((ingredient) => ({
+    ...ingredient,
+    totals: { ...ingredient.totals },
+  }));
+
+  for (let iteration = 0; iteration < 8; iteration += 1) {
+    const totals = summarizeIngredients(current);
+
+    if (!needsFinalCalorieTrim(totals, goals)) {
+      break;
+    }
+
+    const candidate = pickTrimCandidate(
+      current,
+      totals,
+      {
+        calories: goals.calories > 0 ? goals.calories * 1.04 : 0,
+        protein: goals.protein > 0 ? Math.max(goals.protein * 1.28, goals.protein + 28) : 0,
+        carbs: goals.carbs > 0 ? Math.max(goals.carbs * 1.2, goals.carbs + 14) : 0,
+        fat: goals.fat > 0 ? Math.max(goals.fat * 1.16, goals.fat + 8) : 0,
+      },
+    );
+
+    if (!candidate) {
+      break;
+    }
+
+    const next = rescaleIngredient(candidate, getFinalTrimFactor(candidate, totals, goals));
+
+    if (next.amount === candidate.amount) {
+      break;
+    }
+
+    current = current.map((ingredient) => (ingredient.id === candidate.id ? next : ingredient));
+  }
+
+  return current;
+}
+
+function needsFinalCalorieTrim(totals: MacroTotals, goals: NutritionGoals) {
+  if (!goals.calories) {
+    return false;
+  }
+
+  return totals.calories > goals.calories * 1.08;
+}
+
+function getFinalTrimFactor(
+  ingredient: GeneratedMealIngredient,
+  totals: MacroTotals,
+  goals: NutritionGoals,
+) {
+  const category = categorizeIngredientForOptimization(ingredient.name);
+  const severeOvershoot = goals.calories > 0 && totals.calories > goals.calories * 1.18;
+
+  if (category === "fat") {
+    return severeOvershoot ? 0.66 : 0.78;
+  }
+
+  if (category === "carb") {
+    return severeOvershoot ? 0.76 : 0.86;
+  }
+
+  if (category === "protein") {
+    const proteinIsComfortablyAboveGoal =
+      goals.protein > 0 && totals.protein > Math.max(goals.protein * 1.1, goals.protein + 12);
+
+    return proteinIsComfortablyAboveGoal ? (severeOvershoot ? 0.82 : 0.9) : 0.95;
+  }
+
+  return 0.92;
 }

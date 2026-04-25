@@ -108,7 +108,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                       </div>
                     </div>
                     <button
-                      className="mt-3 w-full rounded-[12px] border border-[var(--border)] bg-white px-4 py-3 text-sm font-semibold text-[var(--foreground)] transition duration-200 hover:bg-[var(--muted-soft)] active:scale-[0.99]"
+                      className="mt-3 rounded-[10px] border border-[var(--border)] bg-white px-3 py-2 text-xs font-semibold text-[var(--foreground)] transition duration-200 hover:bg-[var(--muted-soft)] active:scale-[0.99]"
                       type="button"
                       onClick={() => void handleSignOut()}
                     >
