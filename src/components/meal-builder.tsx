@@ -27,13 +27,6 @@ import { EmptyState } from "@/components/empty-state";
 import { SectionCard } from "@/components/section-card";
 
 const units: Unit[] = ["g", "tbsp", "tsp", "cup", "piece"];
-const goalPlaceholders: Record<MacroKey, string> = {
-  calories: "650",
-  protein: "45",
-  carbs: "65",
-  fat: "22",
-};
-
 type IngredientDraft = {
   id: string;
   name: string;
@@ -103,12 +96,9 @@ export function MealBuilder() {
   const [resolvingFoodId, setResolvingFoodId] = useState<string | null>(null);
   const [openSearchId, setOpenSearchId] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [goalMessage, setGoalMessage] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [goalError, setGoalError] = useState<string | null>(null);
   const [showSignInPrompt, setShowSignInPrompt] = useState<string | null>(null);
   const [isSavingMeal, setIsSavingMeal] = useState(false);
-  const [isSavingGoals, setIsSavingGoals] = useState(false);
 
   const searchTimers = useRef<Record<string, number | undefined>>({});
   const ingredientsRef = useRef(ingredients);
@@ -255,10 +245,6 @@ export function MealBuilder() {
     setIngredients((current) => [...current, createIngredientDraft()]);
   }
 
-  function updateGoal(key: MacroKey, value: string) {
-    setGoals((current) => ({ ...current, [key]: value }));
-  }
-
   async function handleSaveMeal() {
     setSaveMessage(null);
     setSaveError(null);
@@ -302,42 +288,6 @@ export function MealBuilder() {
       setSaveError("We couldn’t save that meal yet.");
     } finally {
       setIsSavingMeal(false);
-    }
-  }
-
-  async function handleSaveGoals() {
-    setGoalMessage(null);
-    setGoalError(null);
-
-    if (!user) {
-      setShowSignInPrompt(
-        "Log in to keep the same nutrition targets across Meal Builder, Lazy Mode, and your dashboard.",
-      );
-      return;
-    }
-
-    setIsSavingGoals(true);
-    setShowSignInPrompt(null);
-
-    try {
-      const response = await fetch("/api/goals", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goals: parsedGoals }),
-      });
-
-      const payload = (await response.json()) as { error?: string };
-
-      if (!response.ok) {
-        setGoalError(payload.error ?? "We couldn’t save those goals yet.");
-        return;
-      }
-
-      setGoalMessage("Goals saved. Your dashboard will use these numbers too.");
-    } catch {
-      setGoalError("We couldn’t save those goals yet.");
-    } finally {
-      setIsSavingGoals(false);
     }
   }
 
@@ -522,13 +472,10 @@ export function MealBuilder() {
           </SectionCard>
           <CaloriesCard totals={totals} goals={parsedGoals} hasAnyGoal={hasAnyGoal} />
           <MacroSummaryCard totals={totals} goals={parsedGoals} hasAnyGoal={hasAnyGoal} />
-          <GoalsCard
-            goals={goals}
-            onUpdate={updateGoal}
-            onSave={handleSaveGoals}
-            isSaving={isSavingGoals}
-            successMessage={goalMessage}
-            errorMessage={goalError}
+          <GoalsPreviewCard
+            goals={parsedGoals}
+            hasAnyGoal={hasAnyGoal}
+            userEmail={user?.email ?? null}
           />
           <GoalGapCard gaps={gaps} hasAnyGoal={hasAnyGoal} />
           <SuggestionsCard suggestions={suggestions} />
@@ -936,60 +883,54 @@ function MacroBar({
   );
 }
 
-function GoalsCard({
+function GoalsPreviewCard({
   goals,
-  onUpdate,
-  onSave,
-  isSaving,
-  successMessage,
-  errorMessage,
+  hasAnyGoal,
+  userEmail,
 }: {
-  goals: GoalDraft;
-  onUpdate: (key: MacroKey, value: string) => void;
-  onSave: () => void;
-  isSaving: boolean;
-  successMessage: string | null;
-  errorMessage: string | null;
+  goals: NutritionGoals;
+  hasAnyGoal: boolean;
+  userEmail: string | null;
 }) {
   return (
     <SectionCard
       title="Nutrition Goals"
       eyebrow="Targets"
       action={
-        <button
-          className="rounded-[10px] border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--foreground)] transition duration-200 hover:bg-[var(--muted-soft)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={isSaving}
-          type="button"
-          onClick={() => void onSave()}
+        <Link
+          href="/dashboard"
+          className="rounded-[10px] border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--foreground)] transition duration-200 hover:bg-[var(--muted-soft)] active:scale-[0.99]"
         >
-          {isSaving ? "Saving..." : "Save Goals"}
-        </button>
+          Edit in Dashboard
+        </Link>
       }
     >
-      <div className="grid grid-cols-2 gap-3">
-        {(Object.keys(goals) as MacroKey[]).map((key) => (
-          <label key={key} className="block">
-            <span className="mb-1 block text-xs font-semibold text-[var(--muted)]">
-              {macroMeta[key].label} ({macroMeta[key].unit})
-            </span>
-            <input
-              className="focus-ring h-11 w-full rounded-[12px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
-              min="0"
-              step={key === "calories" ? 10 : 1}
-              type="number"
-              placeholder={goalPlaceholders[key]}
-              value={goals[key]}
-              onChange={(event) => onUpdate(key, event.target.value)}
-            />
-          </label>
-        ))}
-      </div>
-      {successMessage ? (
-        <p className="mt-4 text-sm font-medium text-[var(--primary-strong)]">{successMessage}</p>
-      ) : null}
-      {errorMessage ? (
-        <p className="mt-4 text-sm font-medium text-[var(--danger)]">{errorMessage}</p>
-      ) : null}
+      {hasAnyGoal ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(["calories", "protein", "carbs", "fat"] as MacroKey[]).map((key) => (
+            <div
+              key={key}
+              className="rounded-[12px] border border-[var(--border)] bg-white/80 px-4 py-4"
+            >
+              <p className="text-xs font-semibold uppercase text-[var(--muted)]">
+                {macroMeta[key].label}
+              </p>
+              <p className="mt-2 text-2xl font-semibold text-[var(--foreground)]">
+                {goals[key]}
+                <span className="ml-1 text-base font-medium text-[var(--muted)]">
+                  {macroMeta[key].unit}
+                </span>
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm leading-6 text-[var(--muted)]">
+          {userEmail
+            ? "Set your targets in the dashboard and Meal Builder will use them here automatically."
+            : "Sign in when you want your saved nutrition goals to carry across Meal Builder, Build a Meal for Me, and the dashboard."}
+        </p>
+      )}
     </SectionCard>
   );
 }

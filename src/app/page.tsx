@@ -1,10 +1,5 @@
-import { AppShell } from "@/components/app-shell";
-import { MealBuilder } from "@/components/meal-builder";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return (
-    <AppShell>
-      <MealBuilder />
-    </AppShell>
-  );
+  redirect("/dashboard");
 }
