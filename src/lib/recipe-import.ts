@@ -143,6 +143,21 @@ function extractRecipeFromHtml(html: string): RecipeNode | null {
     };
   }
 
+  const frameworkRecipe = extractRecipeFromFrameworkState(html);
+
+  if (frameworkRecipe?.recipeIngredient?.length) {
+    return frameworkRecipe;
+  }
+
+  const sectionIngredients = extractIngredientSectionFallback(html);
+
+  if (sectionIngredients.length > 0) {
+    return {
+      name: extractTitle(html) ?? "Imported recipe",
+      recipeIngredient: sectionIngredients,
+    };
+  }
+
   return null;
 }
 
@@ -229,10 +244,201 @@ function extractMicrodataIngredients(html: string) {
   return Array.from(new Set(results));
 }
 
+function extractRecipeFromFrameworkState(html: string): RecipeNode | null {
+  const nextDataMatch = html.match(
+    /<script[^>]*id=["']__NEXT_DATA__["'][^>]*type=["']application\/json["'][^>]*>([\s\S]*?)<\/script>/i,
+  );
+
+  if (!nextDataMatch?.[1]) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(nextDataMatch[1]) as unknown;
+    const records = collectFrameworkRecipeRecords(parsed);
+
+    return (
+      records
+        .filter((record) => Array.isArray(record.recipeIngredient) && record.recipeIngredient.length > 0)
+        .sort(
+          (left, right) =>
+            (right.recipeIngredient?.length ?? 0) - (left.recipeIngredient?.length ?? 0),
+        )[0] ?? null
+    );
+  } catch {
+    return null;
+  }
+}
+
+function collectFrameworkRecipeRecords(value: unknown): RecipeNode[] {
+  const records: RecipeNode[] = [];
+  const seen = new WeakSet<object>();
+
+  function walk(node: unknown) {
+    if (!node || typeof node !== "object") {
+      return;
+    }
+
+    if (seen.has(node)) {
+      return;
+    }
+
+    seen.add(node);
+
+    if (Array.isArray(node)) {
+      node.forEach((item) => walk(item));
+      return;
+    }
+
+    const record = node as Record<string, unknown>;
+    const recipe = extractFrameworkRecipeRecord(record);
+
+    if (recipe?.recipeIngredient?.length) {
+      records.push(recipe);
+    }
+
+    Object.values(record).forEach((child) => walk(child));
+  }
+
+  walk(value);
+  return records;
+}
+
+function extractFrameworkRecipeRecord(record: Record<string, unknown>): RecipeNode | null {
+  const ingredientsArray = Array.isArray(record.ingredientsArray) ? record.ingredientsArray : null;
+
+  if (ingredientsArray?.length) {
+    const ingredientLines = ingredientsArray
+      .map((entry) => formatFrameworkIngredient(entry))
+      .filter((line): line is string => Boolean(line));
+
+    if (ingredientLines.length > 0) {
+      return {
+        name: pickFirstString(record.title, record.name, record.seoTitle),
+        image: pickFrameworkImage(record),
+        recipeIngredient: ingredientLines,
+      };
+    }
+  }
+
+  const recipeIngredient = normalizeStringArray(record.recipeIngredient);
+
+  if (recipeIngredient.length > 0) {
+    return {
+      name: pickFirstString(record.title, record.name, record.seoTitle),
+      image: pickFrameworkImage(record),
+      recipeIngredient,
+    };
+  }
+
+  return null;
+}
+
+function formatFrameworkIngredient(entry: unknown) {
+  if (!entry || typeof entry !== "object") {
+    return null;
+  }
+
+  const ingredient = entry as Record<string, unknown>;
+
+  if (ingredient._type !== "ingredient") {
+    return null;
+  }
+
+  const item = cleanupIngredientLine(String(ingredient.item ?? ""));
+
+  if (!item) {
+    return null;
+  }
+
+  const amount =
+    typeof ingredient.amount === "number"
+      ? trimNumber(ingredient.amount)
+      : typeof ingredient.amount === "string"
+        ? ingredient.amount.trim()
+        : "";
+  const unit = typeof ingredient.unit === "string" ? ingredient.unit.trim() : "";
+  const note = extractPortableTextSummary(ingredient.notes);
+  const purpose =
+    typeof ingredient.purpose === "string" && ingredient.purpose.trim().length > 0
+      ? ingredient.purpose.trim()
+      : "";
+
+  const line = [amount, unit, item].filter(Boolean).join(" ").trim();
+  const suffixes = [note, purpose ? `for ${purpose}` : ""].filter(Boolean);
+
+  return suffixes.length ? `${line} (${suffixes.join("; ")})` : line;
+}
+
+function extractPortableTextSummary(value: unknown) {
+  if (!Array.isArray(value)) {
+    return "";
+  }
+
+  const text = value
+    .flatMap((block) => {
+      if (!block || typeof block !== "object") {
+        return [];
+      }
+
+      const children = (block as { children?: unknown }).children;
+
+      if (!Array.isArray(children)) {
+        return [];
+      }
+
+      return children
+        .map((child) =>
+          child && typeof child === "object" && typeof (child as { text?: unknown }).text === "string"
+            ? (child as { text: string }).text
+            : "",
+        )
+        .filter(Boolean);
+    })
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return cleanupIngredientLine(text);
+}
+
+function extractIngredientSectionFallback(html: string) {
+  const headingMatch = html.match(
+    /<h[1-6][^>]*>\s*Ingredients\s*<\/h[1-6]>([\s\S]{0,20000}?)(?:<h[1-6][^>]*>|<\/main>|<\/article>|<\/body>)/i,
+  );
+
+  if (!headingMatch?.[1]) {
+    return [];
+  }
+
+  const section = headingMatch[1];
+  const listItems = Array.from(
+    section.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi),
+    (match) => cleanupIngredientLine(cleanupHtmlText(match[1] ?? "")),
+  ).filter(Boolean);
+
+  if (listItems.length >= 3) {
+    return Array.from(new Set(listItems));
+  }
+
+  return [];
+}
+
 function extractTitle(html: string) {
   const match = html.match(/<title>([\s\S]*?)<\/title>/i);
 
   return cleanupHtmlText(match?.[1] ?? "");
+}
+
+function normalizeStringArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => cleanupIngredientLine(item))
+    .filter(Boolean);
 }
 
 function cleanupHtmlText(value: string) {
@@ -404,6 +610,76 @@ function pickRecipeImage(image: RecipeNode["image"]) {
   }
 
   return image.url ?? null;
+}
+
+function pickFrameworkImage(record: Record<string, unknown>): RecipeNode["image"] {
+  const candidates = [
+    record.image,
+    record.heroImage,
+    record.mainImage,
+    record.coverImage,
+    record.ogImage,
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue;
+    }
+
+    if (typeof candidate === "string" || Array.isArray(candidate)) {
+      return candidate as RecipeNode["image"];
+    }
+
+    if (typeof candidate === "object") {
+      const url = extractImageUrl(candidate);
+
+      if (url) {
+        return url;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function extractImageUrl(value: unknown): string | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+
+  if (typeof record.url === "string") {
+    return record.url;
+  }
+
+  if (typeof record.src === "string") {
+    return record.src;
+  }
+
+  if (record.asset && typeof record.asset === "object") {
+    const asset = record.asset as Record<string, unknown>;
+
+    if (typeof asset.url === "string") {
+      return asset.url;
+    }
+  }
+
+  return null;
+}
+
+function pickFirstString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+
+  return undefined;
+}
+
+function trimNumber(value: number) {
+  return Number.isInteger(value) ? String(value) : String(roundValue(value));
 }
 
 function roundValue(value: number) {
