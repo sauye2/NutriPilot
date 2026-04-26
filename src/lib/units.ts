@@ -90,24 +90,11 @@ export function convertAmountBetweenUnits(
   return (amount * fromWeight) / toWeight;
 }
 
-export function roundAmountForInput(value: number, unit: Unit) {
+export function roundAmountForInput(value: number) {
   if (!Number.isFinite(value)) {
     return "";
   }
-
-  if (unit === "g") {
-    return String(Math.round(value * 10) / 10);
-  }
-
-  if (unit === "oz" || unit === "lb") {
-    return String(Math.round(value * 100) / 100);
-  }
-
-  return String(Math.round(value * 1000) / 1000);
-}
-
-export function unitGroupLabel(group: "Weight" | "Volume" | "Count") {
-  return group;
+  return formatExactNumber(value);
 }
 
 export function normalizeImportedUnit(unitText: string): Unit | null {
@@ -130,4 +117,12 @@ export function normalizeImportedUnit(unitText: string): Unit | null {
   }
 
   return null;
+}
+
+export function formatExactNumber(value: number) {
+  if (!Number.isFinite(value)) {
+    return "";
+  }
+
+  return value.toFixed(6).replace(/\.?0+$/, "");
 }

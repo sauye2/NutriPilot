@@ -6,7 +6,6 @@ import { useAuth } from "@/components/auth-provider";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import {
   calculateMealTotals,
-  compareGoals,
   findFoodProfile,
   generateSuggestions,
 } from "@/lib/nutrition";
@@ -14,7 +13,6 @@ import { clearImportedRecipe, readImportedRecipe } from "@/lib/imported-recipe-s
 import { buildManualMealPayload, buildManualMealTitle } from "@/lib/meal-persistence";
 import type {
   FoodSearchResult,
-  GoalGap,
   IngredientResolution,
   ImportedRecipe,
   MacroKey,
@@ -32,7 +30,6 @@ import {
   getUnitWeight,
   roundAmountForInput,
   UNIT_OPTIONS,
-  unitGroupLabel,
 } from "@/lib/units";
 type IngredientDraft = {
   id: string;
@@ -106,6 +103,7 @@ export function MealBuilder() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showSignInPrompt, setShowSignInPrompt] = useState<string | null>(null);
   const [isSavingMeal, setIsSavingMeal] = useState(false);
+  const shouldShowSuggestionsInSidebar = ingredients.length >= 5;
 
   const searchTimers = useRef<Record<string, number | undefined>>({});
   const ingredientsRef = useRef(ingredients);
@@ -191,10 +189,6 @@ export function MealBuilder() {
     [parsedIngredients],
   );
 
-  const gaps = useMemo(
-    () => compareGoals(totals, parsedGoals),
-    [parsedGoals, totals],
-  );
   const savableIngredients = useMemo(
     () =>
       calculatedIngredients.filter(
@@ -294,7 +288,7 @@ export function MealBuilder() {
 
       updateIngredient(id, {
         unit: nextUnit,
-        amount: converted !== null ? roundAmountForInput(converted, nextUnit) : ingredient.amount,
+        amount: converted !== null ? roundAmountForInput(converted) : ingredient.amount,
       });
       return;
     }
@@ -497,7 +491,7 @@ export function MealBuilder() {
             showSignInPrompt={showSignInPrompt}
             onSaveMeal={handleSaveMeal}
           />
-          <SuggestionsCard suggestions={suggestions} />
+          {!shouldShowSuggestionsInSidebar ? <SuggestionsCard suggestions={suggestions} /> : null}
           {unsupportedIngredients.length > 0 ? (
             <UnsupportedFoods names={unsupportedIngredients.map((item) => item.name)} />
           ) : null}
@@ -511,7 +505,7 @@ export function MealBuilder() {
             hasAnyGoal={hasAnyGoal}
             userEmail={user?.email ?? null}
           />
-          <GoalGapCard gaps={gaps} hasAnyGoal={hasAnyGoal} />
+          {shouldShowSuggestionsInSidebar ? <SuggestionsCard suggestions={suggestions} /> : null}
         </aside>
       </div>
     </div>
@@ -783,20 +777,14 @@ function IngredientRow({
           value={ingredient.unit}
           onChange={(event) => onUnitChange(ingredient.id, event.target.value as Unit)}
         >
-          {(["Weight", "Volume", "Count"] as const).map((group) => (
-            <optgroup key={group} label={unitGroupLabel(group)}>
-              {UNIT_OPTIONS.filter((option) => option.group === group).map((option) => (
-                <option
-                  key={option.unit}
-                  value={option.unit}
-                  disabled={
-                    ingredient.food ? !isUnitAvailable(ingredient.food, option.unit) : false
-                  }
-                >
-                  {option.label}
-                </option>
-              ))}
-            </optgroup>
+          {UNIT_OPTIONS.map((option) => (
+            <option
+              key={option.unit}
+              value={option.unit}
+              disabled={ingredient.food ? !isUnitAvailable(ingredient.food, option.unit) : false}
+            >
+              {option.label}
+            </option>
           ))}
         </select>
         {unitUnavailable ? (
@@ -1021,68 +1009,6 @@ function GoalsPreviewCard({
         </p>
       )}
     </SectionCard>
-  );
-}
-
-function GoalGapCard({
-  gaps,
-  hasAnyGoal,
-}: {
-  gaps: GoalGap[];
-  hasAnyGoal: boolean;
-}) {
-  return (
-    <SectionCard title="How It Compares" eyebrow="At a glance">
-      {hasAnyGoal ? (
-        <div className="space-y-3">
-          {gaps.map((gap) => (
-            <div
-              key={gap.key}
-              className="flex items-center justify-between gap-3 rounded-[12px] bg-[var(--muted-soft)] px-3 py-3"
-            >
-              <div>
-                <p className="text-sm font-semibold text-[var(--foreground)]">
-                  {gap.label}
-                </p>
-                <p className="text-xs text-[var(--muted)]">
-                  {gap.actual} of {gap.goal}
-                  {gap.key === "calories" ? " kcal" : "g"}
-                </p>
-              </div>
-              <GapBadge gap={gap} />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-sm leading-6 text-[var(--muted)]">
-          Add a few targets and we’ll show where this meal lands, what feels close,
-          and what might need a little nudge.
-        </p>
-      )}
-    </SectionCard>
-  );
-}
-
-function GapBadge({ gap }: { gap: GoalGap }) {
-  const unit = gap.key === "calories" ? "kcal" : "g";
-  const amount = Math.abs(gap.delta);
-  const text =
-    gap.status === "on-target"
-      ? "on target"
-      : `${amount} ${unit} ${gap.status === "over" ? "over" : "under"}`;
-  const colorClass =
-    gap.status === "on-target"
-      ? "bg-[var(--primary-soft)] text-[var(--primary-strong)]"
-      : gap.status === "over"
-        ? "bg-[var(--warning-soft)] text-[var(--warning)]"
-        : "bg-white text-[var(--muted)]";
-
-  return (
-    <span
-      className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${colorClass}`}
-    >
-      {text}
-    </span>
   );
 }
 

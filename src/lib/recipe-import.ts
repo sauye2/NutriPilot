@@ -88,7 +88,9 @@ export async function importRecipeFromUrl(inputUrl: string): Promise<ImportedRec
 
   const normalizedIngredients = await Promise.all(
     normalizedLines.map(async (ingredient) => {
-        const resolution = await resolveIngredientMatch(ingredient.name);
+        const resolution = await resolveIngredientMatch(
+          inferImportedResolverQuery(ingredient, recipe.name?.trim() ?? ""),
+        );
 
         return {
           id: crypto.randomUUID(),
@@ -660,7 +662,7 @@ function normalizeRiceCup(amount: number | null, unitText: string, context: stri
   }
 
   return {
-    amount: roundValue(amount * 0.75),
+    amount: amount * 0.75,
     unit: "cup" as Unit,
   };
 }
@@ -717,10 +719,10 @@ function mergeIngredientAmounts(left: ParsedIngredient, right: ParsedIngredient)
   if (left.unit === right.unit) {
     return {
       ...left,
-      amount: roundValue(left.amount + right.amount),
+      amount: preciseAmount(left.amount + right.amount),
       originalText: formatImportedIngredientLine({
         ...left,
-        amount: roundValue(left.amount + right.amount),
+        amount: preciseAmount(left.amount + right.amount),
       }),
     };
   }
@@ -730,10 +732,10 @@ function mergeIngredientAmounts(left: ParsedIngredient, right: ParsedIngredient)
   if (volumeConversion !== null) {
     return {
       ...left,
-      amount: roundValue(left.amount + volumeConversion),
+      amount: preciseAmount(left.amount + volumeConversion),
       originalText: formatImportedIngredientLine({
         ...left,
-        amount: roundValue(left.amount + volumeConversion),
+        amount: preciseAmount(left.amount + volumeConversion),
       }),
     };
   }
@@ -764,11 +766,42 @@ function formatImportedIngredientLine(ingredient: ParsedIngredient) {
     return ingredient.name;
   }
 
-  return `${roundAmountForImport(ingredient.amount, ingredient.unit)} ${ingredient.unit} ${ingredient.name}`;
+  return `${roundAmountForImport(ingredient.amount)} ${ingredient.unit} ${ingredient.name}`;
 }
 
-function roundAmountForImport(amount: number, unit: Unit) {
-  return roundAmountForInput(amount, unit);
+function roundAmountForImport(amount: number) {
+  return roundAmountForInput(amount);
+}
+
+function inferImportedResolverQuery(ingredient: ParsedIngredient, recipeTitle: string) {
+  const lowerName = ingredient.name.toLowerCase();
+  const lowerTitle = recipeTitle.toLowerCase();
+
+  if (lowerName === "chicken") {
+    if (/\bcongee|soup|stew|braise|curry|porridge|noodle\b/.test(lowerTitle)) {
+      return "chicken thigh cooked";
+    }
+
+    return "chicken breast cooked";
+  }
+
+  if (lowerName === "beef") {
+    if (/\bstew|braise|soup|curry\b/.test(lowerTitle)) {
+      return "beef chuck cooked";
+    }
+
+    return "sirloin steak cooked";
+  }
+
+  if (lowerName === "pork") {
+    if (/\bcongee|soup|stew|braise\b/.test(lowerTitle)) {
+      return "pork shoulder cooked";
+    }
+
+    return "pork loin cooked";
+  }
+
+  return ingredient.name;
 }
 
 function fixMojibake(value: string) {
@@ -883,6 +916,10 @@ function trimNumber(value: number) {
   return Number.isInteger(value) ? String(value) : String(roundValue(value));
 }
 
+function preciseAmount(value: number) {
+  return Number.parseFloat(value.toFixed(6));
+}
+
 function roundValue(value: number) {
-  return Math.round(value * 10) / 10;
+  return preciseAmount(value);
 }
