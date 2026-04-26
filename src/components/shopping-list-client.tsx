@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/nutrition-ui";
 import { useAuth } from "@/components/auth-provider";
 import { GroceryListPanel } from "@/components/grocery-list-panel";
 import { SignInPrompt } from "@/components/sign-in-prompt";
@@ -73,17 +74,13 @@ export function ShoppingListClient() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-5xl px-5 pb-12 pt-4 sm:px-8">
-        <section className="mb-8 max-w-3xl">
-          <p className="mb-3 text-sm font-semibold uppercase text-[var(--primary)]">
-            Shopping List
-          </p>
-          <h1 className="text-4xl font-semibold leading-tight text-[var(--foreground)] sm:text-5xl">
-            Grocery list for a meal you want to cook again.
-          </h1>
-        </section>
+        <PageHeader
+          eyebrow="Shopping List"
+          title="Grocery list for a meal you want to cook again."
+        />
 
         {isLoadingSavedMeal || authLoading ? (
-          <section className="rounded-[8px] border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow)]">
+          <section className="premium-card rounded-[22px] border border-[var(--border)] p-6 shadow-[var(--shadow)]">
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, index) => (
                 <div
@@ -94,14 +91,14 @@ export function ShoppingListClient() {
             </div>
           </section>
         ) : mealId && !user ? (
-          <section className="rounded-[8px] border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow)]">
+          <section className="premium-card rounded-[22px] border border-[var(--border)] p-6 shadow-[var(--shadow)]">
             <SignInPrompt message="Saved grocery lists live with your account, so you'll want to sign in before reopening this one." />
           </section>
         ) : meal ? (
           meal.groceryList.length > 0 ? (
             <GroceryListPanel meal={meal} heading={heading} />
           ) : (
-            <section className="rounded-[8px] border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow)]">
+            <section className="premium-card rounded-[22px] border border-[var(--border)] p-6 shadow-[var(--shadow)]">
               <p className="text-sm font-medium text-[var(--foreground)]">
                 This meal doesn&apos;t have a saved grocery list yet.
               </p>
@@ -120,7 +117,7 @@ export function ShoppingListClient() {
             </section>
           )
         ) : error ? (
-          <section className="rounded-[8px] border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow)]">
+          <section className="premium-card rounded-[22px] border border-[var(--border)] p-6 shadow-[var(--shadow)]">
             <p className="text-sm font-medium text-[var(--foreground)]">
               We couldn&apos;t reopen that grocery list yet.
             </p>
@@ -133,7 +130,7 @@ export function ShoppingListClient() {
             </Link>
           </section>
         ) : (
-          <section className="rounded-[8px] border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow)]">
+          <section className="premium-card rounded-[22px] border border-[var(--border)] p-6 shadow-[var(--shadow)]">
             <p className="text-sm font-medium text-[var(--foreground)]">
               No meal selected yet.
             </p>

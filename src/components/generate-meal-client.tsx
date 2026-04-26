@@ -12,6 +12,7 @@ import {
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/components/auth-provider";
 import { GroceryListPanel } from "@/components/grocery-list-panel";
+import { PageHeader } from "@/components/nutrition-ui";
 import { SectionCard } from "@/components/section-card";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { defaultNutritionGoals } from "@/lib/default-goals";
@@ -478,7 +479,7 @@ export function GenerateMealClient() {
             }}
           >
             <textarea
-              className="focus-ring min-h-28 w-full rounded-[8px] border border-[var(--border)] bg-white px-3 py-3 text-sm text-[var(--foreground)]"
+              className="focus-ring soft-input min-h-28 w-full rounded-[16px] border px-3 py-3 text-sm text-[var(--foreground)]"
               placeholder="Want a little more heat, fewer onions, another side, or a different feel? Add a note here."
               value={feedback}
               onKeyDown={(event) => handleEnterSubmit(event, handleReviseSubmit)}
@@ -503,19 +504,16 @@ export function GenerateMealClient() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-7xl px-5 pb-12 pt-4 sm:px-8">
-        <section className="mb-8 max-w-4xl">
-          <p className="mb-3 text-sm font-semibold uppercase text-[var(--primary)]">
-            {greeting}
-          </p>
-          <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-[var(--foreground)] sm:text-5xl">
-            Need a starting point? We&apos;ll sketch a meal that feels good to eat.
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--muted)]">
+        <PageHeader
+          eyebrow={greeting}
+          title="Need a starting point? We’ll sketch a meal that feels good to eat."
+        >
+          <p>
             Set your targets, pick a cuisine or anchor ingredient, and NutriPilot will
             put together a meal idea, check the numbers, and smooth out obvious portion
             issues before it lands here.
           </p>
-        </section>
+        </PageHeader>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(340px,0.9fr)_minmax(0,1.1fr)]">
           <div className="space-y-6">
@@ -558,7 +556,7 @@ export function GenerateMealClient() {
                       {goalLabels[key]}
                     </span>
                     <input
-                      className="focus-ring h-11 w-full rounded-[8px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
+                      className="focus-ring soft-input h-11 w-full rounded-[14px] border px-3 text-sm text-[var(--foreground)]"
                       placeholder={activeGoalPlaceholders[key]}
                       value={goals[key]}
                       onKeyDown={(event) => handleEnterSubmit(event, handleGenerateSubmit)}
@@ -575,7 +573,7 @@ export function GenerateMealClient() {
                   Cuisine
                 </span>
                 <input
-                  className="focus-ring h-11 w-full rounded-[8px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
+                  className="focus-ring soft-input h-11 w-full rounded-[14px] border px-3 text-sm text-[var(--foreground)]"
                   placeholder="Italian, Mexican, Korean..."
                   value={cuisine}
                   onKeyDown={(event) => handleEnterSubmit(event, handleGenerateSubmit)}
@@ -588,7 +586,7 @@ export function GenerateMealClient() {
                   Anchor Food or Dish
                 </span>
                 <input
-                  className="focus-ring h-11 w-full rounded-[8px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
+                  className="focus-ring soft-input h-11 w-full rounded-[14px] border px-3 text-sm text-[var(--foreground)]"
                   placeholder="Steak, pasta, salmon, chicken bowl..."
                   value={anchorFood}
                   onKeyDown={(event) => handleEnterSubmit(event, handleGenerateSubmit)}
@@ -601,7 +599,7 @@ export function GenerateMealClient() {
                   Extra Notes
                 </span>
                 <textarea
-                  className="focus-ring min-h-28 w-full rounded-[8px] border border-[var(--border)] bg-white px-3 py-3 text-sm text-[var(--foreground)]"
+                  className="focus-ring soft-input min-h-28 w-full rounded-[14px] border px-3 py-3 text-sm text-[var(--foreground)]"
                   placeholder="Anything to avoid, time constraints, flavor preferences..."
                   value={dietaryNotes}
                   onKeyDown={(event) => handleEnterSubmit(event, handleGenerateSubmit)}
@@ -614,11 +612,11 @@ export function GenerateMealClient() {
                   <span className="mb-1 block text-xs font-semibold text-[var(--muted)]">
                     Pantry Ingredients
                   </span>
-                  <div className="focus-ring flex min-h-11 flex-wrap items-center gap-2 rounded-[12px] border border-[var(--border)] bg-white px-3 py-2 transition duration-200">
+                  <div className="focus-ring soft-input flex min-h-11 flex-wrap items-center gap-2 rounded-[16px] border px-3 py-2 transition duration-200">
                     {pantryItems.map((item) => (
                       <span
                         key={item}
-                        className="inline-flex items-center gap-2 rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-sm font-medium text-[var(--primary-strong)] transition-all duration-200"
+                          className="inline-flex items-center gap-2 rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-sm font-medium text-[var(--primary-strong)] shadow-sm transition-all duration-200"
                       >
                         {item}
                         <button
@@ -650,21 +648,21 @@ export function GenerateMealClient() {
               ) : null}
 
               <button
-                className="rounded-[8px] bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-[14px] bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(34,116,95,0.2)] transition hover:bg-[var(--primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={isGenerating || !hasGoals}
                 type="submit"
               >
                 {isGenerating ? "Generating..." : "Generate Meal"}
               </button>
 
-              <div className="rounded-[8px] bg-[var(--muted-soft)] px-4 py-4 text-sm leading-6 text-[var(--muted)]">
+              <div className="rounded-[16px] bg-[var(--muted-soft)]/86 px-4 py-4 text-sm leading-6 text-[var(--muted)] shadow-inner">
                 {plannerMode === "lazy"
                   ? "NutriPilot shapes a meal around your goals and preferences, then checks the ingredient list against USDA-backed nutrition data before showing it here."
                   : "NutriPilot builds around your goals and the pantry items you already have, then checks the ingredient list against USDA-backed nutrition data before showing it here."}
               </div>
 
               {error ? (
-                <div className="rounded-[8px] border border-[var(--danger-soft)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
+                <div className="rounded-[14px] border border-[var(--danger-soft)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
                   {error}
                 </div>
               ) : null}
@@ -681,7 +679,7 @@ export function GenerateMealClient() {
                 action={
                   meal ? (
                     <button
-                      className="rounded-[8px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--primary-strong)]"
+                      className="rounded-[14px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(34,116,95,0.2)] transition hover:bg-[var(--primary-strong)]"
                       type="button"
                       onClick={() => void acceptCurrentMeal()}
                     >
@@ -715,7 +713,7 @@ export function GenerateMealClient() {
                     />
                   </div>
 
-                  <div className="rounded-[8px] bg-[var(--muted-soft)] px-4 py-4 text-sm leading-6 text-[var(--muted)]">
+                  <div className="rounded-[16px] bg-[var(--muted-soft)]/86 px-4 py-4 text-sm leading-6 text-[var(--muted)] shadow-inner">
                     <p className="font-semibold text-[var(--foreground)]">{meal.cuisine}</p>
                     <p className="mt-2">{meal.summary}</p>
                   </div>
@@ -729,7 +727,7 @@ export function GenerateMealClient() {
                         {meal.ingredients.map((ingredient) => (
                           <div
                             key={ingredient.id}
-                            className="ingredient-row rounded-[8px] border border-[var(--border)] bg-white/80 px-3 py-3"
+                            className="ingredient-row rounded-[16px] border border-[var(--border)] bg-[var(--card)]/82 px-3 py-3 shadow-sm"
                           >
                             <p className="text-sm font-medium text-[var(--foreground)]">
                               {formatIngredientLine(
@@ -758,7 +756,7 @@ export function GenerateMealClient() {
                           {meal.whyItWorks.map((point) => (
                             <div
                               key={point}
-                              className="rounded-[8px] border border-[var(--border)] bg-white/80 px-3 py-3 text-sm leading-6 text-[var(--muted)]"
+                              className="rounded-[16px] border border-[var(--border)] bg-[var(--card)]/82 px-3 py-3 text-sm leading-6 text-[var(--muted)] shadow-sm"
                             >
                               {point}
                             </div>
@@ -774,7 +772,7 @@ export function GenerateMealClient() {
                           {meal.instructions.map((step, index) => (
                             <div
                               key={`${index + 1}-${step}`}
-                              className="rounded-[8px] border border-[var(--border)] bg-white/80 px-3 py-3 text-sm leading-6 text-[var(--muted)]"
+                              className="rounded-[16px] border border-[var(--border)] bg-[var(--card)]/82 px-3 py-3 text-sm leading-6 text-[var(--muted)] shadow-sm"
                             >
                               <span className="mr-2 font-semibold text-[var(--foreground)]">
                                 {index + 1}.
@@ -788,7 +786,7 @@ export function GenerateMealClient() {
                   </div>
                   </div>
                 ) : (
-                  <div className="rounded-[8px] border border-dashed border-[var(--border)] bg-[var(--muted-soft)] px-4 py-8 text-center">
+                  <div className="rounded-[18px] border border-dashed border-[var(--border)] bg-[var(--muted-soft)]/82 px-4 py-8 text-center shadow-inner">
                     <p className="text-sm font-medium text-[var(--foreground)]">
                       Start with a few goals and we&apos;ll sketch out a meal here.
                     </p>
@@ -908,7 +906,7 @@ function scrollToMealSummary(ref: RefObject<HTMLDivElement | null>) {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[8px] border border-[var(--border)] bg-white/80 px-4 py-4 transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-sm">
+    <div className="metric-surface rounded-[18px] px-4 py-4 transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-sm">
       <p className="text-xs font-semibold uppercase text-[var(--muted)]">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-[var(--foreground)]">{value}</p>
     </div>

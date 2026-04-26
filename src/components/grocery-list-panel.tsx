@@ -59,8 +59,8 @@ export function GroceryListPanel({
   }
 
   return (
-    <section className="rounded-[8px] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow)]">
-      <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-5 py-4">
+    <section className="premium-card rounded-[22px] border border-[var(--border)] shadow-[var(--shadow)]">
+      <div className="premium-card-header flex items-start justify-between gap-4 border-b border-[var(--border)] px-5 py-4">
         <div>
           <p className="mb-1 text-xs font-semibold uppercase text-[var(--primary)]">
             Accepted Meal
@@ -69,14 +69,14 @@ export function GroceryListPanel({
         </div>
         <div className="flex items-center gap-2">
           <button
-            className="rounded-[8px] border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--muted-soft)]"
+            className="rounded-[12px] border border-[var(--border)] bg-white/85 px-3 py-2 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted-soft)]"
             type="button"
             onClick={() => void copyList()}
           >
             Copy
           </button>
           <button
-            className="rounded-[8px] bg-[var(--primary)] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[var(--primary-strong)]"
+            className="rounded-[12px] bg-[var(--primary)] px-3 py-2 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(34,116,95,0.18)] transition hover:bg-[var(--primary-strong)]"
             type="button"
             onClick={() => void shareList()}
           >
@@ -97,7 +97,7 @@ export function GroceryListPanel({
                 return (
                   <label
                     key={item.id}
-                    className="flex items-start gap-3 rounded-[8px] border border-[var(--border)] bg-white/80 px-3 py-3"
+                    className="flex items-start gap-3 rounded-[16px] border border-[var(--border)] bg-[var(--card)]/82 px-3 py-3 shadow-sm transition hover:-translate-y-0.5"
                   >
                     <input
                       checked={checked}

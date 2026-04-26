@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/components/auth-provider";
+import { MetricTile, PageHeader } from "@/components/nutrition-ui";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { SectionCard } from "@/components/section-card";
 import { saveImportedRecipe } from "@/lib/imported-recipe-storage";
@@ -103,19 +104,16 @@ export function ImportRecipeClient() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-6xl px-5 pb-12 pt-4 sm:px-8">
-        <section className="mb-8 max-w-4xl">
-          <p className="mb-3 text-sm font-semibold uppercase text-[var(--primary)]">
-            Recipe import
-          </p>
-          <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-[var(--foreground)] sm:text-5xl">
-            Paste in a recipe link and bring the ingredient list straight into your meal.
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--muted)]">
+        <PageHeader
+          eyebrow="Import Recipe"
+          title="Paste in a recipe link and bring the ingredient list straight into your meal."
+        >
+          <p>
             The importer stays careful on purpose. It preserves the ingredient lines
             from the recipe, looks for dependable USDA matches, and only asks for a
             second look when something truly feels fuzzy.
           </p>
-        </section>
+        </PageHeader>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
           <SectionCard title="Import from Link" eyebrow="Bring in a recipe">
@@ -125,7 +123,7 @@ export function ImportRecipeClient() {
                   Recipe URL
                 </span>
                 <input
-                  className="focus-ring h-12 w-full rounded-[12px] border border-[var(--border)] bg-white px-4 text-sm text-[var(--foreground)]"
+                  className="focus-ring soft-input h-12 w-full rounded-[14px] border px-4 text-sm text-[var(--foreground)]"
                   placeholder="https://example.com/your-recipe"
                   value={url}
                   onChange={(event) => setUrl(event.target.value)}
@@ -133,7 +131,7 @@ export function ImportRecipeClient() {
               </label>
 
               <button
-                className="rounded-[12px] bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white transition duration-200 hover:bg-[var(--primary-strong)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-[14px] bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(34,116,95,0.2)] transition duration-200 hover:bg-[var(--primary-strong)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={isLoading || url.trim().length < 8}
                 type="button"
                 onClick={() => void handleImport()}
@@ -141,7 +139,7 @@ export function ImportRecipeClient() {
                 {isLoading ? "Importing..." : "Import recipe"}
               </button>
 
-              <div className="rounded-[12px] bg-[var(--muted-soft)] px-4 py-4 text-sm leading-6 text-[var(--muted)]">
+              <div className="rounded-[16px] bg-[var(--muted-soft)]/86 px-4 py-4 text-sm leading-6 text-[var(--muted)] shadow-inner">
                 If a page does not expose a clean ingredient list, NutriPilot will stop
                 rather than guessing and adding extras you never asked for.
               </div>
@@ -161,14 +159,14 @@ export function ImportRecipeClient() {
               recipe ? (
                 <div className="flex flex-wrap gap-2">
                   <button
-                    className="rounded-[12px] border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition duration-200 hover:bg-[var(--muted-soft)] active:scale-[0.99]"
+                    className="rounded-[12px] border border-[var(--border)] bg-white/85 px-4 py-2 text-sm font-semibold text-[var(--foreground)] shadow-sm transition duration-200 hover:bg-[var(--muted-soft)] active:scale-[0.99]"
                     type="button"
                     onClick={() => void handleSaveRecipe()}
                   >
                     {isSaving ? "Saving..." : "Save Recipe"}
                   </button>
                   <button
-                    className="rounded-[12px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition duration-200 hover:bg-[var(--primary-strong)] active:scale-[0.99]"
+                    className="rounded-[12px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(34,116,95,0.18)] transition duration-200 hover:bg-[var(--primary-strong)] active:scale-[0.99]"
                     type="button"
                     onClick={handleSendToBuilder}
                   >
@@ -193,7 +191,7 @@ export function ImportRecipeClient() {
                   {recipe.ingredients.map((ingredient) => (
                     <div
                       key={ingredient.id}
-                      className="rounded-[12px] border border-[var(--border)] bg-white/70 p-4"
+                      className="rounded-[16px] border border-[var(--border)] bg-[var(--card)]/78 p-4 shadow-sm"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -265,7 +263,7 @@ export function ImportRecipeClient() {
                 ) : null}
               </div>
             ) : (
-              <div className="rounded-[12px] border border-dashed border-[var(--border)] bg-[var(--muted-soft)] px-4 py-8 text-center">
+              <div className="rounded-[18px] border border-dashed border-[var(--border)] bg-[var(--muted-soft)]/82 px-4 py-8 text-center shadow-inner">
                 <p className="text-sm font-medium text-[var(--foreground)]">
                   Paste a recipe link to preview the ingredient list.
                 </p>
@@ -283,10 +281,5 @@ export function ImportRecipeClient() {
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="surface-card rounded-[12px] border border-[var(--border)] bg-white/80 px-4 py-4">
-      <p className="text-xs font-semibold uppercase text-[var(--muted)]">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-[var(--foreground)]">{value}</p>
-    </div>
-  );
+  return <MetricTile label={label} value={value} />;
 }

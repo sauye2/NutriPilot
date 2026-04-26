@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 type SectionCardProps = {
   title?: string;
@@ -6,6 +8,7 @@ type SectionCardProps = {
   action?: ReactNode;
   children: ReactNode;
   className?: string;
+  allowOverflow?: boolean;
 };
 
 export function SectionCard({
@@ -14,29 +17,36 @@ export function SectionCard({
   action,
   children,
   className = "",
+  allowOverflow = false,
 }: SectionCardProps) {
   return (
-    <section
-      className={`surface-card rounded-[14px] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow)] ${className}`}
+    <Card
+      className={cn(
+        "surface-card premium-card gap-0 rounded-[24px] py-0",
+        allowOverflow && "overflow-visible",
+        className,
+      )}
     >
       {(title || eyebrow || action) && (
-        <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-5 py-4 sm:px-6">
-          <div>
+        <CardHeader className="premium-card-header relative z-1 flex items-start justify-between gap-4 border-b border-white/45 px-5 py-3 sm:px-6">
+          <div className="min-w-0">
             {eyebrow ? (
-              <p className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--primary)]">
+              <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--primary-strong)]">
                 {eyebrow}
               </p>
             ) : null}
             {title ? (
-              <h2 className="text-base font-semibold text-[var(--foreground)]">
+              <h2 className="text-base font-semibold tracking-[-0.01em] text-[var(--foreground)]">
                 {title}
               </h2>
             ) : null}
           </div>
-          {action}
-        </div>
+          {action ? <div className="shrink-0 self-center">{action}</div> : null}
+        </CardHeader>
       )}
-      <div className="p-5 sm:p-6">{children}</div>
-    </section>
+      <CardContent className="relative z-1 px-5 pb-3.5 pt-2.5 sm:px-6 sm:pb-4 sm:pt-3">
+        {children}
+      </CardContent>
+    </Card>
   );
 }

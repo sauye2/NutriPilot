@@ -23,7 +23,9 @@ import type {
   Unit,
 } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
+import { PageHeader } from "@/components/nutrition-ui";
 import { SectionCard } from "@/components/section-card";
+import { defaultNutritionGoals } from "@/lib/default-goals";
 import {
   canConvertBetweenUnits,
   convertAmountBetweenUnits,
@@ -93,6 +95,7 @@ export function MealBuilder() {
     carbs: "",
     fat: "",
   });
+  const [loadedSavedGoals, setLoadedSavedGoals] = useState(false);
   const [searchResults, setSearchResults] = useState<Record<string, FoodSearchResult[]>>(
     {},
   );
@@ -147,6 +150,7 @@ export function MealBuilder() {
           carbs: payload.goals.carbs.toString(),
           fat: payload.goals.fat.toString(),
         });
+        setLoadedSavedGoals(true);
       } catch {
         // Keep the current local draft if loading saved goals fails.
       }
@@ -174,15 +178,15 @@ export function MealBuilder() {
 
   const parsedGoals = useMemo<NutritionGoals>(
     () => ({
-      calories: Number.parseFloat(goals.calories) || 0,
-      protein: Number.parseFloat(goals.protein) || 0,
-      carbs: Number.parseFloat(goals.carbs) || 0,
-      fat: Number.parseFloat(goals.fat) || 0,
+      calories: Number.parseFloat(goals.calories) || defaultNutritionGoals.calories,
+      protein: Number.parseFloat(goals.protein) || defaultNutritionGoals.protein,
+      carbs: Number.parseFloat(goals.carbs) || defaultNutritionGoals.carbs,
+      fat: Number.parseFloat(goals.fat) || defaultNutritionGoals.fat,
     }),
     [goals],
   );
 
-  const hasAnyGoal = Object.values(goals).some((value) => value.trim().length > 0);
+  const hasAnyGoal = true;
 
   const { calculatedIngredients, totals, unsupportedIngredients } = useMemo(
     () => calculateMealTotals(parsedIngredients),
@@ -441,22 +445,19 @@ export function MealBuilder() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-5 pb-12 pt-4 sm:px-8">
-      <section className="mb-8 max-w-4xl">
-        <p className="mb-3 text-sm font-semibold uppercase text-[var(--primary)]">
-          Meal builder
-        </p>
-        <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-[var(--foreground)] sm:text-5xl">
-          Already know what you want to cook? We’ll help you total it and tune it.
-        </h1>
-        <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--muted)]">
+      <PageHeader
+        eyebrow="Meal Builder"
+        title="Already know what you want to cook? We’ll help you total it and tune it."
+      >
+        <p>
           Add the ingredients you already have in mind, check how the meal stacks
           up against your targets, and make a few confident tweaks without turning
           dinner into a spreadsheet.
         </p>
-      </section>
+      </PageHeader>
 
       {importedRecipe ? (
-        <div className="mb-6 rounded-[14px] border border-[var(--border)] bg-white/80 px-5 py-4 shadow-sm">
+        <div className="mb-6 rounded-[18px] border border-[var(--border)] bg-[var(--card)]/82 px-5 py-4 shadow-[var(--shadow-soft)]">
           <p className="text-sm font-semibold text-[var(--foreground)]">
             Imported from {importedRecipe.title}
           </p>
@@ -588,16 +589,18 @@ function IngredientTable({
     <SectionCard
       eyebrow="Ingredients"
       title="Build Your Meal"
+      allowOverflow
+      className="relative z-40"
       action={
         <div className="flex items-center gap-2">
           <Link
-            className="rounded-[10px] border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition duration-200 hover:bg-[var(--muted-soft)] active:scale-[0.99]"
+            className="rounded-[12px] border border-[var(--border)] bg-white/85 px-4 py-2 text-sm font-semibold text-[var(--foreground)] shadow-sm transition duration-200 hover:bg-[var(--muted-soft)] active:scale-[0.99]"
             href="/import-recipe"
           >
             Import recipe
           </Link>
           <button
-            className="rounded-[10px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition duration-200 hover:bg-[var(--primary-strong)] active:scale-[0.99]"
+            className="rounded-[12px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(34,116,95,0.2)] transition duration-200 hover:bg-[var(--primary-strong)] active:scale-[0.99]"
             type="button"
             onClick={onAdd}
           >
@@ -637,7 +640,7 @@ function IngredientTable({
           ))}
           <div className="flex justify-end pt-2">
             <button
-              className="rounded-[10px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition duration-200 hover:bg-[var(--primary-strong)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-[12px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(34,116,95,0.18)] transition duration-200 hover:bg-[var(--primary-strong)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
               disabled={isSavingMeal || savableIngredientsCount === 0}
               type="button"
               onClick={() => void onSaveMeal()}
@@ -690,14 +693,14 @@ function IngredientRow({
     : false;
 
   return (
-    <div className="ingredient-row grid gap-3 rounded-[14px] border border-[var(--border)] bg-white/78 p-3 md:grid-cols-[1.5fr_0.55fr_0.75fr_0.8fr_44px] md:items-start">
+    <div className="ingredient-row grid gap-3 rounded-[18px] border border-[var(--border)] bg-[var(--card)]/84 p-3 shadow-sm md:grid-cols-[1.5fr_0.55fr_0.75fr_0.8fr_44px] md:items-start">
       <div className="relative">
         <label className="block">
           <span className="mb-1 block text-xs font-semibold text-[var(--muted)] md:hidden">
             Food
           </span>
           <input
-            className="focus-ring h-11 w-full rounded-[12px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
+            className="focus-ring soft-input h-11 w-full rounded-[14px] border px-3 text-sm text-[var(--foreground)]"
             placeholder="Chicken breast"
             value={ingredient.name}
             onFocus={() => onOpenSearch(ingredient.id)}
@@ -721,15 +724,15 @@ function IngredientRow({
         ) : null}
 
         {isOpen && (searchResults.length > 0 || isSearching) ? (
-          <div className="absolute z-10 mt-2 w-full rounded-[12px] border border-[var(--border)] bg-white shadow-[var(--shadow)]">
+          <div className="absolute z-50 mt-2 w-full min-w-[280px] overflow-hidden rounded-[16px] border border-white/70 bg-[var(--card)] shadow-[var(--shadow)] backdrop-blur-2xl">
             {isSearching ? (
               <p className="px-3 py-3 text-sm text-[var(--muted)]">Looking for a good match...</p>
             ) : (
-              <ul className="max-h-72 overflow-y-auto py-2">
+              <ul className="max-h-[26rem] overflow-y-auto py-2">
                 {searchResults.map((result) => (
                   <li key={result.fdcId}>
                     <button
-                      className="w-full px-3 py-2 text-left transition hover:bg-[var(--muted-soft)]"
+                      className="w-full px-3 py-2.5 text-left transition hover:bg-[var(--muted-soft)]"
                       type="button"
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => void onSelectFood(ingredient.id, result)}
@@ -754,7 +757,7 @@ function IngredientRow({
           Amount
         </span>
         <input
-          className="focus-ring h-11 w-full rounded-[12px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
+          className="focus-ring soft-input h-11 w-full rounded-[14px] border px-3 text-sm text-[var(--foreground)]"
           min="0"
           step="0.1"
           type="number"
@@ -773,7 +776,7 @@ function IngredientRow({
           Unit
         </span>
         <select
-          className="focus-ring h-11 w-full rounded-[12px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
+          className="focus-ring soft-input h-11 w-full rounded-[14px] border px-3 text-sm text-[var(--foreground)]"
           value={ingredient.unit}
           onChange={(event) => onUnitChange(ingredient.id, event.target.value as Unit)}
         >
@@ -798,7 +801,7 @@ function IngredientRow({
         <span className="mb-1 block text-xs font-semibold text-[var(--muted)] md:hidden">
           Match
         </span>
-          <div className="rounded-[12px] bg-[var(--muted-soft)] px-3 py-2">
+          <div className="rounded-[14px] bg-[var(--muted-soft)]/86 px-3 py-2 shadow-inner">
             <p className="text-sm font-semibold text-[var(--foreground)]">
               {isResolving
                 ? "Loading..."
@@ -826,7 +829,7 @@ function IngredientRow({
 
       <button
         aria-label="Remove ingredient"
-        className="h-11 rounded-[12px] border border-[var(--border)] bg-white text-lg leading-none text-[var(--muted)] transition duration-200 hover:border-[var(--danger-soft)] hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] active:scale-[0.99]"
+        className="h-11 rounded-[14px] border border-[var(--border)] bg-white/85 text-lg leading-none text-[var(--muted)] transition duration-200 hover:border-[var(--danger-soft)] hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] active:scale-[0.99]"
         type="button"
         onClick={() => onRemove(ingredient.id)}
       >
@@ -846,7 +849,7 @@ function CaloriesCard({
   hasAnyGoal: boolean;
 }) {
   return (
-    <SectionCard className="!bg-[var(--primary-strong)] text-white">
+    <SectionCard className="!bg-none !bg-[var(--primary-strong)] text-white">
       <p className="text-sm font-medium text-white/75">Meal total</p>
       <div className="mt-3 flex items-end justify-between gap-4">
         <div>
@@ -877,7 +880,7 @@ function MacroSummaryCard({
 }) {
   return (
     <SectionCard title="Meal Summary" eyebrow="Live Macros">
-      <div className="space-y-4">
+      <div className="space-y-3">
         {(["calories", "protein", "carbs", "fat"] as MacroKey[]).map((key) => (
           <MacroBar
             key={key}
@@ -912,7 +915,7 @@ function MacroBar({
   unit: string;
   color: string;
 }) {
-  const percent = goal > 0 ? Math.min((actual / goal) * 100, 130) : 0;
+  const percent = goal > 0 ? Math.min((actual / goal) * 100, 100) : 0;
   const delta = actual - goal;
   const helper =
     !hasGoal
@@ -945,9 +948,9 @@ function MacroBar({
           )}
         </span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-[var(--muted-soft)]">
+      <div className="h-2.5 overflow-hidden rounded-full bg-[var(--muted-soft)] shadow-inner">
         <div
-          className="h-full rounded-full transition-all duration-300"
+          className="h-full rounded-full transition-all duration-500 ease-out"
           style={{ width: `${percent}%`, background: color }}
         />
       </div>
@@ -976,7 +979,7 @@ function GoalsPreviewCard({
       action={
         <Link
           href="/dashboard"
-          className="rounded-[10px] border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--foreground)] transition duration-200 hover:bg-[var(--muted-soft)] active:scale-[0.99]"
+          className="mt-2 rounded-[12px] border border-[var(--border)] bg-white/85 px-3 py-2 text-sm font-semibold text-[var(--foreground)] shadow-sm transition duration-200 hover:bg-[var(--muted-soft)] active:scale-[0.99]"
         >
           Edit in Dashboard
         </Link>
@@ -987,7 +990,7 @@ function GoalsPreviewCard({
           {(["calories", "protein", "carbs", "fat"] as MacroKey[]).map((key) => (
             <div
               key={key}
-              className="rounded-[12px] border border-[var(--border)] bg-white/80 px-4 py-4"
+              className="metric-surface rounded-[16px] px-4 py-4"
             >
               <p className="text-xs font-semibold uppercase text-[var(--muted)]">
                 {macroMeta[key].label}
@@ -1016,11 +1019,11 @@ function SuggestionsCard({ suggestions }: { suggestions: Suggestion[] }) {
   return (
     <SectionCard title="What to Tweak" eyebrow="Helpful recommendations">
       {suggestions.length > 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {suggestions.map((suggestion) => (
             <article
               key={suggestion.id}
-              className="rounded-[12px] border border-[var(--border)] bg-white/70 p-4"
+              className="rounded-[16px] border border-[var(--border)] bg-[var(--card)]/76 p-3.5 shadow-sm"
             >
               <p className="text-sm font-semibold text-[var(--foreground)]">
                 {suggestion.title}

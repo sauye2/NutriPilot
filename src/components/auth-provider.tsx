@@ -28,6 +28,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    const loadingFallback = window.setTimeout(() => {
+      if (!mounted) {
+        return;
+      }
+
+      setIsLoading(false);
+    }, 2500);
 
     const hydrate = async () => {
       const {
@@ -40,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setSession(activeSession);
       setUser(activeSession?.user ?? null);
+      window.clearTimeout(loadingFallback);
       setIsLoading(false);
     };
 
@@ -54,11 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
+      window.clearTimeout(loadingFallback);
       setIsLoading(false);
     });
 
     return () => {
       mounted = false;
+      window.clearTimeout(loadingFallback);
       subscription.unsubscribe();
     };
   }, [supabase]);

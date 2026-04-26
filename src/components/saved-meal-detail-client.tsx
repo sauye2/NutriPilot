@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { GroceryListPanel } from "@/components/grocery-list-panel";
+import { MetricTile, PageHeader } from "@/components/nutrition-ui";
 import { SectionCard } from "@/components/section-card";
 import { SignInPrompt } from "@/components/sign-in-prompt";
 import { useAuth } from "@/components/auth-provider";
@@ -70,18 +71,15 @@ export function SavedMealDetailClient({ mealId }: { mealId: string }) {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-6xl px-5 pb-12 pt-4 sm:px-8">
-        <section className="mb-8 max-w-4xl">
-          <p className="mb-3 text-sm font-semibold uppercase text-[var(--primary)]">
-            Saved Meal
-          </p>
-          <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-[var(--foreground)] sm:text-5xl">
-            Come back to a meal you already liked, with the details still intact.
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--muted)]">
+        <PageHeader
+          eyebrow="Saved Meal"
+          title="Come back to a meal you already liked, with the details still intact."
+        >
+          <p>
             Ingredients, instructions, and the grocery list stay close by so it is easy
             to pick this up again later.
           </p>
-        </section>
+        </PageHeader>
 
         {authLoading || (user ? isLoading : false) ? (
           <SectionCard title="Opening your meal" eyebrow="Saved">
@@ -159,7 +157,7 @@ export function SavedMealDetailClient({ mealId }: { mealId: string }) {
                       {meal.ingredients.map((ingredient) => (
                         <div
                           key={ingredient.id ?? `${ingredient.name}-${ingredient.amount}-${ingredient.unit}`}
-                          className="rounded-[12px] border border-[var(--border)] bg-white/80 px-4 py-3"
+                          className="rounded-[16px] border border-[var(--border)] bg-[var(--card)]/82 px-4 py-3 shadow-sm"
                         >
                           <p className="text-sm font-medium text-[var(--foreground)]">
                             {formatIngredientLine(
@@ -191,7 +189,7 @@ export function SavedMealDetailClient({ mealId }: { mealId: string }) {
                           {meal.whyItWorks.map((point) => (
                             <div
                               key={point}
-                              className="rounded-[12px] border border-[var(--border)] bg-white/80 px-4 py-3 text-sm leading-6 text-[var(--muted)]"
+                              className="rounded-[16px] border border-[var(--border)] bg-[var(--card)]/82 px-4 py-3 text-sm leading-6 text-[var(--muted)] shadow-sm"
                             >
                               {point}
                             </div>
@@ -209,7 +207,7 @@ export function SavedMealDetailClient({ mealId }: { mealId: string }) {
                           {meal.instructions.map((step, index) => (
                             <div
                               key={`${index + 1}-${step}`}
-                              className="rounded-[12px] border border-[var(--border)] bg-white/80 px-4 py-3 text-sm leading-6 text-[var(--muted)]"
+                              className="rounded-[16px] border border-[var(--border)] bg-[var(--card)]/82 px-4 py-3 text-sm leading-6 text-[var(--muted)] shadow-sm"
                             >
                               <span className="mr-2 font-semibold text-[var(--foreground)]">
                                 {index + 1}.
@@ -248,10 +246,5 @@ export function SavedMealDetailClient({ mealId }: { mealId: string }) {
 }
 
 function SavedMealStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[12px] border border-[var(--border)] bg-white/80 px-4 py-4">
-      <p className="text-xs font-semibold uppercase text-[var(--muted)]">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-[var(--foreground)]">{value}</p>
-    </div>
-  );
+  return <MetricTile label={label} value={value} />;
 }

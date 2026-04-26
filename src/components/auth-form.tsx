@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/nutrition-ui";
 import { SectionCard } from "@/components/section-card";
 import { useAuth } from "@/components/auth-provider";
 
@@ -75,21 +76,20 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-5xl px-5 pb-12 pt-8 sm:px-8">
-        <section className="mb-8 max-w-3xl">
-          <p className="mb-3 text-sm font-semibold uppercase text-[var(--primary)]">
-            {isSignup ? "Create your account" : "Welcome back"}
-          </p>
-          <h1 className="text-4xl font-semibold leading-tight text-[var(--foreground)] sm:text-5xl">
-            {isSignup
+        <PageHeader
+          eyebrow={isSignup ? "Create your account" : "Welcome back"}
+          title={
+            isSignup
               ? "Keep your meals, goals, and daily logs in one place."
-              : "Pick up right where you left off."}
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--muted)]">
+              : "Pick up right where you left off."
+          }
+        >
+          <p>
             NutriPilot still works without an account for quick calculations. Signing in
             makes it easier to save meals, keep your goals handy, and build a real
             history in the dashboard.
           </p>
-        </section>
+        </PageHeader>
 
         <SectionCard
           title={isSignup ? "Sign Up" : "Log In"}
@@ -148,7 +148,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                   Email
                 </span>
                 <input
-                  className="focus-ring h-12 w-full rounded-[12px] border border-[var(--border)] bg-white px-4 text-sm text-[var(--foreground)]"
+                  className="focus-ring soft-input h-12 w-full rounded-[14px] border px-4 text-sm text-[var(--foreground)]"
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
@@ -160,7 +160,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                   Password
                 </span>
                 <input
-                  className="focus-ring h-12 w-full rounded-[12px] border border-[var(--border)] bg-white px-4 text-sm text-[var(--foreground)]"
+                  className="focus-ring soft-input h-12 w-full rounded-[14px] border px-4 text-sm text-[var(--foreground)]"
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
@@ -173,7 +173,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                     Confirm password
                   </span>
                   <input
-                    className="focus-ring h-12 w-full rounded-[12px] border border-[var(--border)] bg-white px-4 text-sm text-[var(--foreground)]"
+                    className="focus-ring soft-input h-12 w-full rounded-[14px] border px-4 text-sm text-[var(--foreground)]"
                     type="password"
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}

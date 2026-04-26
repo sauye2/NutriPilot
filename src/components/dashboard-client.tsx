@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/components/auth-provider";
+import { MetricTile, PageHeader } from "@/components/nutrition-ui";
 import { SectionCard } from "@/components/section-card";
 import { defaultNutritionGoals } from "@/lib/default-goals";
 import type { DashboardSummary, MacroKey, NutritionGoals, SavedMeal } from "@/lib/types";
@@ -258,21 +259,21 @@ export function DashboardClient() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-7xl px-5 pb-12 pt-4 sm:px-8">
-        <section className="mb-8 max-w-4xl">
-          <p className="mb-3 text-sm font-semibold uppercase text-[var(--primary)]">
-            Dashboard
-          </p>
-          <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-[var(--foreground)] sm:text-5xl">
-            {user
-              ? "A calmer view of what you've saved and how today is shaping up."
-              : "A warm home base for the meals you want to keep coming back to."}
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--muted)]">
+        <PageHeader
+          eyebrow="Dashboard"
+          title={
+            user
+              ? "A calmer view of your meals, goals, and today."
+              : "A warm home base for meals worth repeating."
+          }
+          showPreview
+        >
+          <p>
             {user
               ? "Keep your goals nearby, log meals as they happen, and come back to the ones you already know you'd make again."
               : "Sign in when you're ready to save meals, keep your nutrition goals in sync, and build a simple history that stays with you."}
           </p>
-        </section>
+        </PageHeader>
 
         {authLoading ? (
           <WarmLoadingState />
@@ -542,11 +543,7 @@ function SummaryStat({
   helper: string;
 }) {
   return (
-    <div className="rounded-[12px] border border-[var(--border)] bg-white/80 px-4 py-4">
-      <p className="text-xs font-semibold uppercase text-[var(--muted)]">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-[var(--foreground)]">{value}</p>
-      <p className="mt-1 text-xs text-[var(--muted)]">{helper}</p>
-    </div>
+    <MetricTile label={label} value={value} helper={helper} />
   );
 }
 
@@ -574,9 +571,9 @@ function DashboardProgressBar({
           {unit}
         </span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-[var(--muted-soft)]">
+      <div className="h-2.5 overflow-hidden rounded-full bg-[var(--muted-soft)] shadow-inner">
         <div
-          className="h-full rounded-full transition-all duration-300"
+          className="h-full rounded-full transition-all duration-500 ease-out"
           style={{ width: `${percent}%`, background: color }}
         />
       </div>
@@ -667,7 +664,7 @@ function WarmFeatureCard({
 
   if (!href) {
     return (
-      <div className="rounded-[14px] border border-[var(--border)] bg-white/80 px-4 py-4 shadow-sm">
+      <div className="premium-card rounded-[18px] border border-[var(--border)] px-4 py-4 shadow-sm">
         {content}
       </div>
     );
@@ -676,7 +673,7 @@ function WarmFeatureCard({
   return (
     <Link
       href={href}
-      className="rounded-[14px] border border-[var(--border)] bg-white/80 px-4 py-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-white"
+      className="premium-card rounded-[18px] border border-[var(--border)] px-4 py-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-white"
     >
       {content}
     </Link>
