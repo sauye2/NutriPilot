@@ -43,6 +43,8 @@ const UNIT_ALIASES: Array<{
 }> = [
   { pattern: /^(tablespoons?|tbsps?|tbsp)\b/i, unit: "tbsp" },
   { pattern: /^(teaspoons?|tsps?|tsp)\b/i, unit: "tsp" },
+  { pattern: /^(milliliters?|millilitres?|ml)\b/i, unit: "ml" },
+  { pattern: /^(liters?|litres?|l)\b/i, unit: "L" },
   { pattern: /^(cups?|c)\b/i, unit: "cup" },
   { pattern: /^(pints?|pt)\b/i, unit: "pint" },
   { pattern: /^(quarts?|qt)\b/i, unit: "quart" },
@@ -121,6 +123,9 @@ type ParsedIngredient = {
   amount: number | null;
   unit: Unit;
 };
+
+const IMPORT_AMOUNT_PATTERN =
+  String.raw`\d+(?:\.\d+)?(?:\s+\d+\/\d+)?|\d+\/\d+`;
 
 function validateRecipeUrl(inputUrl: string) {
   let parsed: URL;
@@ -523,7 +528,27 @@ function normalizeIngredientLine(line: string): ParsedIngredient | null {
     return null;
   }
 
-  const normalizedFractions = normalizeRecipeLine(replaceFractions(originalText));
+  const normalizedFractions = normalizeMeasurementAlternatives(
+    normalizeRecipeLine(separateCompactUnits(replaceFractions(originalText))),
+  );
+  const dimensionalIngredient = normalizeDimensionalIngredient(
+    normalizedFractions,
+    originalText,
+  );
+
+  if (dimensionalIngredient) {
+    return dimensionalIngredient;
+  }
+
+  const metricVolumeIngredient = normalizeMetricVolumeIngredient(
+    normalizedFractions,
+    originalText,
+  );
+
+  if (metricVolumeIngredient) {
+    return metricVolumeIngredient;
+  }
+
   const amountMatch = normalizedFractions.match(
     /^(\d+(?:\.\d+)?(?:\s+\d+\/\d+)?|\d+\/\d+)\s+/,
   );
@@ -614,6 +639,7 @@ function parseAmount(value: string) {
 function stripPrepPrefixes(value: string) {
   return value
     .replace(/^[,.;:()\s]+/, "")
+    .replace(/\b(?:piece|pieces|knob|knobs)\s+of\b/gi, "")
     .replace(/\b(for the|such as|plus more for serving)\b/gi, "")
     .replace(/\s+/g, " ")
     .trim();
@@ -622,6 +648,8 @@ function stripPrepPrefixes(value: string) {
 function stripImportNoise(value: string) {
   return value
     .replace(/\((?:[^)]*\$[^)]*|[^)]*see notes[^)]*)\)/gi, "")
+    .replace(/\(\s*\)/g, "")
+    .replace(/[()]+$/g, "")
     .replace(/\s+,/g, ",")
     .replace(/\s{2,}/g, " ")
     .trim();
@@ -633,6 +661,7 @@ function normalizeRecipeLine(value: string) {
     .replace(/\(\s*for [^)]+\)/gi, "")
     .replace(/\(\s*use any amount you want\s*\)/gi, "")
     .replace(/\(\s*to taste\s*\)/gi, "")
+    .replace(/[()]+$/g, "")
     .replace(/\s{2,}/g, " ")
     .trim();
 }
@@ -640,6 +669,7 @@ function normalizeRecipeLine(value: string) {
 function normalizeIngredientName(value: string) {
   return value
     .replace(/\([^)]*\)/g, " ")
+    .replace(/[()]/g, " ")
     .replace(/\bfor marinade\b/gi, " ")
     .replace(/\bfor boiling\b/gi, " ")
     .replace(/\bfor soup flavor\b/gi, " ")
@@ -648,6 +678,123 @@ function normalizeIngredientName(value: string) {
     .replace(/\bto taste\b/gi, " ")
     .replace(/\s{2,}/g, " ")
     .trim();
+}
+
+function separateCompactUnits(value: string) {
+  return value
+    .replace(
+      new RegExp(
+        `(^|\\s)(${IMPORT_AMOUNT_PATTERN})(g|gram|grams|kg|kilogram|kilograms|ml|milliliter|milliliters|l|liter|liters|oz|ounce|ounces|lb|lbs|pound|pounds|tsp|teaspoon|teaspoons|tbsp|tablespoon|tablespoons|cup|cups|cm|centimeter|centimeters|inch|inches|in)(?=\\b)`,
+        "gi",
+      ),
+      "$1$2 $3",
+    )
+    .replace(/(\d)\s*"/g, "$1 inch")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function normalizeMeasurementAlternatives(value: string) {
+  const amount = `(${IMPORT_AMOUNT_PATTERN})`;
+  const unit =
+    "(g|gram|grams|kg|kilogram|kilograms|ml|milliliter|milliliters|l|liter|liters|oz|ounce|ounces|lb|lbs|pound|pounds|tsp|teaspoon|teaspoons|tbsp|tablespoon|tablespoons|cup|cups|cm|centimeter|centimeters|inch|inches|in)";
+  const leadingAlternative = new RegExp(
+    `^${amount}\\s*${unit}\\s*\\/\\s*${amount}\\s*${unit}\\s+(.+)$`,
+    "i",
+  );
+  const match = value.match(leadingAlternative);
+
+  if (!match) {
+    return value;
+  }
+
+  return `${match[1]} ${match[2]} ${match[5]}`.replace(/\s{2,}/g, " ").trim();
+}
+
+function normalizeDimensionalIngredient(
+  value: string,
+  originalText: string,
+): ParsedIngredient | null {
+  const match = value.match(
+    new RegExp(
+      `^(${IMPORT_AMOUNT_PATTERN})\\s*(cm|centimeter|centimeters|inch|inches|in)\\b\\s*(?:piece|pieces|knob|knobs|length)?\\s*(?:of\\s+)?(.+)$`,
+      "i",
+    ),
+  );
+
+  if (!match) {
+    return null;
+  }
+
+  const amount = parseAmount(match[1]);
+  const unitText = match[2].toLowerCase();
+  const rawName = match[3].trim();
+
+  if (amount === null) {
+    return null;
+  }
+
+  const name = stripPrepPrefixes(normalizeIngredientName(rawName));
+  const gramsPerCentimeter = getGramsPerCentimeterForIngredient(name);
+
+  if (!gramsPerCentimeter) {
+    return null;
+  }
+
+  const centimeters = /^in/.test(unitText) ? amount * 2.54 : amount;
+
+  return {
+    originalText,
+    name,
+    amount: preciseAmount(centimeters * gramsPerCentimeter),
+    unit: "g",
+  };
+}
+
+function getGramsPerCentimeterForIngredient(name: string) {
+  const lower = name.toLowerCase();
+
+  if (/\bginger|galangal|turmeric\b/.test(lower)) {
+    return 5;
+  }
+
+  if (/\blemongrass|lemon grass\b/.test(lower)) {
+    return 10;
+  }
+
+  return null;
+}
+
+function normalizeMetricVolumeIngredient(
+  value: string,
+  originalText: string,
+): ParsedIngredient | null {
+  const match = value.match(
+    new RegExp(
+      `^(${IMPORT_AMOUNT_PATTERN})\\s*(ml|milliliter|milliliters|l|liter|liters)\\b\\s*(?:can|tin|bottle|carton|package)?\\s*(?:of\\s+)?(.+)$`,
+      "i",
+    ),
+  );
+
+  if (!match) {
+    return null;
+  }
+
+  const amount = parseAmount(match[1]);
+
+  if (amount === null) {
+    return null;
+  }
+
+  const unitText = match[2].toLowerCase();
+  const name = stripPrepPrefixes(normalizeIngredientName(match[3]));
+
+  return {
+    originalText,
+    name,
+    amount: preciseAmount(amount),
+    unit: /^l/.test(unitText) ? "L" : "ml",
+  };
 }
 
 function normalizeRiceCup(amount: number | null, unitText: string, context: string) {
@@ -753,6 +900,8 @@ function getImportedVolumeWeightMap(): Partial<Record<Unit, number>> {
     g: 1,
     oz: 28.3495,
     lb: 453.592,
+    ml: 1,
+    L: 1000,
     tsp: 5,
     tbsp: 15,
     cup: 240,

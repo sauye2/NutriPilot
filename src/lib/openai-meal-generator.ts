@@ -93,7 +93,7 @@ export async function generateMealDraft(
     isPantryMode
       ? `Pantry ingredients to include when possible: ${pantryItems.length ? pantryItems.join(", ") : "none provided"}`
       : "",
-    "Use only these units for ingredients: g, oz, lb, tsp, tbsp, cup, pint, quart, piece.",
+    "Use only these units for ingredients: g, oz, lb, tsp, tbsp, ml, L, cup, pint, quart, piece.",
     "Prefer grams for meats, rice, sauces, chopped vegetables, and anything that is not naturally countable.",
     "Use piece only for clearly countable items like eggs, cucumbers, scallions, garlic cloves, lettuce leaves, chicken breasts, or steaks.",
     "Every ingredient must have an amount greater than 0.",
@@ -175,7 +175,7 @@ export async function reviseMealDraft(
         `- ${ingredient.amount} ${ingredient.unit} ${ingredient.name}${ingredient.notes ? ` (${ingredient.notes})` : ""}`,
     ),
     "Preserve the spirit of the meal unless the feedback clearly asks for a larger change.",
-    "Keep ingredients practical and coherent, and use only the units g, oz, lb, tsp, tbsp, cup, pint, quart, piece.",
+    "Keep ingredients practical and coherent, and use only the units g, oz, lb, tsp, tbsp, ml, L, cup, pint, quart, piece.",
     "Prefer grams for meats, rice, sauces, chopped vegetables, and anything that is not naturally countable.",
     "Write instructions in a realistic prep-then-cook order so the timing makes sense for a home cook.",
   ].join("\n");
@@ -256,7 +256,7 @@ async function generateStructuredMeal(prompt: string): Promise<AiMealDraft> {
                     amount: { type: "number" },
                     unit: {
                       type: "string",
-                      enum: ["g", "oz", "lb", "tsp", "tbsp", "cup", "pint", "quart", "piece"],
+                      enum: ["g", "oz", "lb", "tsp", "tbsp", "ml", "L", "cup", "pint", "quart", "piece"],
                     },
                     notes: {
                       anyOf: [{ type: "string" }, { type: "null" }],

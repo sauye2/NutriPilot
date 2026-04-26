@@ -7,15 +7,21 @@ import {
   resolveIngredientsBatch,
   searchFoods,
 } from "../src/lib/food-data-central.ts";
+import {
+  convertAmountBetweenUnits,
+  getUnitWeight,
+  normalizeImportedUnit,
+} from "../src/lib/units.ts";
 
 const originalFetch = globalThis.fetch;
 
 const SEARCH_FIXTURES = [
   {
-    match: ["hanger steak", "hanging tender", "beef steak", "beef flank steak raw", "beef skirt steak raw"],
+    match: ["hanger steak", "hanging tender", "beef hanging tender", "beef hanger steak", "beef steak", "beef flank steak raw", "beef skirt steak raw"],
     foods: [
       food(101, "Beef, hanging tender steak, separable lean only, trimmed to 0\" fat, choice, raw", "Foundation"),
       food(102, "Pepper steak, frozen meal", "Branded", "QuickBite"),
+      food(103, "Swiss Miss cocoa gift pack hanging ornaments", "Branded", "Swiss Miss"),
     ],
   },
   {
@@ -428,6 +434,7 @@ test("normalization preserves meaningful descriptors and strips recipe noise", (
 
 for (const ingredient of [
   "hanger steak",
+  "hanging",
   "extra virgin olive oil",
   "butter",
   "neutral oil",
@@ -527,7 +534,9 @@ test("batch resolution keeps common ingredients auto-matched", async () => {
 });
 
 test("common protein searches surface sensible generic options first", async () => {
-  const [chickenResults, ribeyeResults, salmonResults, porkResults, appleResults, bananaResults, pearResults, strawberryResults] = await Promise.all([
+  const [hangerResults, hangingResults, chickenResults, ribeyeResults, salmonResults, porkResults, appleResults, bananaResults, pearResults, strawberryResults] = await Promise.all([
+    searchFoods("hanger", { preferCooked: true }),
+    searchFoods("hanging", { preferCooked: true }),
     searchFoods("chicken breast", { preferCooked: true }),
     searchFoods("ribeye", { preferCooked: true }),
     searchFoods("salmon", { preferCooked: true }),
@@ -537,6 +546,10 @@ test("common protein searches surface sensible generic options first", async () 
     searchFoods("pear"),
     searchFoods("strawberry"),
   ]);
+
+  assert.equal(hangerResults[0]?.description, "Beef, Hanging Tender Steak, Separable Lean Only, Trimmed To 0\" Fat, Choice, Raw");
+  assert.equal(hangingResults[0]?.description, "Beef, Hanging Tender Steak, Separable Lean Only, Trimmed To 0\" Fat, Choice, Raw");
+  assert.ok(hangingResults.every((result) => !/swiss miss|gift|ornament/i.test(result.description)));
 
   assert.equal(chickenResults[0]?.description, "Chicken, Broilers Or Fryers, Breast, Meat Only, Cooked, Roasted");
   assert.ok(chickenResults.every((result) => !/tenders|breaded/i.test(result.description)));
@@ -598,6 +611,20 @@ test("common protein auto-matches use sensible cooked generic profiles", async (
 
   assert.equal(strawberry.food?.description, "Strawberries, Raw");
   assert.equal(strawberry.food?.per100g.calories, 32);
+});
+
+test("laksa paste resolves to Lee Kum Kee laksa soup base", async () => {
+  const [resolution, searchResults] = await Promise.all([
+    resolveIngredientMatch("laksa paste"),
+    searchFoods("laksa"),
+  ]);
+
+  assert.equal(resolution.needsReview, false);
+  assert.equal(resolution.food?.description, "Laksa Soup Base, Laksa");
+  assert.equal(resolution.food?.displayName, "Laksa Soup Base, Lee Kum Kee");
+  assert.equal(resolution.food?.brandName, "LEE KUM KEE");
+  assert.equal(resolution.food?.gramsByUnit.tbsp, 19);
+  assert.equal(searchResults[0]?.displayName, "Laksa Soup Base, Laksa (LEE KUM KEE)");
 });
 
 test("singular and plural fruit queries stay on the same common whole-food matches", async () => {
@@ -739,6 +766,24 @@ test("generated meal hydration math stays at zero for water", async () => {
   assert.equal(protein, 0);
   assert.equal(carbs, 0);
   assert.equal(fat, 0);
+});
+
+test("metric liquid units are available and convert against volume portions", async () => {
+  const [water, broth, coconutMilk] = await Promise.all([
+    resolveIngredientMatch("water"),
+    resolveIngredientMatch("chicken broth"),
+    resolveIngredientMatch("coconut milk"),
+  ]);
+
+  assert.equal(normalizeImportedUnit("ml"), "ml");
+  assert.equal(normalizeImportedUnit("liter"), "L");
+  assert.equal(getUnitWeight(water.food?.gramsByUnit, "ml"), 1);
+  assert.equal(getUnitWeight(broth.food?.gramsByUnit, "L"), 1000);
+  assert.equal(getUnitWeight(coconutMilk.food?.gramsByUnit, "ml"), 1);
+  assert.equal(
+    convertAmountBetweenUnits(400, coconutMilk.food?.gramsByUnit, "ml", "cup"),
+    1.6666666666666667,
+  );
 });
 
 test("category fallback keeps future ingredient families from losing nutrition data", async () => {

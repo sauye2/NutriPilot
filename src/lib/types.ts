@@ -4,6 +4,8 @@ export type Unit =
   | "lb"
   | "tsp"
   | "tbsp"
+  | "ml"
+  | "L"
   | "cup"
   | "pint"
   | "quart"

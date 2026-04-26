@@ -95,7 +95,6 @@ export function MealBuilder() {
     carbs: "",
     fat: "",
   });
-  const [loadedSavedGoals, setLoadedSavedGoals] = useState(false);
   const [searchResults, setSearchResults] = useState<Record<string, FoodSearchResult[]>>(
     {},
   );
@@ -150,7 +149,6 @@ export function MealBuilder() {
           carbs: payload.goals.carbs.toString(),
           fat: payload.goals.fat.toString(),
         });
-        setLoadedSavedGoals(true);
       } catch {
         // Keep the current local draft if loading saved goals fails.
       }
@@ -590,7 +588,7 @@ function IngredientTable({
       eyebrow="Ingredients"
       title="Build Your Meal"
       allowOverflow
-      className="relative z-40"
+      className="relative z-30"
       action={
         <div className="flex items-center gap-2">
           <Link
@@ -693,7 +691,11 @@ function IngredientRow({
     : false;
 
   return (
-    <div className="ingredient-row grid gap-3 rounded-[18px] border border-[var(--border)] bg-[var(--card)]/84 p-3 shadow-sm md:grid-cols-[1.5fr_0.55fr_0.75fr_0.8fr_44px] md:items-start">
+    <div
+      className={`ingredient-row relative grid gap-3 rounded-[18px] border border-[var(--border)] bg-[var(--card)]/84 p-3 shadow-sm md:grid-cols-[1.5fr_0.55fr_0.75fr_0.8fr_44px] md:items-start ${
+        isOpen ? "z-40" : "z-0"
+      }`}
+    >
       <div className="relative">
         <label className="block">
           <span className="mb-1 block text-xs font-semibold text-[var(--muted)] md:hidden">
@@ -724,7 +726,7 @@ function IngredientRow({
         ) : null}
 
         {isOpen && (searchResults.length > 0 || isSearching) ? (
-          <div className="absolute z-50 mt-2 w-full min-w-[280px] overflow-hidden rounded-[16px] border border-white/70 bg-[var(--card)] shadow-[var(--shadow)] backdrop-blur-2xl">
+          <div className="absolute left-0 top-full z-50 mt-2 w-full min-w-[300px] overflow-hidden rounded-[16px] border border-white/70 bg-[var(--card)] shadow-[var(--shadow)] backdrop-blur-2xl">
             {isSearching ? (
               <p className="px-3 py-3 text-sm text-[var(--muted)]">Looking for a good match...</p>
             ) : (

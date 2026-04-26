@@ -27,6 +27,14 @@ export function formatIngredientLine(
     return `${formattedAmount} tbsp ${normalizedName}`;
   }
 
+  if (unit === "ml") {
+    return `${formattedAmount} ml ${normalizedName}`;
+  }
+
+  if (unit === "L") {
+    return `${formattedAmount} L ${normalizedName}`;
+  }
+
   if (unit === "tsp") {
     return `${formattedAmount} tsp ${normalizedName}`;
   }
@@ -106,6 +114,14 @@ export function formatGroceryQuantity(
 
   if (unit === "tbsp") {
     return `${formattedAmount} tbsp`;
+  }
+
+  if (unit === "ml") {
+    return `${formattedAmount} ml`;
+  }
+
+  if (unit === "L") {
+    return `${formattedAmount} L`;
   }
 
   if (unit === "tsp") {

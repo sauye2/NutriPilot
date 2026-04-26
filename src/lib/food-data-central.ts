@@ -50,6 +50,10 @@ const BAD_PACKAGED_TERMS = [
   "crackers",
   "cake",
   "cakes",
+  "gift",
+  "gifts",
+  "ornament",
+  "ornaments",
   "snack",
   "snacks",
   "marinade",
@@ -204,6 +208,16 @@ const UNIT_WORDS = [
   "tsp",
   "teaspoon",
   "teaspoons",
+  "ml",
+  "milliliter",
+  "milliliters",
+  "millilitre",
+  "millilitres",
+  "l",
+  "liter",
+  "liters",
+  "litre",
+  "litres",
   "piece",
   "pieces",
   "can",
@@ -330,8 +344,14 @@ type FdcFoodDetail = {
 const SYNONYM_DICTIONARY: SynonymEntry[] = [
   {
     canonical: "hanger steak",
-    aliases: ["hanger steak", "hanging tender", "hanging tender steak"],
-    searchExpansions: ["beef hanging tender steak", "beef flank steak raw", "beef skirt steak raw"],
+    aliases: ["hanger", "hanger steak", "hanging", "hanging tender", "hanging tender steak"],
+    searchExpansions: [
+      "beef hanging tender steak",
+      "beef hanging tender",
+      "beef hanger steak",
+      "beef flank steak raw",
+      "beef skirt steak raw",
+    ],
   },
   {
     canonical: "skirt steak",
@@ -599,6 +619,11 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     canonical: "gochujang",
     aliases: ["gochujang", "korean chili paste"],
     searchExpansions: ["chili paste", "pepper paste"],
+  },
+  {
+    canonical: "laksa soup base",
+    aliases: ["laksa", "laksa paste", "laksa soup base", "laksa soup paste"],
+    searchExpansions: ["laksa soup base lee kum kee", "laksa paste"],
   },
   {
     canonical: "egg",
@@ -1179,6 +1204,22 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
       servingText: null,
       per100g: { calories: 51, protein: 1.4, carbs: 10, fat: 0.1 },
       gramsByUnit: { g: 1, tbsp: 18, tsp: 6 },
+    },
+  },
+  {
+    canonicalQuery: "laksa soup base",
+    confidence: 0.94,
+    rationale: "Matched automatically using Lee Kum Kee laksa soup base from USDA branded data.",
+    food: {
+      fdcId: 2282813,
+      description: "Laksa Soup Base, Laksa",
+      displayName: "Laksa Soup Base, Lee Kum Kee",
+      dataType: "Branded",
+      brandName: "LEE KUM KEE",
+      sourceLabel: "USDA Branded - LEE KUM KEE",
+      servingText: "2 tbsp",
+      per100g: { calories: 289, protein: 5.26, carbs: 42.11, fat: 13.16 },
+      gramsByUnit: { g: 1, tbsp: 19, tsp: 6.333333, cup: 304 },
     },
   },
   {
@@ -2171,6 +2212,10 @@ function getPreferredGenericProfile(
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "oyster sauce") ?? null;
   }
 
+  if (query === "laksa soup base" || query === "laksa paste" || query === "laksa") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "laksa soup base") ?? null;
+  }
+
   if (query === "coconut milk" || query === "coconut cream") {
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "coconut milk") ?? null;
   }
@@ -2231,6 +2276,10 @@ function getPreferredGenericProfile(
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "sirloin steak cooked") ?? null;
   }
 
+  if (/\bhanger steak\b|\bhanging\b|\bhanging tender\b/.test(query) || /\bhanger\b|\bhanging\b|\bhanging tender\b/.test(raw)) {
+    return null;
+  }
+
   if ((/\bsteak\b/.test(query) || /\bsteak\b/.test(raw)) && !/\braw\b/.test(raw)) {
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "steak cooked") ?? null;
   }
@@ -2245,7 +2294,7 @@ function preferredProfileToCandidate(profile: PreferredGenericProfile): RankedCa
     fdcId: profile.food.fdcId,
     description: profile.food.description,
     dataType: profile.food.dataType,
-    brandName: undefined,
+    brandName: profile.food.brandName ?? undefined,
     brandOwner: undefined,
     _score: 999,
     _confidence: profile.confidence,
@@ -2455,6 +2504,28 @@ function rankCandidates(
         }
       }
 
+      if (/\bhanger\b|\bhanging tender\b/.test(queryText)) {
+        if (!/\bbeef\b|\bsteak\b|\btender\b|\bhanger\b|\bhanging\b/.test(description)) {
+          score -= 220;
+        }
+
+        if (/\bbeef\b/.test(description)) {
+          score += 34;
+        }
+
+        if (/\bhanging tender\b|\bhanger\b/.test(description)) {
+          score += 42;
+        }
+
+        if (/\bsteak\b/.test(description)) {
+          score += 24;
+        }
+
+        if (/\bgift|ornament|ornaments|cocoa\b/.test(description)) {
+          score -= 240;
+        }
+      }
+
       if (/\bsalmon\b/.test(queryText)) {
         if (!/\bsalmon\b/.test(description)) {
           score -= 150;
@@ -2650,7 +2721,7 @@ function isWholeFoodPriorityQuery(canonicalQuery: string, rawText: string) {
 
   return (
     /\bapples?\b|\bbananas?\b|\bpears?\b|\bstrawberry\b|\bstrawberries\b/.test(combined) ||
-    /\bpork\b|\bpork belly\b|\bchicken breast\b|\bribeye\b|\bsalmon\b/.test(combined)
+    /\bpork\b|\bpork belly\b|\bchicken breast\b|\bribeye\b|\bsalmon\b|\bhanger\b|\bhanging\b/.test(combined)
   );
 }
 
@@ -2669,6 +2740,16 @@ function shouldHideForWholeFoodQuery(canonicalQuery: string, description: string
 
   if (canonicalQuery === "pork" || canonicalQuery === "pork belly") {
     if (PROCESSED_MEAT_TERMS.some((term) => lower.includes(term))) {
+      return true;
+    }
+  }
+
+  if (/\bhanger\b|\bhanging tender\b/.test(canonicalQuery)) {
+    if (!/\bbeef\b|\bsteak\b|\btender\b|\bhanger\b|\bhanging\b/.test(lower)) {
+      return true;
+    }
+
+    if (/\bgift|ornament|ornaments|cocoa\b/.test(lower)) {
       return true;
     }
   }
@@ -2920,6 +3001,8 @@ function extractUnitWeights(detail: FdcFoodDetail): Partial<Record<Unit, number>
 }
 
 function mapUnitLabel(label: string): Unit | null {
+  if (/\b(ml|milliliter|milliliters|millilitre|millilitres)\b/.test(label)) return "ml";
+  if (/\b(l|liter|liters|litre|litres)\b/.test(label)) return "L";
   if (/\bcups?\b/.test(label)) return "cup";
   if (/\b(tbsp|tablespoon|tablespoons)\b/.test(label)) return "tbsp";
   if (/\b(tsp|teaspoon|teaspoons)\b/.test(label)) return "tsp";

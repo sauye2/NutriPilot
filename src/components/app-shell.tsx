@@ -36,7 +36,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="premium-shell min-h-screen">
-      <header className="sticky top-0 z-40 border-b border-white/35 bg-[var(--background)]/54 shadow-[0_12px_34px_rgba(54,45,31,0.05)] backdrop-blur-2xl">
+      <header className="sticky top-0 z-50 border-b border-white/35 bg-[var(--background)]/54 shadow-[0_12px_34px_rgba(54,45,31,0.05)] backdrop-blur-2xl">
         <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-8">
         <Link href="/dashboard" className="group flex items-center gap-3">
           <span className="grid size-11 place-items-center rounded-[16px] bg-[var(--primary)] text-base font-semibold text-white shadow-[0_12px_28px_rgba(34,116,95,0.24)] transition duration-200 group-hover:scale-[1.02] group-hover:bg-[var(--primary-strong)]">

@@ -10,6 +10,8 @@ export const UNIT_OPTIONS: Array<{
   { unit: "lb", label: "lb", group: "Weight" },
   { unit: "tsp", label: "tsp", group: "Volume" },
   { unit: "tbsp", label: "tbsp", group: "Volume" },
+  { unit: "ml", label: "ml", group: "Volume" },
+  { unit: "L", label: "L", group: "Volume" },
   { unit: "cup", label: "cup", group: "Volume" },
   { unit: "pint", label: "pint", group: "Volume" },
   { unit: "quart", label: "quart", group: "Volume" },
@@ -20,6 +22,16 @@ const WEIGHT_GRAMS: Partial<Record<Unit, number>> = {
   g: 1,
   oz: 28.3495,
   lb: 453.592,
+};
+
+const VOLUME_ML: Partial<Record<Unit, number>> = {
+  tsp: 5,
+  tbsp: 15,
+  ml: 1,
+  L: 1000,
+  cup: 240,
+  pint: 480,
+  quart: 960,
 };
 
 export function getUnitWeight(
@@ -44,20 +56,18 @@ export function getUnitWeight(
     return WEIGHT_GRAMS.g ?? null;
   }
 
-  if (unit === "pint" && base.cup) {
-    return base.cup * 2;
-  }
+  const targetVolume = VOLUME_ML[unit];
 
-  if (unit === "quart" && base.cup) {
-    return base.cup * 4;
-  }
+  if (targetVolume) {
+    for (const [sourceUnit, sourceVolume] of Object.entries(VOLUME_ML) as Array<
+      [Unit, number]
+    >) {
+      const sourceWeight = base[sourceUnit];
 
-  if (unit === "cup" && base.pint) {
-    return base.pint / 2;
-  }
-
-  if (unit === "cup" && base.quart) {
-    return base.quart / 4;
+      if (sourceWeight && sourceVolume) {
+        return (sourceWeight / sourceVolume) * targetVolume;
+      }
+    }
   }
 
   return null;
@@ -109,6 +119,8 @@ export function normalizeImportedUnit(unitText: string): Unit | null {
   if (/^(lb|lbs|pound|pounds)$/.test(normalized)) return "lb";
   if (/^(tsp|teaspoon|teaspoons)$/.test(normalized)) return "tsp";
   if (/^(tbsp|tablespoon|tablespoons)$/.test(normalized)) return "tbsp";
+  if (/^(ml|milliliter|milliliters|millilitre|millilitres)$/.test(normalized)) return "ml";
+  if (/^(l|liter|liters|litre|litres)$/.test(normalized)) return "L";
   if (/^(cup|cups)$/.test(normalized)) return "cup";
   if (/^(pint|pints|pt)$/.test(normalized)) return "pint";
   if (/^(quart|quarts|qt)$/.test(normalized)) return "quart";

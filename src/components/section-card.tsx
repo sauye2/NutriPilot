@@ -28,7 +28,7 @@ export function SectionCard({
       )}
     >
       {(title || eyebrow || action) && (
-        <CardHeader className="premium-card-header relative z-1 flex items-start justify-between gap-4 border-b border-white/45 px-5 py-3 sm:px-6">
+        <CardHeader className="premium-card-header relative z-1 flex items-start justify-between gap-4 border-b border-white/45 px-5 pb-3 pt-5 sm:px-6 sm:pb-3 sm:pt-5">
           <div className="min-w-0">
             {eyebrow ? (
               <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--primary-strong)]">
@@ -44,7 +44,7 @@ export function SectionCard({
           {action ? <div className="shrink-0 self-center">{action}</div> : null}
         </CardHeader>
       )}
-      <CardContent className="relative z-1 px-5 pb-3.5 pt-2.5 sm:px-6 sm:pb-4 sm:pt-3">
+      <CardContent className="relative z-1 px-5 pb-3.5 pt-2 sm:px-6 sm:pb-4 sm:pt-2">
         {children}
       </CardContent>
     </Card>
