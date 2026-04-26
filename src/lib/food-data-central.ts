@@ -659,6 +659,15 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     ],
   },
   {
+    canonical: "chicken drumstick cooked",
+    aliases: ["chicken drumstick", "chicken drumsticks", "drumstick", "drumsticks"],
+    searchExpansions: [
+      "chicken broilers fryers drumstick meat and skin cooked roasted",
+      "chicken drumstick cooked roasted",
+      "chicken drumstick cooked",
+    ],
+  },
+  {
     canonical: "ribeye steak",
     aliases: ["ribeye", "ribeye steak", "rib eye", "rib eye steak"],
     searchExpansions: [
@@ -1284,6 +1293,22 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
       servingText: null,
       per100g: { calories: 165, protein: 31.02, carbs: 0, fat: 3.57 },
       gramsByUnit: { g: 1, piece: 120 },
+    },
+  },
+  {
+    canonicalQuery: "chicken drumstick cooked",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA cooked chicken drumstick entry.",
+    food: {
+      fdcId: 171451,
+      description: "Chicken, Broilers Or Fryers, Drumstick, Meat And Skin, Cooked, Roasted",
+      displayName: "Chicken Drumstick, Cooked",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 216, protein: 27.27, carbs: 0, fat: 11.65 },
+      gramsByUnit: { g: 1, piece: 75 },
     },
   },
   {
@@ -2262,6 +2287,10 @@ function getPreferredGenericProfile(
 
   if ((/\bchicken breast\b/.test(query) || /\bchicken breast\b/.test(raw)) && !/\braw\b/.test(raw)) {
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "chicken breast cooked") ?? null;
+  }
+
+  if (/\bchicken drumsticks?\b|\bdrumsticks?\b/.test(query) || /\bchicken drumsticks?\b|\bdrumsticks?\b/.test(raw)) {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "chicken drumstick cooked") ?? null;
   }
 
   if ((/\bribeye\b/.test(query) || /\brib eye\b/.test(raw)) && !/\braw\b/.test(raw)) {

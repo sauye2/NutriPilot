@@ -453,6 +453,7 @@ for (const ingredient of [
   "strawberry",
   "sirloin steak",
   "chicken breast",
+  "chicken drumsticks",
   "roma tomatoes",
   "baby bella mushrooms",
   "fish sauce",
@@ -577,8 +578,9 @@ test("common protein searches surface sensible generic options first", async () 
 });
 
 test("common protein auto-matches use sensible cooked generic profiles", async () => {
-  const [chicken, ribeye, salmon, pork, apple, banana, pear, strawberry] = await Promise.all([
+  const [chicken, drumsticks, ribeye, salmon, pork, apple, banana, pear, strawberry] = await Promise.all([
     resolveIngredientMatch("chicken breast", { preferCooked: true }),
+    resolveIngredientMatch("chicken drumsticks", { preferCooked: true }),
     resolveIngredientMatch("ribeye", { preferCooked: true }),
     resolveIngredientMatch("salmon", { preferCooked: true }),
     resolveIngredientMatch("pork"),
@@ -590,6 +592,8 @@ test("common protein auto-matches use sensible cooked generic profiles", async (
 
   assert.equal(chicken.food?.description, "Chicken, Broilers Or Fryers, Breast, Meat Only, Cooked, Roasted");
   assert.equal(chicken.food?.per100g.calories, 165);
+  assert.equal(drumsticks.food?.description, "Chicken, Broilers Or Fryers, Drumstick, Meat And Skin, Cooked, Roasted");
+  assert.equal(drumsticks.food?.gramsByUnit.piece, 75);
 
   assert.equal(ribeye.food?.description, "Beef, Steak, Ribeye, Lean And Fat Eaten");
   assert.equal(ribeye.food?.per100g.calories, 289);
