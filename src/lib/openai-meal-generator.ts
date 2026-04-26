@@ -4,6 +4,7 @@ import { formatGroceryQuantity } from "@/lib/ingredient-text";
 import { optimizeGeneratedIngredientsForGoals } from "@/lib/generated-meal-optimizer";
 import { compareGoals, roundTotals } from "@/lib/nutrition";
 import { resolveIngredientMatch } from "@/lib/food-data-central";
+import { getUnitWeight } from "@/lib/units";
 import type {
   GeneratedMeal,
   GeneratedMealFeedback,
@@ -84,7 +85,7 @@ export async function generateMealDraft(
     `Cuisine preference: ${request.cuisine || "none provided"}`,
     `Anchor food or dish style: ${request.anchorFood || "none provided"}`,
     `Dietary notes: ${request.dietaryNotes || "none provided"}`,
-    "Use only these units for ingredients: g, tbsp, tsp, cup, piece.",
+    "Use only these units for ingredients: g, oz, lb, tsp, tbsp, cup, pint, quart, piece.",
     "Prefer grams for meats, rice, sauces, chopped vegetables, and anything that is not naturally countable.",
     "Use piece only for clearly countable items like eggs, cucumbers, scallions, garlic cloves, lettuce leaves, chicken breasts, or steaks.",
     "Every ingredient must have an amount greater than 0.",
@@ -164,7 +165,7 @@ export async function reviseMealDraft(
         `- ${ingredient.amount} ${ingredient.unit} ${ingredient.name}${ingredient.notes ? ` (${ingredient.notes})` : ""}`,
     ),
     "Preserve the spirit of the meal unless the feedback clearly asks for a larger change.",
-    "Keep ingredients practical and coherent, and use only the units g, tbsp, tsp, cup, piece.",
+    "Keep ingredients practical and coherent, and use only the units g, oz, lb, tsp, tbsp, cup, pint, quart, piece.",
     "Prefer grams for meats, rice, sauces, chopped vegetables, and anything that is not naturally countable.",
     "Write instructions in a realistic prep-then-cook order so the timing makes sense for a home cook.",
   ].join("\n");
@@ -245,7 +246,7 @@ async function generateStructuredMeal(prompt: string): Promise<AiMealDraft> {
                     amount: { type: "number" },
                     unit: {
                       type: "string",
-                      enum: ["g", "tbsp", "tsp", "cup", "piece"],
+                      enum: ["g", "oz", "lb", "tsp", "tbsp", "cup", "pint", "quart", "piece"],
                     },
                     notes: {
                       anyOf: [{ type: "string" }, { type: "null" }],
@@ -378,7 +379,7 @@ function calculateIngredientTotals(
   unit: Unit,
   gramsByUnit: Partial<Record<Unit, number>>,
 ) {
-  const grams = (gramsByUnit[unit] ?? 0) * amount;
+  const grams = (getUnitWeight(gramsByUnit, unit) ?? 0) * amount;
 
   if (!grams) {
     return zeroTotals();
@@ -442,14 +443,14 @@ function chooseGeneratedUnit(
   gramsByUnit: Partial<Record<Unit, number>>,
   ingredientName: string,
 ): Unit {
-  if (gramsByUnit[preferredUnit]) {
+  if (getUnitWeight(gramsByUnit, preferredUnit)) {
     return preferredUnit;
   }
 
   if (
     preferredUnit === "piece" &&
     /scallion|green onion|garlic|lettuce|cucumber|egg|steak|breast/i.test(ingredientName) &&
-    gramsByUnit.piece
+    getUnitWeight(gramsByUnit, "piece")
   ) {
     return "piece";
   }

@@ -4,6 +4,7 @@ import type {
   NutritionGoals,
   Unit,
 } from "./types";
+import { getUnitWeight } from "./units";
 
 export function optimizeGeneratedIngredientsForGoals(
   ingredients: GeneratedMealIngredient[],
@@ -331,7 +332,7 @@ function calculateIngredientTotals(
   unit: Unit,
   gramsByUnit: Partial<Record<Unit, number>>,
 ) {
-  const grams = (gramsByUnit[unit] ?? 0) * amount;
+  const grams = (getUnitWeight(gramsByUnit, unit) ?? 0) * amount;
 
   if (!grams) {
     return zeroTotals();

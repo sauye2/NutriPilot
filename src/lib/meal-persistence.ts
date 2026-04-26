@@ -1,4 +1,5 @@
 import { roundTotals } from "@/lib/nutrition";
+import { getUnitWeight } from "@/lib/units";
 import type {
   CalculatedIngredient,
   GeneratedMeal,
@@ -112,19 +113,31 @@ export function buildImportedMealPayload(recipe: ImportedRecipe): PersistableMea
       totals: roundTotals({
         calories:
           ingredient.food && ingredient.amount
-            ? ((ingredient.food.gramsByUnit[ingredient.unit] ?? 0) * ingredient.amount * ingredient.food.per100g.calories) / 100
+            ? ((getUnitWeight(ingredient.food.gramsByUnit, ingredient.unit) ?? 0) *
+                ingredient.amount *
+                ingredient.food.per100g.calories) /
+              100
             : 0,
         protein:
           ingredient.food && ingredient.amount
-            ? ((ingredient.food.gramsByUnit[ingredient.unit] ?? 0) * ingredient.amount * ingredient.food.per100g.protein) / 100
+            ? ((getUnitWeight(ingredient.food.gramsByUnit, ingredient.unit) ?? 0) *
+                ingredient.amount *
+                ingredient.food.per100g.protein) /
+              100
             : 0,
         carbs:
           ingredient.food && ingredient.amount
-            ? ((ingredient.food.gramsByUnit[ingredient.unit] ?? 0) * ingredient.amount * ingredient.food.per100g.carbs) / 100
+            ? ((getUnitWeight(ingredient.food.gramsByUnit, ingredient.unit) ?? 0) *
+                ingredient.amount *
+                ingredient.food.per100g.carbs) /
+              100
             : 0,
         fat:
           ingredient.food && ingredient.amount
-            ? ((ingredient.food.gramsByUnit[ingredient.unit] ?? 0) * ingredient.amount * ingredient.food.per100g.fat) / 100
+            ? ((getUnitWeight(ingredient.food.gramsByUnit, ingredient.unit) ?? 0) *
+                ingredient.amount *
+                ingredient.food.per100g.fat) /
+              100
             : 0,
       }),
       supported: Boolean(ingredient.food),

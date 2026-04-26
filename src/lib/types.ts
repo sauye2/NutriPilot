@@ -1,4 +1,13 @@
-export type Unit = "g" | "tbsp" | "tsp" | "cup" | "piece";
+export type Unit =
+  | "g"
+  | "oz"
+  | "lb"
+  | "tsp"
+  | "tbsp"
+  | "cup"
+  | "pint"
+  | "quart"
+  | "piece";
 
 export type IngredientInput = {
   id: string;

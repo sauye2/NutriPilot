@@ -11,6 +11,7 @@ import type {
   Suggestion,
   Unit,
 } from "@/lib/types";
+import { getUnitWeight } from "@/lib/units";
 
 const macroLabels: Record<MacroKey, string> = {
   calories: "Calories",
@@ -39,7 +40,7 @@ export function findFoodProfile(name: string): FoodProfile | undefined {
 }
 
 export function gramsForUnit(profile: FoodProfile, amount: number, unit: Unit) {
-  const gramsPerUnit = profile.gramsByUnit[unit];
+  const gramsPerUnit = getUnitWeight(profile.gramsByUnit, unit);
 
   if (!gramsPerUnit || !Number.isFinite(amount) || amount <= 0) {
     return 0;
@@ -49,7 +50,7 @@ export function gramsForUnit(profile: FoodProfile, amount: number, unit: Unit) {
 }
 
 function gramsForResolvedFood(food: ResolvedFood, amount: number, unit: Unit) {
-  const gramsPerUnit = food.gramsByUnit[unit];
+  const gramsPerUnit = getUnitWeight(food.gramsByUnit, unit);
 
   if (!gramsPerUnit || !Number.isFinite(amount) || amount <= 0) {
     return 0;
@@ -153,6 +154,7 @@ export function compareGoals(totals: MacroTotals, goals: NutritionGoals): GoalGa
 }
 
 export function generateSuggestions(
+  ingredients: CalculatedIngredient[],
   totals: MacroTotals,
   goals: NutritionGoals,
   unsupportedCount: number,
@@ -173,6 +175,26 @@ export function generateSuggestions(
     });
   }
 
+  const meaningfulIngredients = ingredients.filter(
+    (ingredient) => ingredient.name.trim().length > 0 && ingredient.amount > 0,
+  );
+
+  if (meaningfulIngredients.length === 0) {
+    return [];
+  }
+
+  const biggestCalorieItem = [...meaningfulIngredients].sort(
+    (left, right) => right.totals.calories - left.totals.calories,
+  )[0];
+  const biggestProteinItem = [...meaningfulIngredients].sort(
+    (left, right) => right.totals.protein - left.totals.protein,
+  )[0];
+  const biggestFatItem = [...meaningfulIngredients].sort(
+    (left, right) => right.totals.fat - left.totals.fat,
+  )[0];
+  const caloriesShare =
+    totals.calories > 0 && biggestCalorieItem ? biggestCalorieItem.totals.calories / totals.calories : 0;
+
   if (byKey.protein.status === "under") {
     suggestions.push({
       id: "add-protein",
@@ -192,20 +214,49 @@ export function generateSuggestions(
   }
 
   if (byKey.fat.status === "over") {
-    suggestions.push({
-      id: "reduce-fat",
-      title: "You could trim a richer ingredient first",
-      body: "Pull back a little oil or swap part of a fattier protein for something leaner to lower fat without shrinking the plate too much.",
-      tone: "reduce",
-    });
+    if (biggestFatItem) {
+      suggestions.push({
+        id: "reduce-fat",
+        title: `Pull back on ${biggestFatItem.name} first`,
+        body: `${biggestFatItem.name} is carrying a lot of the fat here. Trim that portion a little or switch to a leaner version to bring the meal down without changing everything else.`,
+        tone: "reduce",
+      });
+    }
   }
 
   if (byKey.calories.status === "over") {
+    if (
+      biggestCalorieItem &&
+      (caloriesShare >= 0.38 ||
+        (biggestCalorieItem.unit === "piece" && biggestCalorieItem.amount >= 4) ||
+        biggestCalorieItem.amount >= 350)
+    ) {
+      suggestions.push({
+        id: "reduce-portion",
+        title: `Trim the portion of ${biggestCalorieItem.name}`,
+        body: `${biggestCalorieItem.name} is doing most of the heavy lifting in this meal. Start by pulling that amount back a bit, then leave the lighter ingredients steady and see where the total lands.`,
+        tone: "reduce",
+      });
+    } else if (biggestCalorieItem) {
+      suggestions.push({
+        id: "reduce-calories",
+        title: "A few easy changes could bring this closer to your goals",
+        body: `Start with ${biggestCalorieItem.name}. Reducing that ingredient a little will usually move the total more than trimming vegetables or lighter sides.`,
+        tone: "swap",
+      });
+    }
+  }
+
+  if (
+    byKey.protein.status === "over" &&
+    biggestProteinItem &&
+    biggestProteinItem.totals.protein >= Math.max(18, totals.protein * 0.35)
+  ) {
     suggestions.push({
-      id: "reduce-calories",
-      title: "A few easy changes could bring this closer to your goals",
-      body: "Start with the most calorie-dense ingredients like oil or richer cuts of meat, then keep the vegetables and lighter sides steady.",
-      tone: "swap",
+      id: "reduce-protein-portion",
+      title: `You can ease back on ${biggestProteinItem.name}`,
+      body: `${biggestProteinItem.name} is already covering a big share of the protein. A slightly smaller portion would bring the meal closer without changing the direction of the meal.`,
+      tone: "reduce",
     });
   }
 

@@ -2,6 +2,11 @@ import "server-only";
 
 import { resolveIngredientMatch } from "@/lib/food-data-central";
 import type { ImportedRecipe, ImportedRecipeIngredient, Unit } from "@/lib/types";
+import {
+  convertAmountBetweenUnits,
+  normalizeImportedUnit,
+  roundAmountForInput,
+} from "@/lib/units";
 
 type RecipeNode = {
   "@type"?: string | string[];
@@ -35,13 +40,14 @@ const FRACTION_MAP: Record<string, string> = {
 const UNIT_ALIASES: Array<{
   pattern: RegExp;
   unit: Unit;
-  multiplier?: number;
 }> = [
   { pattern: /^(tablespoons?|tbsps?|tbsp)\b/i, unit: "tbsp" },
   { pattern: /^(teaspoons?|tsps?|tsp)\b/i, unit: "tsp" },
   { pattern: /^(cups?|c)\b/i, unit: "cup" },
-  { pattern: /^(ounces?|oz)\b/i, unit: "g", multiplier: 28.3495 },
-  { pattern: /^(pounds?|lbs?|lb)\b/i, unit: "g", multiplier: 453.592 },
+  { pattern: /^(pints?|pt)\b/i, unit: "pint" },
+  { pattern: /^(quarts?|qt)\b/i, unit: "quart" },
+  { pattern: /^(ounces?|oz)\b/i, unit: "oz" },
+  { pattern: /^(pounds?|lbs?|lb)\b/i, unit: "lb" },
   { pattern: /^(grams?|g)\b/i, unit: "g" },
   {
     pattern:
@@ -74,16 +80,19 @@ export async function importRecipeFromUrl(inputUrl: string): Promise<ImportedRec
     );
   }
 
-  const normalizedIngredients = await Promise.all(
+  const normalizedLines = consolidateParsedIngredients(
     recipe.recipeIngredient
       .map((ingredient) => normalizeIngredientLine(ingredient))
-      .filter((ingredient): ingredient is ParsedIngredient => Boolean(ingredient))
-      .map(async (ingredient) => {
+      .filter((ingredient): ingredient is ParsedIngredient => Boolean(ingredient)),
+  );
+
+  const normalizedIngredients = await Promise.all(
+    normalizedLines.map(async (ingredient) => {
         const resolution = await resolveIngredientMatch(ingredient.name);
 
         return {
           id: crypto.randomUUID(),
-          originalText: ingredient.originalText,
+          originalText: formatImportedIngredientLine(ingredient),
           name: ingredient.name,
           amount: ingredient.amount,
           unit: ingredient.unit,
@@ -149,6 +158,12 @@ function extractRecipeFromHtml(html: string): RecipeNode | null {
     return frameworkRecipe;
   }
 
+  const embeddedJsonRecipe = extractRecipeFromEmbeddedJsonScripts(html);
+
+  if (embeddedJsonRecipe?.recipeIngredient?.length) {
+    return embeddedJsonRecipe;
+  }
+
   const sectionIngredients = extractIngredientSectionFallback(html);
 
   if (sectionIngredients.length > 0) {
@@ -159,6 +174,37 @@ function extractRecipeFromHtml(html: string): RecipeNode | null {
   }
 
   return null;
+}
+
+function extractRecipeFromEmbeddedJsonScripts(html: string): RecipeNode | null {
+  const matches = html.matchAll(
+    /<script[^>]*type=["']application\/json["'][^>]*>([\s\S]*?)<\/script>/gi,
+  );
+  const records: RecipeNode[] = [];
+
+  for (const match of matches) {
+    const raw = match[1]?.trim();
+
+    if (!raw) {
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      records.push(...collectFrameworkRecipeRecords(parsed));
+    } catch {
+      continue;
+    }
+  }
+
+  return (
+    records
+      .filter((record) => Array.isArray(record.recipeIngredient) && record.recipeIngredient.length > 0)
+      .sort(
+        (left, right) =>
+          (right.recipeIngredient?.length ?? 0) - (left.recipeIngredient?.length ?? 0),
+      )[0] ?? null
+  );
 }
 
 function extractRecipeFromJsonLd(html: string): RecipeNode | null {
@@ -351,23 +397,26 @@ function formatFrameworkIngredient(entry: unknown) {
     return null;
   }
 
-  const amount =
+  let amount =
     typeof ingredient.amount === "number"
-      ? trimNumber(ingredient.amount)
+      ? ingredient.amount
       : typeof ingredient.amount === "string"
-        ? ingredient.amount.trim()
-        : "";
-  const unit = typeof ingredient.unit === "string" ? ingredient.unit.trim() : "";
+        ? Number.parseFloat(ingredient.amount.trim())
+        : null;
+  let unitText = typeof ingredient.unit === "string" ? ingredient.unit.trim() : "";
+
   const note = extractPortableTextSummary(ingredient.notes);
-  const purpose =
-    typeof ingredient.purpose === "string" && ingredient.purpose.trim().length > 0
-      ? ingredient.purpose.trim()
-      : "";
+  const normalizedRiceCup = normalizeRiceCup(amount, unitText, note);
 
-  const line = [amount, unit, item].filter(Boolean).join(" ").trim();
-  const suffixes = [note, purpose ? `for ${purpose}` : ""].filter(Boolean);
+  if (normalizedRiceCup) {
+    amount = normalizedRiceCup.amount;
+    unitText = normalizedRiceCup.unit;
+  }
 
-  return suffixes.length ? `${line} (${suffixes.join("; ")})` : line;
+  const amountLabel = amount !== null ? trimNumber(amount) : "";
+  const unitLabel = normalizeDisplayUnit(unitText);
+
+  return [amountLabel, unitLabel, item].filter(Boolean).join(" ").trim();
 }
 
 function extractPortableTextSummary(value: unknown) {
@@ -472,7 +521,7 @@ function normalizeIngredientLine(line: string): ParsedIngredient | null {
     return null;
   }
 
-  const normalizedFractions = replaceFractions(originalText);
+  const normalizedFractions = normalizeRecipeLine(replaceFractions(originalText));
   const amountMatch = normalizedFractions.match(
     /^(\d+(?:\.\d+)?(?:\s+\d+\/\d+)?|\d+\/\d+)\s+/,
   );
@@ -480,14 +529,14 @@ function normalizeIngredientLine(line: string): ParsedIngredient | null {
   if (!amountMatch) {
     return {
       originalText,
-      name: stripPrepPrefixes(normalizedFractions),
+      name: stripPrepPrefixes(normalizeIngredientName(normalizedFractions)),
       amount: null,
       unit: "piece",
     };
   }
 
   const amountText = amountMatch[1];
-  const amount = parseAmount(amountText);
+  let amount = parseAmount(amountText);
   let remainder = normalizedFractions.slice(amountMatch[0].length).trim();
   let unit: Unit = "piece";
 
@@ -501,18 +550,24 @@ function normalizeIngredientLine(line: string): ParsedIngredient | null {
     remainder = remainder.slice(unitMatch[0].length).trim();
     unit = alias.unit;
 
+    const riceCup = normalizeRiceCup(amount, unitMatch[0], normalizedFractions);
+
+    if (riceCup) {
+      amount = riceCup.amount;
+      unit = riceCup.unit;
+    }
+
     return {
       originalText,
-      name: stripPrepPrefixes(remainder),
-      amount:
-        amount !== null && alias.multiplier ? roundValue(amount * alias.multiplier) : amount,
+      name: stripPrepPrefixes(normalizeIngredientName(remainder)),
       unit,
+      amount: amount !== null ? roundValue(amount) : amount,
     };
   }
 
   return {
     originalText,
-    name: stripPrepPrefixes(remainder),
+    name: stripPrepPrefixes(normalizeIngredientName(remainder)),
     amount,
     unit,
   };
@@ -568,6 +623,152 @@ function stripImportNoise(value: string) {
     .replace(/\s+,/g, ",")
     .replace(/\s{2,}/g, " ")
     .trim();
+}
+
+function normalizeRecipeLine(value: string) {
+  return value
+    .replace(/\(\s*Amazon\s*\)/gi, "")
+    .replace(/\(\s*for [^)]+\)/gi, "")
+    .replace(/\(\s*use any amount you want\s*\)/gi, "")
+    .replace(/\(\s*to taste\s*\)/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function normalizeIngredientName(value: string) {
+  return value
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\bfor marinade\b/gi, " ")
+    .replace(/\bfor boiling\b/gi, " ")
+    .replace(/\bfor soup flavor\b/gi, " ")
+    .replace(/\bAmazon\b/gi, " ")
+    .replace(/\buse any amount you want\b/gi, " ")
+    .replace(/\bto taste\b/gi, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function normalizeRiceCup(amount: number | null, unitText: string, context: string) {
+  if (amount === null) {
+    return null;
+  }
+
+  const combined = `${unitText} ${context}`.toLowerCase();
+
+  if (!/\brice cup\b/.test(combined)) {
+    return null;
+  }
+
+  return {
+    amount: roundValue(amount * 0.75),
+    unit: "cup" as Unit,
+  };
+}
+
+function normalizeDisplayUnit(unitText: string) {
+  const mapped = normalizeImportedUnit(unitText);
+
+  return mapped ?? unitText.trim().toLowerCase();
+}
+
+function consolidateParsedIngredients(ingredients: ParsedIngredient[]) {
+  const merged = new Map<string, ParsedIngredient>();
+
+  for (const ingredient of ingredients) {
+    const normalizedName = normalizeIngredientName(ingredient.name);
+    const key = normalizedName.toLowerCase();
+    const existing = merged.get(key);
+
+    if (!existing) {
+      merged.set(key, {
+        ...ingredient,
+        name: normalizedName,
+      });
+      continue;
+    }
+
+    const combined = mergeIngredientAmounts(existing, {
+      ...ingredient,
+      name: normalizedName,
+    });
+
+    if (combined) {
+      merged.set(key, combined);
+    } else {
+      merged.set(`${key}-${ingredient.unit}-${ingredient.amount ?? "na"}`, {
+        ...ingredient,
+        name: normalizedName,
+      });
+    }
+  }
+
+  return Array.from(merged.values());
+}
+
+function mergeIngredientAmounts(left: ParsedIngredient, right: ParsedIngredient) {
+  if (left.name.toLowerCase() !== right.name.toLowerCase()) {
+    return null;
+  }
+
+  if (left.amount === null || right.amount === null) {
+    return null;
+  }
+
+  if (left.unit === right.unit) {
+    return {
+      ...left,
+      amount: roundValue(left.amount + right.amount),
+      originalText: formatImportedIngredientLine({
+        ...left,
+        amount: roundValue(left.amount + right.amount),
+      }),
+    };
+  }
+
+  const volumeConversion = convertImportedUnits(right.amount, right.unit, left.unit);
+
+  if (volumeConversion !== null) {
+    return {
+      ...left,
+      amount: roundValue(left.amount + volumeConversion),
+      originalText: formatImportedIngredientLine({
+        ...left,
+        amount: roundValue(left.amount + volumeConversion),
+      }),
+    };
+  }
+
+  return null;
+}
+
+function convertImportedUnits(amount: number, fromUnit: Unit, toUnit: Unit) {
+  const gramsByUnit = getImportedVolumeWeightMap();
+  return convertAmountBetweenUnits(amount, gramsByUnit, fromUnit, toUnit);
+}
+
+function getImportedVolumeWeightMap(): Partial<Record<Unit, number>> {
+  return {
+    g: 1,
+    oz: 28.3495,
+    lb: 453.592,
+    tsp: 5,
+    tbsp: 15,
+    cup: 240,
+    pint: 480,
+    quart: 960,
+  };
+}
+
+function formatImportedIngredientLine(ingredient: ParsedIngredient) {
+  if (ingredient.amount === null) {
+    return ingredient.name;
+  }
+
+  return `${roundAmountForImport(ingredient.amount, ingredient.unit)} ${ingredient.unit} ${ingredient.name}`;
+}
+
+function roundAmountForImport(amount: number, unit: Unit) {
+  return roundAmountForInput(amount, unit);
 }
 
 function fixMojibake(value: string) {

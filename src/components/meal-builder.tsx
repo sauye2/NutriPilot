@@ -7,6 +7,7 @@ import { SignInPrompt } from "@/components/sign-in-prompt";
 import {
   calculateMealTotals,
   compareGoals,
+  findFoodProfile,
   generateSuggestions,
 } from "@/lib/nutrition";
 import { clearImportedRecipe, readImportedRecipe } from "@/lib/imported-recipe-storage";
@@ -25,8 +26,14 @@ import type {
 } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
 import { SectionCard } from "@/components/section-card";
-
-const units: Unit[] = ["g", "tbsp", "tsp", "cup", "piece"];
+import {
+  canConvertBetweenUnits,
+  convertAmountBetweenUnits,
+  getUnitWeight,
+  roundAmountForInput,
+  UNIT_OPTIONS,
+  unitGroupLabel,
+} from "@/lib/units";
 type IngredientDraft = {
   id: string;
   name: string;
@@ -201,18 +208,34 @@ export function MealBuilder() {
   );
 
   const suggestions = useMemo(
-    () =>
-      hasAnyGoal
-        ? generateSuggestions(totals, parsedGoals, unsupportedIngredients.length)
-        : [
-            {
-              id: "set-goals",
-              title: "Add goals to unlock tuning",
-              body: "Use the example placeholders for calories, protein, carbs, and fat, then NutriPilot will compare the meal and suggest concrete changes.",
-              tone: "balance" as const,
-            },
-          ],
-    [hasAnyGoal, parsedGoals, totals, unsupportedIngredients.length],
+    () => {
+      const activeIngredients = calculatedIngredients.filter(
+        (ingredient) => ingredient.name.trim().length > 0 && ingredient.amount > 0,
+      );
+
+      if (activeIngredients.length === 0) {
+        return [];
+      }
+
+      if (!hasAnyGoal) {
+        return [
+          {
+            id: "set-goals",
+            title: "Add goals to unlock tuning",
+            body: "Set calories, protein, carbs, and fat in the dashboard, then NutriPilot will suggest clearer portion changes, adds, and swaps here.",
+            tone: "balance" as const,
+          },
+        ];
+      }
+
+      return generateSuggestions(
+        activeIngredients,
+        totals,
+        parsedGoals,
+        unsupportedIngredients.length,
+      );
+    },
+    [calculatedIngredients, hasAnyGoal, parsedGoals, totals, unsupportedIngredients.length],
   );
 
   function updateIngredient(id: string, patch: Partial<IngredientDraft>) {
@@ -243,6 +266,40 @@ export function MealBuilder() {
 
   function addIngredient() {
     setIngredients((current) => [...current, createIngredientDraft()]);
+  }
+
+  function handleUnitChange(id: string, nextUnit: Unit) {
+    const ingredient = ingredientsRef.current.find((entry) => entry.id === id);
+
+    if (!ingredient) {
+      return;
+    }
+
+    const currentAmount = Number.parseFloat(ingredient.amount);
+    const gramsByUnit =
+      ingredient.food?.gramsByUnit ?? findFoodProfile(ingredient.name)?.gramsByUnit ?? null;
+
+    if (
+      Number.isFinite(currentAmount) &&
+      currentAmount > 0 &&
+      gramsByUnit &&
+      canConvertBetweenUnits(gramsByUnit, ingredient.unit, nextUnit)
+    ) {
+      const converted = convertAmountBetweenUnits(
+        currentAmount,
+        gramsByUnit,
+        ingredient.unit,
+        nextUnit,
+      );
+
+      updateIngredient(id, {
+        unit: nextUnit,
+        amount: converted !== null ? roundAmountForInput(converted, nextUnit) : ingredient.amount,
+      });
+      return;
+    }
+
+    updateIngredient(id, { unit: nextUnit });
   }
 
   async function handleSaveMeal() {
@@ -432,6 +489,7 @@ export function MealBuilder() {
             resolvingFoodId={resolvingFoodId}
             searchLoadingId={searchLoadingId}
             searchResults={searchResults}
+            onUnitChange={handleUnitChange}
             isSavingMeal={isSavingMeal}
             savableIngredientsCount={savableIngredients.length}
             saveMessage={saveMessage}
@@ -476,6 +534,10 @@ function choosePreferredUnit(food: ResolvedFood): Unit {
     return "piece";
   }
 
+  if (food.gramsByUnit.cup) {
+    return "cup";
+  }
+
   return "g";
 }
 
@@ -484,7 +546,7 @@ function isUnitAvailable(food: ResolvedFood | null, unit: Unit) {
     return true;
   }
 
-  return Boolean(food.gramsByUnit[unit]);
+  return Boolean(getUnitWeight(food.gramsByUnit, unit));
 }
 
 function IngredientTable({
@@ -497,15 +559,16 @@ function IngredientTable({
   onSelectFood,
   openSearchId,
   onOpenSearch,
-      resolvingFoodId,
-      searchLoadingId,
-      searchResults,
-      isSavingMeal,
-      savableIngredientsCount,
-      saveMessage,
-      saveError,
-      showSignInPrompt,
-      onSaveMeal,
+  resolvingFoodId,
+  searchLoadingId,
+  searchResults,
+  onUnitChange,
+  isSavingMeal,
+  savableIngredientsCount,
+  saveMessage,
+  saveError,
+  showSignInPrompt,
+  onSaveMeal,
 }: {
   ingredients: IngredientDraft[];
   calculatedIngredients: ReturnType<typeof calculateMealTotals>["calculatedIngredients"];
@@ -519,6 +582,7 @@ function IngredientTable({
   resolvingFoodId: string | null;
   searchLoadingId: string | null;
   searchResults: Record<string, FoodSearchResult[]>;
+  onUnitChange: (id: string, nextUnit: Unit) => void;
   isSavingMeal: boolean;
   savableIngredientsCount: number;
   saveMessage: string | null;
@@ -574,39 +638,26 @@ function IngredientTable({
               isResolving={resolvingFoodId === ingredient.id}
               isSearching={searchLoadingId === ingredient.id}
               searchResults={searchResults[ingredient.id] ?? []}
+              onUnitChange={onUnitChange}
             />
           ))}
-          <div className="rounded-[14px] border border-dashed border-[var(--border)] bg-[var(--muted-soft)] px-4 py-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-[var(--foreground)]">Save meal</p>
-                <p className="mt-1 text-sm text-[var(--muted)]">
-                  {savableIngredientsCount > 0
-                    ? "Keep this version in your dashboard so you can come back to it later."
-                    : "Add at least one ingredient and amount, then you can save this meal."}
-                </p>
-              </div>
-              <button
-                className="rounded-[10px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition duration-200 hover:bg-[var(--primary-strong)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={isSavingMeal || savableIngredientsCount === 0}
-                type="button"
-                onClick={() => void onSaveMeal()}
-              >
-                {isSavingMeal ? "Saving..." : "Save Meal"}
-              </button>
-            </div>
-            {saveMessage ? (
-              <p className="mt-3 text-sm font-medium text-[var(--primary-strong)]">{saveMessage}</p>
-            ) : null}
-            {saveError ? (
-              <p className="mt-3 text-sm font-medium text-[var(--danger)]">{saveError}</p>
-            ) : null}
-            {showSignInPrompt ? (
-              <div className="mt-4">
-                <SignInPrompt message={showSignInPrompt} />
-              </div>
-            ) : null}
+          <div className="flex justify-end pt-2">
+            <button
+              className="rounded-[10px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition duration-200 hover:bg-[var(--primary-strong)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isSavingMeal || savableIngredientsCount === 0}
+              type="button"
+              onClick={() => void onSaveMeal()}
+            >
+              {isSavingMeal ? "Saving..." : "Save Meal"}
+            </button>
           </div>
+          {saveMessage ? (
+            <p className="text-sm font-medium text-[var(--primary-strong)]">{saveMessage}</p>
+          ) : null}
+          {saveError ? (
+            <p className="text-sm font-medium text-[var(--danger)]">{saveError}</p>
+          ) : null}
+          {showSignInPrompt ? <SignInPrompt message={showSignInPrompt} /> : null}
         </div>
       )}
     </SectionCard>
@@ -625,6 +676,7 @@ function IngredientRow({
   isResolving,
   isSearching,
   searchResults,
+  onUnitChange,
 }: {
   ingredient: IngredientDraft;
   calculated: ReturnType<typeof calculateMealTotals>["calculatedIngredients"][number];
@@ -637,6 +689,7 @@ function IngredientRow({
   isResolving: boolean;
   isSearching: boolean;
   searchResults: FoodSearchResult[];
+  onUnitChange: (id: string, nextUnit: Unit) => void;
 }) {
   const unitUnavailable = ingredient.food
     ? !isUnitAvailable(ingredient.food, ingredient.unit)
@@ -728,18 +781,22 @@ function IngredientRow({
         <select
           className="focus-ring h-11 w-full rounded-[12px] border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)]"
           value={ingredient.unit}
-          onChange={(event) =>
-            onUpdate(ingredient.id, { unit: event.target.value as Unit })
-          }
+          onChange={(event) => onUnitChange(ingredient.id, event.target.value as Unit)}
         >
-          {units.map((unit) => (
-            <option
-              key={unit}
-              value={unit}
-              disabled={ingredient.food ? !isUnitAvailable(ingredient.food, unit) : false}
-            >
-              {unit}
-            </option>
+          {(["Weight", "Volume", "Count"] as const).map((group) => (
+            <optgroup key={group} label={unitGroupLabel(group)}>
+              {UNIT_OPTIONS.filter((option) => option.group === group).map((option) => (
+                <option
+                  key={option.unit}
+                  value={option.unit}
+                  disabled={
+                    ingredient.food ? !isUnitAvailable(ingredient.food, option.unit) : false
+                  }
+                >
+                  {option.label}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
         {unitUnavailable ? (
@@ -1032,21 +1089,28 @@ function GapBadge({ gap }: { gap: GoalGap }) {
 function SuggestionsCard({ suggestions }: { suggestions: Suggestion[] }) {
   return (
     <SectionCard title="What to Tweak" eyebrow="Helpful recommendations">
-      <div className="space-y-3">
-        {suggestions.map((suggestion) => (
-          <article
-            key={suggestion.id}
-            className="rounded-[12px] border border-[var(--border)] bg-white/70 p-4"
-          >
-            <p className="text-sm font-semibold text-[var(--foreground)]">
-              {suggestion.title}
-            </p>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-              {suggestion.body}
-            </p>
-          </article>
-        ))}
-      </div>
+      {suggestions.length > 0 ? (
+        <div className="space-y-3">
+          {suggestions.map((suggestion) => (
+            <article
+              key={suggestion.id}
+              className="rounded-[12px] border border-[var(--border)] bg-white/70 p-4"
+            >
+              <p className="text-sm font-semibold text-[var(--foreground)]">
+                {suggestion.title}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                {suggestion.body}
+              </p>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm leading-6 text-[var(--muted)]">
+          Add your first ingredient and NutriPilot will start suggesting clearer
+          portion changes, additions, and swaps based on what is actually in the meal.
+        </p>
+      )}
     </SectionCard>
   );
 }

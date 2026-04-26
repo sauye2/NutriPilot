@@ -15,6 +15,14 @@ export function formatIngredientLine(
     return `${formattedAmount}g ${normalizedName}`;
   }
 
+  if (unit === "oz") {
+    return `${formattedAmount} oz ${normalizedName}`;
+  }
+
+  if (unit === "lb") {
+    return `${formattedAmount} lb ${normalizedName}`;
+  }
+
   if (unit === "tbsp") {
     return `${formattedAmount} tbsp ${normalizedName}`;
   }
@@ -25,6 +33,14 @@ export function formatIngredientLine(
 
   if (unit === "cup") {
     return `${formattedAmount} ${pluralize("cup", amount)} ${normalizedName}`;
+  }
+
+  if (unit === "pint") {
+    return `${formattedAmount} ${pluralize("pint", amount)} ${normalizedName}`;
+  }
+
+  if (unit === "quart") {
+    return `${formattedAmount} ${pluralize("quart", amount)} ${normalizedName}`;
   }
 
   if (/scallion|green onion|spring onion/.test(lowerName)) {
@@ -80,6 +96,14 @@ export function formatGroceryQuantity(
     return `${formattedAmount} g`;
   }
 
+  if (unit === "oz") {
+    return `${formattedAmount} oz`;
+  }
+
+  if (unit === "lb") {
+    return `${formattedAmount} lb`;
+  }
+
   if (unit === "tbsp") {
     return `${formattedAmount} tbsp`;
   }
@@ -90,6 +114,14 @@ export function formatGroceryQuantity(
 
   if (unit === "cup") {
     return `${formattedAmount} ${pluralize("cup", amount)}`;
+  }
+
+  if (unit === "pint") {
+    return `${formattedAmount} ${pluralize("pint", amount)}`;
+  }
+
+  if (unit === "quart") {
+    return `${formattedAmount} ${pluralize("quart", amount)}`;
   }
 
   if (/scallion|green onion|spring onion/.test(lowerLabel)) {
