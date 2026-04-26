@@ -59,11 +59,16 @@ export async function generateMealDraft(
   request: GeneratedMealRequest,
 ): Promise<GeneratedMeal> {
   const varietyDirection = chooseVarietyDirection(request);
+  const pantryItems = (request.pantryIngredients ?? []).filter((item) => item.trim().length > 0);
+  const isPantryMode = request.mode === "pantry";
   const prompt = [
     "Generate a meal plan in JSON.",
     "The meal should taste good in a normal home-cooking sense, not just hit macros.",
     "Keep ingredients practical, coherent, and limited to a single meal.",
     "Prefer common grocery ingredients and avoid obscure supplements or duplicate ingredients.",
+    isPantryMode
+      ? "This is Pantry Mode. Use the pantry ingredients the user already has wherever they fit naturally, and only add extra grocery items when they genuinely help the meal work."
+      : "",
     "Being close to the nutrition targets is fine; the meal does not need to match them exactly.",
     "Still, aim to land reasonably close on both calories and protein after the ingredient list is checked against USDA nutrition data.",
     "If the protein target is substantial, choose enough lean or balanced protein so the finished meal is not short by dozens of grams.",
@@ -85,6 +90,9 @@ export async function generateMealDraft(
     `Cuisine preference: ${request.cuisine || "none provided"}`,
     `Anchor food or dish style: ${request.anchorFood || "none provided"}`,
     `Dietary notes: ${request.dietaryNotes || "none provided"}`,
+    isPantryMode
+      ? `Pantry ingredients to include when possible: ${pantryItems.length ? pantryItems.join(", ") : "none provided"}`
+      : "",
     "Use only these units for ingredients: g, oz, lb, tsp, tbsp, cup, pint, quart, piece.",
     "Prefer grams for meats, rice, sauces, chopped vegetables, and anything that is not naturally countable.",
     "Use piece only for clearly countable items like eggs, cucumbers, scallions, garlic cloves, lettuce leaves, chicken breasts, or steaks.",
@@ -92,7 +100,9 @@ export async function generateMealDraft(
     "Keep the ingredient list concise and avoid garnish-only filler.",
     "Write instructions in a realistic cooking order. Prep work like mincing, slicing, mixing sauces, and heating pans should appear before the steps that use them.",
     "Make the instructions comprehensive enough for a home cook to follow without guessing.",
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   const draft = await generateStructuredMeal(prompt);
   return hydrateGeneratedMeal(draft, request.goals);

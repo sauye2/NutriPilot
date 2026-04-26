@@ -30,6 +30,7 @@ import type {
 } from "@/lib/types";
 
 type GoalDraft = Record<MacroKey, string>;
+type MealPlannerMode = "lazy" | "pantry";
 
 const goalPlaceholders: GoalDraft = {
   calories: "700",
@@ -71,6 +72,9 @@ export function GenerateMealClient() {
   const [cuisine, setCuisine] = useState("");
   const [anchorFood, setAnchorFood] = useState("");
   const [dietaryNotes, setDietaryNotes] = useState("");
+  const [plannerMode, setPlannerMode] = useState<MealPlannerMode>("lazy");
+  const [pantryInput, setPantryInput] = useState("");
+  const [pantryItems, setPantryItems] = useState<string[]>([]);
   const [feedback, setFeedback] = useState("");
   const [meal, setMeal] = useState<GeneratedMeal | null>(null);
   const [acceptedMeal, setAcceptedMeal] = useState<GeneratedMeal | null>(null);
@@ -111,6 +115,9 @@ export function GenerateMealClient() {
     Object.values(goals).some((value) => value.trim().length > 0) ||
     Object.values(effectiveGoalDefaults).some((value) => value > 0);
   const activeGoalPlaceholders = user ? savedGoalPlaceholders : goalPlaceholders;
+  const shouldMoveSupportCardsLeft = Boolean(
+    meal && meal.ingredients.length + meal.instructions.length + meal.whyItWorks.length >= 13,
+  );
 
   useEffect(() => {
     if (!user) {
@@ -168,6 +175,8 @@ export function GenerateMealClient() {
           cuisine,
           anchorFood,
           dietaryNotes,
+          mode: plannerMode,
+          pantryIngredients: pantryItems,
         }),
       });
 
@@ -333,6 +342,28 @@ export function GenerateMealClient() {
     void handleGenerate();
   }
 
+  function addPantryItemFromInput() {
+    const trimmed = pantryInput.trim();
+
+    if (!trimmed) {
+      return false;
+    }
+
+    setPantryItems((current) => {
+      if (current.some((item) => item.toLowerCase() === trimmed.toLowerCase())) {
+        return current;
+      }
+
+      return [...current, trimmed];
+    });
+    setPantryInput("");
+    return true;
+  }
+
+  function removePantryItem(itemToRemove: string) {
+    setPantryItems((current) => current.filter((item) => item !== itemToRemove));
+  }
+
   function handleReviseSubmit() {
     if (isRevising || feedback.trim().length < 4) {
       return;
@@ -353,6 +384,122 @@ export function GenerateMealClient() {
     submit();
   }
 
+  function handlePantryKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (!addPantryItemFromInput()) {
+      handleGenerateSubmit();
+    }
+  }
+
+  const supportCards = (
+    <>
+      {meal &&
+      optimizationSuggestions.some((suggestion) => suggestion.status !== "dismissed") ? (
+        <SectionCard title="Suggested Optimizations" eyebrow="A few easy ways to tune it">
+          <div className="space-y-3">
+            {optimizationSuggestions
+              .filter((suggestion) => suggestion.status !== "dismissed")
+              .map((suggestion) => {
+                const isAccepted = suggestion.status === "accepted";
+
+                return (
+                  <article
+                    key={suggestion.id}
+                    className={`rounded-[8px] border border-[var(--border)] bg-white/80 p-4 transition-all duration-300 ${
+                      isAccepted ? "opacity-60" : "opacity-100"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-sm font-semibold text-[var(--foreground)]">
+                        {suggestion.title}
+                      </p>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {isAccepted ? (
+                          <span className="rounded-full border border-[var(--primary-soft)] bg-[var(--muted-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--primary-strong)]">
+                            Accepted
+                          </span>
+                        ) : null}
+                        <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--primary-strong)]">
+                          {suggestion.kind}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                      {suggestion.body}
+                    </p>
+                    {isAccepted ? (
+                      <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                        Applied to the current meal.
+                      </p>
+                    ) : (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          className="rounded-[8px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                          disabled={isRevising}
+                          type="button"
+                          onClick={() => void applyOptimizationSuggestion(suggestion)}
+                        >
+                          {isRevising ? "Applying..." : "Apply Suggestion"}
+                        </button>
+                        <button
+                          className="rounded-[8px] border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--muted-soft)]"
+                          type="button"
+                          onClick={() => dismissOptimizationSuggestion(suggestion.id)}
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+          </div>
+        </SectionCard>
+      ) : meal ? (
+        <SectionCard title="Suggested Optimizations" eyebrow="A few easy ways to tune it">
+          <p className="text-sm leading-6 text-[var(--muted)]">
+            This meal already looks pretty balanced for the goals you set.
+          </p>
+        </SectionCard>
+      ) : null}
+
+      {meal ? (
+        <SectionCard title="Make It Your Own" eyebrow="Add a note">
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleReviseSubmit();
+            }}
+          >
+            <textarea
+              className="focus-ring min-h-28 w-full rounded-[8px] border border-[var(--border)] bg-white px-3 py-3 text-sm text-[var(--foreground)]"
+              placeholder="Want a little more heat, fewer onions, another side, or a different feel? Add a note here."
+              value={feedback}
+              onKeyDown={(event) => handleEnterSubmit(event, handleReviseSubmit)}
+              onChange={(event) => setFeedback(event.target.value)}
+            />
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="rounded-[8px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isRevising || feedback.trim().length < 4}
+                type="submit"
+              >
+                {isRevising ? "Revising..." : "Revise from feedback"}
+              </button>
+            </div>
+          </form>
+        </SectionCard>
+      ) : null}
+    </>
+  );
+
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-7xl px-5 pb-12 pt-4 sm:px-8">
@@ -371,7 +518,32 @@ export function GenerateMealClient() {
         </section>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(340px,0.9fr)_minmax(0,1.1fr)]">
-          <SectionCard title="Build a Meal for Me" eyebrow="Lazy Mode">
+          <div className="space-y-6">
+          <SectionCard
+            title="Build a Meal for Me"
+            eyebrow={plannerMode === "lazy" ? "Lazy Mode" : "Pantry Mode"}
+            action={
+              <div className="inline-flex rounded-full border border-[var(--border)] bg-white p-1 shadow-sm">
+                {(["lazy", "pantry"] as MealPlannerMode[]).map((mode) => {
+                  const isActive = plannerMode === mode;
+                  return (
+                    <button
+                      key={mode}
+                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-300 ${
+                        isActive
+                          ? "bg-[var(--primary)] text-white shadow-sm"
+                          : "text-[var(--muted)] hover:bg-[var(--muted-soft)]"
+                      }`}
+                      type="button"
+                      onClick={() => setPlannerMode(mode)}
+                    >
+                      {mode === "lazy" ? "Lazy Mode" : "Pantry Mode"}
+                    </button>
+                  );
+                })}
+              </div>
+            }
+          >
             <form
               className="space-y-4"
               onSubmit={(event) => {
@@ -437,6 +609,46 @@ export function GenerateMealClient() {
                 />
               </label>
 
+              {plannerMode === "pantry" ? (
+                <label className="block">
+                  <span className="mb-1 block text-xs font-semibold text-[var(--muted)]">
+                    Pantry Ingredients
+                  </span>
+                  <div className="focus-ring flex min-h-11 flex-wrap items-center gap-2 rounded-[12px] border border-[var(--border)] bg-white px-3 py-2 transition duration-200">
+                    {pantryItems.map((item) => (
+                      <span
+                        key={item}
+                        className="inline-flex items-center gap-2 rounded-full bg-[var(--primary-soft)] px-3 py-1.5 text-sm font-medium text-[var(--primary-strong)] transition-all duration-200"
+                      >
+                        {item}
+                        <button
+                          className="text-[var(--primary-strong)]/80 transition hover:text-[var(--primary-strong)]"
+                          type="button"
+                          onClick={() => removePantryItem(item)}
+                        >
+                          x
+                        </button>
+                      </span>
+                    ))}
+                    <input
+                      className="min-w-[160px] flex-1 border-0 bg-transparent px-0 py-1 text-sm text-[var(--foreground)] outline-none"
+                      placeholder={
+                        pantryItems.length
+                          ? "Add another pantry item..."
+                          : "Type an ingredient and press Enter..."
+                      }
+                      value={pantryInput}
+                      onChange={(event) => setPantryInput(event.target.value)}
+                      onKeyDown={handlePantryKeyDown}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
+                    Add what you already have, and NutriPilot will try to build around
+                    those ingredients before filling in the rest.
+                  </p>
+                </label>
+              ) : null}
+
               <button
                 className="rounded-[8px] bg-[var(--primary)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={isGenerating || !hasGoals}
@@ -446,9 +658,9 @@ export function GenerateMealClient() {
               </button>
 
               <div className="rounded-[8px] bg-[var(--muted-soft)] px-4 py-4 text-sm leading-6 text-[var(--muted)]">
-                NutriPilot shapes a meal around your goals and preferences, then checks
-                the ingredient list against USDA-backed nutrition data before showing
-                it here.
+                {plannerMode === "lazy"
+                  ? "NutriPilot shapes a meal around your goals and preferences, then checks the ingredient list against USDA-backed nutrition data before showing it here."
+                  : "NutriPilot builds around your goals and the pantry items you already have, then checks the ingredient list against USDA-backed nutrition data before showing it here."}
               </div>
 
               {error ? (
@@ -458,12 +670,14 @@ export function GenerateMealClient() {
               ) : null}
             </form>
           </SectionCard>
+          {shouldMoveSupportCardsLeft ? supportCards : null}
+          </div>
 
           <div className="space-y-6">
             <div ref={mealSummaryRef}>
               <SectionCard
-                title={meal ? meal.title : "Meal Preview"}
-                eyebrow={meal ? "Meal idea" : "Preview"}
+                title={meal ? meal.title : "Meal Idea"}
+                eyebrow="Meal Idea"
                 action={
                   meal ? (
                     <button
@@ -587,105 +801,7 @@ export function GenerateMealClient() {
               </SectionCard>
             </div>
 
-            {meal &&
-            optimizationSuggestions.some((suggestion) => suggestion.status !== "dismissed") ? (
-              <SectionCard title="Suggested Optimizations" eyebrow="A few easy ways to tune it">
-                <div className="space-y-3">
-                  {optimizationSuggestions
-                    .filter((suggestion) => suggestion.status !== "dismissed")
-                    .map((suggestion) => {
-                    const isAccepted = suggestion.status === "accepted";
-
-                    return (
-                      <article
-                        key={suggestion.id}
-                        className={`rounded-[8px] border border-[var(--border)] bg-white/80 p-4 transition-all duration-300 ${
-                          isAccepted ? "opacity-60" : "opacity-100"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <p className="text-sm font-semibold text-[var(--foreground)]">
-                            {suggestion.title}
-                          </p>
-                          <div className="flex shrink-0 items-center gap-2">
-                            {isAccepted ? (
-                              <span className="rounded-full border border-[var(--primary-soft)] bg-[var(--muted-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--primary-strong)]">
-                                Accepted
-                              </span>
-                            ) : null}
-                            <span className="rounded-full bg-[var(--primary-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--primary-strong)]">
-                              {suggestion.kind}
-                            </span>
-                          </div>
-                        </div>
-                        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                          {suggestion.body}
-                        </p>
-                        {isAccepted ? (
-                          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                            Applied to the current meal.
-                          </p>
-                        ) : (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <button
-                              className="rounded-[8px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
-                              disabled={isRevising}
-                              type="button"
-                              onClick={() => void applyOptimizationSuggestion(suggestion)}
-                            >
-                              {isRevising ? "Applying..." : "Apply Suggestion"}
-                            </button>
-                            <button
-                              className="rounded-[8px] border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--muted-soft)]"
-                              type="button"
-                              onClick={() => dismissOptimizationSuggestion(suggestion.id)}
-                            >
-                              Dismiss
-                            </button>
-                          </div>
-                        )}
-                      </article>
-                    );
-                  })}
-                </div>
-              </SectionCard>
-            ) : meal ? (
-              <SectionCard title="Suggested Optimizations" eyebrow="A few easy ways to tune it">
-                <p className="text-sm leading-6 text-[var(--muted)]">
-                  This meal already looks pretty balanced for the goals you set.
-                </p>
-              </SectionCard>
-            ) : null}
-
-            {meal ? (
-              <SectionCard title="Make It Your Own" eyebrow="Add a note">
-                <form
-                  className="space-y-4"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    handleReviseSubmit();
-                  }}
-                >
-                  <textarea
-                    className="focus-ring min-h-28 w-full rounded-[8px] border border-[var(--border)] bg-white px-3 py-3 text-sm text-[var(--foreground)]"
-                    placeholder="Want a little more heat, fewer onions, another side, or a different feel? Add a note here."
-                    value={feedback}
-                    onKeyDown={(event) => handleEnterSubmit(event, handleReviseSubmit)}
-                    onChange={(event) => setFeedback(event.target.value)}
-                  />
-
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      className="rounded-[8px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--primary-strong)] disabled:cursor-not-allowed disabled:opacity-60"
-                      disabled={isRevising || feedback.trim().length < 4}
-                      type="submit"
-                    >
-                      {isRevising ? "Revising..." : "Revise from feedback"}
-                    </button>
-                  </div>
-                </form>
-              </SectionCard>
-            ) : null}
+            {!shouldMoveSupportCardsLeft ? supportCards : null}
 
             {acceptedMeal ? (
               <>

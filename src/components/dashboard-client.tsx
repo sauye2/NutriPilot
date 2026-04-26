@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/components/auth-provider";
 import { SectionCard } from "@/components/section-card";
@@ -36,6 +36,7 @@ const weeklyCardClasses = [
 
 export function DashboardClient() {
   const { user, isLoading: authLoading } = useAuth();
+  const timeZone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,7 +73,7 @@ export function DashboardClient() {
       setError(null);
 
       try {
-        const response = await fetch("/api/dashboard/summary");
+        const response = await fetch(`/api/dashboard/summary?tz=${encodeURIComponent(timeZone)}`);
         const payload = (await response.json()) as {
           summary?: DashboardSummary;
           error?: string;
@@ -113,7 +114,7 @@ export function DashboardClient() {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, user]);
+  }, [authLoading, timeZone, user]);
 
   async function refreshSummary() {
     if (!user) {
@@ -123,7 +124,7 @@ export function DashboardClient() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/dashboard/summary");
+      const response = await fetch(`/api/dashboard/summary?tz=${encodeURIComponent(timeZone)}`);
       const payload = (await response.json()) as {
         summary?: DashboardSummary;
         error?: string;
@@ -155,7 +156,7 @@ export function DashboardClient() {
       const response = await fetch("/api/daily-logs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mealId: meal.id }),
+        body: JSON.stringify({ mealId: meal.id, timeZone }),
       });
 
       const payload = (await response.json()) as { error?: string };
@@ -345,9 +346,9 @@ export function DashboardClient() {
                   {[...summary.weekly].reverse().map((day) => (
                     <div
                       key={day.date}
-                      className={`grid grid-cols-[1fr_auto] items-start gap-4 rounded-[12px] border px-4 py-3 ${weeklyCardClasses[getWeeklyCardIndex(day.date)]}`}
+                      className={`grid grid-cols-[1fr_auto] items-center gap-4 rounded-[12px] border px-4 py-3 ${weeklyCardClasses[getWeeklyCardIndex(day.date)]}`}
                     >
-                      <div>
+                      <div className="flex min-h-[44px] items-center">
                         <p className="text-sm font-semibold text-[var(--foreground)]">
                           {formatCompactDate(day.date)}
                         </p>

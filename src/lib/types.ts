@@ -218,6 +218,8 @@ export type GeneratedMealRequest = {
   cuisine: string;
   anchorFood: string;
   dietaryNotes: string;
+  mode?: "lazy" | "pantry";
+  pantryIngredients?: string[];
 };
 
 export type GeneratedMealFeedback = {

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { buildLocalDateRange, getLocalDateString } from "@/lib/date-time";
 import { defaultNutritionGoals } from "@/lib/default-goals";
 import { requireAuthenticatedUser } from "@/lib/supabase/auth";
 import { roundTotals } from "@/lib/nutrition";
@@ -12,7 +13,7 @@ function emptyTotals(): MacroTotals {
   return { calories: 0, protein: 0, carbs: 0, fat: 0 };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const auth = await requireAuthenticatedUser();
 
   if (auth.response || !auth.user) {
@@ -20,11 +21,11 @@ export async function GET() {
   }
 
   const supabase = auth.supabase;
-  const today = new Date();
-  const todayIso = today.toISOString().slice(0, 10);
-  const weekStart = new Date(today);
-  weekStart.setDate(today.getDate() - 6);
-  const weekStartIso = weekStart.toISOString().slice(0, 10);
+  const { searchParams } = new URL(request.url);
+  const timeZone = searchParams.get("tz") || undefined;
+  const todayIso = getLocalDateString(new Date(), timeZone);
+  const weekDates = buildLocalDateRange(todayIso, 7);
+  const weekStartIso = weekDates[0] ?? todayIso;
 
   const [goalsResult, todayLogsResult, recentMealsResult, weeklyLogsResult] = await Promise.all([
     supabase
@@ -85,10 +86,8 @@ export async function GET() {
   );
 
   const weekMap = new Map<string, MacroTotals>();
-  for (let offset = 0; offset < 7; offset += 1) {
-    const date = new Date(weekStart);
-    date.setDate(weekStart.getDate() + offset);
-    weekMap.set(date.toISOString().slice(0, 10), emptyTotals());
+  for (const date of weekDates) {
+    weekMap.set(date, emptyTotals());
   }
 
   for (const log of weeklyLogsResult.data ?? []) {

@@ -200,9 +200,6 @@ export function ImportRecipeClient() {
                           <p className="text-sm font-semibold text-[var(--foreground)]">
                             {ingredient.originalText}
                           </p>
-                          <p className="mt-1 text-sm text-[var(--muted)]">
-                            {ingredient.amount ?? "?"} {ingredient.unit} - {ingredient.name}
-                          </p>
                           <p className="mt-1 text-xs text-[var(--muted)]">
                             {ingredient.resolution?.rationale ??
                               (ingredient.food

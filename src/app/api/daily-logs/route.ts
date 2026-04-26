@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import { getLocalDateString } from "@/lib/date-time";
 import { requireAuthenticatedUser } from "@/lib/supabase/auth";
 
 type DailyLogRequest = {
   mealId?: string | null;
   logDate?: string;
+  timeZone?: string;
   title?: string;
   calories?: number;
   protein?: number;
@@ -19,7 +21,7 @@ export async function POST(request: Request) {
   }
 
   const body = (await request.json()) as DailyLogRequest;
-  const logDate = body.logDate ?? new Date().toISOString().slice(0, 10);
+  const logDate = body.logDate ?? getLocalDateString(new Date(), body.timeZone);
 
   let snapshot = {
     title: body.title ?? "Saved meal",
