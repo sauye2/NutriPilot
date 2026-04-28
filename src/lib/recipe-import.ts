@@ -640,7 +640,7 @@ function stripPrepPrefixes(value: string) {
   return value
     .replace(/^[,.;:()\s]+/, "")
     .replace(/\b(?:piece|pieces|knob|knobs)\s+of\b/gi, "")
-    .replace(/\b(for the|such as|plus more for serving)\b/gi, "")
+    .replace(/\b(for the|such as|plus more for serving|optional)\b/gi, "")
     .replace(/\bnotes?\s*\d+\b/gi, "")
     .replace(/\bsee\s+notes?\s*\d*\b/gi, "")
     .replace(/\s+/g, " ")
@@ -652,6 +652,7 @@ function stripImportNoise(value: string) {
     .replace(/\((?:[^)]*\$[^)]*|[^)]*see notes[^)]*)\)/gi, "")
     .replace(/\bnotes?\s*\d+\b/gi, "")
     .replace(/\bsee\s+notes?\s*\d*\b/gi, "")
+    .replace(/\boptional\b/gi, "")
     .replace(/\(\s*\)/g, "")
     .replace(/[()]+$/g, "")
     .replace(/\s+,/g, ",")
@@ -665,6 +666,7 @@ function normalizeRecipeLine(value: string) {
     .replace(/\(\s*for [^)]+\)/gi, "")
     .replace(/\(\s*use any amount you want\s*\)/gi, "")
     .replace(/\(\s*to taste\s*\)/gi, "")
+    .replace(/\(\s*optional\s*\)/gi, "")
     .replace(/\bnotes?\s*\d+\b/gi, "")
     .replace(/\bsee\s+notes?\s*\d*\b/gi, "")
     .replace(/[()]+$/g, "")
@@ -682,6 +684,7 @@ function normalizeIngredientName(value: string) {
     .replace(/\bAmazon\b/gi, " ")
     .replace(/\buse any amount you want\b/gi, " ")
     .replace(/\bto taste\b/gi, " ")
+    .replace(/\boptional\b/gi, " ")
     .replace(/\bnotes?\s*\d+\b/gi, " ")
     .replace(/\bsee\s+notes?\s*\d*\b/gi, " ")
     .replace(/\bchicken\s+stock\s*\/\s*broth\b/gi, "chicken stock")
@@ -693,7 +696,7 @@ function normalizeIngredientName(value: string) {
       match.replace(/\s*\/\s*stock/gi, ""),
     );
 
-  return stripPreparationNotes(withoutParentheticals)
+  return stripRecipeChoiceNotes(stripPreparationNotes(withoutParentheticals))
     .replace(/\s+,/g, ",")
     .replace(/,\s*,/g, ",")
     .replace(/,\s*$/g, "")
@@ -703,13 +706,25 @@ function normalizeIngredientName(value: string) {
 
 function stripPreparationNotes(value: string) {
   const prepPhrase =
-    String.raw`(?:finely\s+)?(?:roughly\s+)?(?:freshly\s+)?(?:minced|grated|chopped|diced|sliced|julienned|crushed|peeled|trimmed|rinsed|drained|torn|shredded|ground|pounded|smashed|thinly\s+sliced|white\s+part\s+grated|white\s+parts?|green\s+parts?|for\s+serving|divided)`;
+    String.raw`(?:finely\s+)?(?:roughly\s+)?(?:freshly\s+)?(?:minced|grated|chopped|diced|sliced|julienned|crushed|peeled|trimmed|rinsed|drained|torn|shredded|ground|pounded|smashed|thinly\s+sliced|cut\s+in\s+half|white\s+part\s+grated|white\s+parts?|green\s+parts?|for\s+serving|divided|dried)`;
 
   return value
     .replace(new RegExp(String.raw`\s*,\s*${prepPhrase}(?=\s*,|\s*$)`, "gi"), "")
     .replace(new RegExp(String.raw`\s+-\s*${prepPhrase}(?=\s*$)`, "gi"), "")
     .replace(new RegExp(String.raw`\s+${prepPhrase}(?=\s*$)`, "gi"), "")
     .replace(/,\s*[A-Z]$/g, "")
+    .trim();
+}
+
+function stripRecipeChoiceNotes(value: string) {
+  return value
+    .replace(/\s*,?\s*or\s+(?:other|another|any)\b.*$/gi, "")
+    .replace(/\s*,?\s*or\s+more\b.*$/gi, "")
+    .replace(/\s*,?\s*or\s+all\s+purpose\b.*$/gi, "")
+    .replace(/\s*,?\s*any\s+(?:plain\s+)?(?:neutral\s+)?oil\b.*$/gi, "")
+    .replace(/\s*,?\s*light\s+or\s+all\s+purpose\b.*$/gi, "")
+    .replace(/\s*,?\s*from\s+(?:a\s+)?jar\b.*$/gi, "")
+    .replace(/\s*,?\s*white\b$/gi, "")
     .trim();
 }
 
