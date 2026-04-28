@@ -789,6 +789,15 @@ function normalizeEmbeddedMeasurementIngredient(
   value: string,
   originalText: string,
 ): ParsedIngredient | null {
+  const leadingAmountWithUnit = new RegExp(
+    `^${IMPORT_AMOUNT_PATTERN}\\s+(?:g|gram|grams|kg|kilogram|kilograms|ml|milliliter|milliliters|l|liter|liters|oz|ounce|ounces|lb|lbs|pound|pounds|tsp|teaspoon|teaspoons|tbsp|tablespoon|tablespoons|cup|cups|cm|centimeter|centimeters|inch|inches|in|cloves?|eggs?|pieces?|fillets?|breasts?|steaks?|stalks?|portions?)\\b`,
+    "i",
+  );
+
+  if (leadingAmountWithUnit.test(value)) {
+    return null;
+  }
+
   const unit =
     "(g|gram|grams|kg|kilogram|kilograms|ml|milliliter|milliliters|l|liter|liters|oz|ounce|ounces|lb|lbs|pound|pounds|tsp|teaspoon|teaspoons|tbsp|tablespoon|tablespoons|cup|cups)";
   const amount = `(${IMPORT_AMOUNT_PATTERN})`;
