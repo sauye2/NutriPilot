@@ -53,7 +53,7 @@ const UNIT_ALIASES: Array<{
   { pattern: /^(grams?|g)\b/i, unit: "g" },
   {
     pattern:
-      /^(cloves?|eggs?|pieces?|fillets?|breasts?|steaks?|cans?|packages?|links?)\b/i,
+      /^(cloves?|eggs?|pieces?|fillets?|breasts?|steaks?|stalks?|portions?|cans?|packages?|links?)\b/i,
     unit: "piece",
   },
 ];
@@ -531,6 +531,21 @@ function normalizeIngredientLine(line: string): ParsedIngredient | null {
   const normalizedFractions = normalizeMeasurementAlternatives(
     normalizeRecipeLine(separateCompactUnits(replaceFractions(originalText))),
   );
+  const embeddedMeasurementIngredient = normalizeEmbeddedMeasurementIngredient(
+    normalizedFractions,
+    originalText,
+  );
+
+  if (embeddedMeasurementIngredient) {
+    return embeddedMeasurementIngredient;
+  }
+
+  const rangeIngredient = normalizeRangeIngredient(normalizedFractions, originalText);
+
+  if (rangeIngredient) {
+    return rangeIngredient;
+  }
+
   const dimensionalIngredient = normalizeDimensionalIngredient(
     normalizedFractions,
     originalText,
@@ -640,9 +655,10 @@ function stripPrepPrefixes(value: string) {
   return value
     .replace(/^[,.;:()\s]+/, "")
     .replace(/\b(?:piece|pieces|knob|knobs)\s+of\b/gi, "")
-    .replace(/\b(for the|such as|plus more for serving|optional)\b/gi, "")
+    .replace(/\b(for the|such as|plus more for serving|optional|and cleaned)\b/gi, "")
     .replace(/\bnotes?\s*\d+\b/gi, "")
     .replace(/\bsee\s+notes?\s*\d*\b/gi, "")
+    .replace(/\bor\s*$/gi, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -653,6 +669,7 @@ function stripImportNoise(value: string) {
     .replace(/\bnotes?\s*\d+\b/gi, "")
     .replace(/\bsee\s+notes?\s*\d*\b/gi, "")
     .replace(/\boptional\b/gi, "")
+    .replace(/\bor\s*$/gi, "")
     .replace(/\(\s*\)/g, "")
     .replace(/[()]+$/g, "")
     .replace(/\s+,/g, ",")
@@ -669,6 +686,7 @@ function normalizeRecipeLine(value: string) {
     .replace(/\(\s*optional\s*\)/gi, "")
     .replace(/\bnotes?\s*\d+\b/gi, "")
     .replace(/\bsee\s+notes?\s*\d*\b/gi, "")
+    .replace(/\bor\s*$/gi, "")
     .replace(/[()]+$/g, "")
     .replace(/\s{2,}/g, " ")
     .trim();
@@ -678,6 +696,10 @@ function normalizeIngredientName(value: string) {
   const withoutParentheticals = value
     .replace(/\([^)]*\)/g, " ")
     .replace(/[()]/g, " ")
+    .replace(/\bbone[-\s]?in\b/gi, " ")
+    .replace(/\bskin[-\s]?on\b/gi, " ")
+    .replace(/\bskinless\b/gi, " ")
+    .replace(/\bboneless\b/gi, " ")
     .replace(/\bfor marinade\b/gi, " ")
     .replace(/\bfor boiling\b/gi, " ")
     .replace(/\bfor soup flavor\b/gi, " ")
@@ -685,6 +707,15 @@ function normalizeIngredientName(value: string) {
     .replace(/\buse any amount you want\b/gi, " ")
     .replace(/\bto taste\b/gi, " ")
     .replace(/\boptional\b/gi, " ")
+    .replace(/\btrimmed\s+and\s+cleaned\b/gi, " ")
+    .replace(/\btrimmed\s+cleaned\b/gi, " ")
+    .replace(/\band\s+cleaned\b/gi, " ")
+    .replace(/\b(?:large|small|medium|fresh)\b/gi, " ")
+    .replace(/\b(?:leaves|leaf)\b/gi, " ")
+    .replace(/\bportions?\s+noodles?\b/gi, " ")
+    .replace(/\bportion\b/gi, " ")
+    .replace(/\bnoodles?\s+(hokkien\s+egg\s+noodles?)\b/gi, "$1")
+    .replace(/\bthai\s+chil(?:i|e)s?\b/gi, "thai chilies")
     .replace(/\bnotes?\s*\d+\b/gi, " ")
     .replace(/\bsee\s+notes?\s*\d*\b/gi, " ")
     .replace(/\bchicken\s+stock\s*\/\s*broth\b/gi, "chicken stock")
@@ -696,7 +727,9 @@ function normalizeIngredientName(value: string) {
       match.replace(/\s*\/\s*stock/gi, ""),
     );
 
-  return stripRecipeChoiceNotes(stripPreparationNotes(withoutParentheticals))
+  return canonicalizeImportedIngredientName(
+    stripRecipeChoiceNotes(stripPreparationNotes(withoutParentheticals)),
+  )
     .replace(/\s+,/g, ",")
     .replace(/,\s*,/g, ",")
     .replace(/,\s*$/g, "")
@@ -706,12 +739,15 @@ function normalizeIngredientName(value: string) {
 
 function stripPreparationNotes(value: string) {
   const prepPhrase =
-    String.raw`(?:finely\s+)?(?:roughly\s+)?(?:freshly\s+)?(?:minced|grated|chopped|diced|sliced|julienned|crushed|peeled|trimmed|rinsed|drained|torn|shredded|ground|pounded|smashed|thinly\s+sliced|cut\s+in\s+half|white\s+part\s+grated|white\s+parts?|green\s+parts?|for\s+serving|divided|dried)`;
+    String.raw`(?:finely\s+)?(?:roughly\s+)?(?:freshly\s+)?(?:minced|grated|chopped|diced|sliced|julienned|crushed|peeled|trimmed|cleaned|rinsed|drained|torn|shredded|ground|pounded|smashed|halved|thinly\s+sliced|cut\s+in\s+half|white\s+part\s+grated|white\s+parts?|green\s+parts?|for\s+serving|divided|dried)`;
 
   return value
     .replace(new RegExp(String.raw`\s*,\s*${prepPhrase}(?=\s*,|\s*$)`, "gi"), "")
     .replace(new RegExp(String.raw`\s+-\s*${prepPhrase}(?=\s*$)`, "gi"), "")
     .replace(new RegExp(String.raw`\s+${prepPhrase}(?=\s*$)`, "gi"), "")
+    .replace(/\s+trimmed\s+and\s+cleaned\b/gi, "")
+    .replace(/\s+for\s+juicing\b.*$/gi, "")
+    .replace(/\s*,\s*and\s+additional\b.*$/gi, "")
     .replace(/,\s*[A-Z]$/g, "")
     .trim();
 }
@@ -725,7 +761,94 @@ function stripRecipeChoiceNotes(value: string) {
     .replace(/\s*,?\s*light\s+or\s+all\s+purpose\b.*$/gi, "")
     .replace(/\s*,?\s*from\s+(?:a\s+)?jar\b.*$/gi, "")
     .replace(/\s*,?\s*white\b$/gi, "")
+    .replace(/\s+or\s*$/gi, "")
     .trim();
+}
+
+function canonicalizeImportedIngredientName(value: string) {
+  return value
+    .replace(/\bcilantro\b.*$/gi, "cilantro")
+    .replace(/\blemongrass\b.*$/gi, "lemongrass")
+    .replace(/\bchicken\s+thighs?\b.*$/gi, "chicken thigh")
+    .replace(/\bchicken\s+drumsticks?\b.*$/gi, "chicken drumsticks")
+    .replace(/\bmung\s+bean\s+sprouts?\b.*$/gi, "mung bean sprouts")
+    .replace(/\bbean\s+sprouts?\b.*$/gi, "bean sprouts")
+    .replace(/\bsoy\s+puffs?\b.*$/gi, "soy puffs")
+    .replace(/\btofu\s+puffs?\b.*$/gi, "tofu puffs")
+    .replace(/\bfish\s+sauce\b.*$/gi, "fish sauce")
+    .replace(/\bcoconut\s+milk\b.*$/gi, "coconut milk")
+    .replace(/\bthai\s+chilies\b.*$/gi, "thai chilies")
+    .replace(/\bthai\s+chiles\b.*$/gi, "thai chilies")
+    .replace(/\blimes?\b.*$/gi, (match) => (/\blimes\b/i.test(match) ? "limes" : "lime"))
+    .replace(/\bshallots?\b.*$/gi, (match) => (/\bshallots\b/i.test(match) ? "shallots" : "shallot"))
+    .replace(/\bshrimp\b.*$/gi, "shrimp")
+    .trim();
+}
+
+function normalizeEmbeddedMeasurementIngredient(
+  value: string,
+  originalText: string,
+): ParsedIngredient | null {
+  const unit =
+    "(g|gram|grams|kg|kilogram|kilograms|ml|milliliter|milliliters|l|liter|liters|oz|ounce|ounces|lb|lbs|pound|pounds|tsp|teaspoon|teaspoons|tbsp|tablespoon|tablespoons|cup|cups)";
+  const amount = `(${IMPORT_AMOUNT_PATTERN})`;
+  const match = value.match(
+    new RegExp(
+      `^(.+?)\\s+${amount}\\s*${unit}(?:\\s*\\/\\s*${amount}\\s*${unit})?(?:\\b|\\s|$).*`,
+      "i",
+    ),
+  );
+
+  if (!match) {
+    return null;
+  }
+
+  const fallbackAmount = parseAmount(match[2]);
+  const fallbackUnit = normalizeImportedUnit(match[3]);
+  const alternateAmount = match[4] ? parseAmount(match[4]) : null;
+  const alternateUnit = match[5] ? normalizeImportedUnit(match[5]) : null;
+  const useAlternateMetric =
+    alternateAmount !== null && alternateUnit !== null && ["g", "ml", "L"].includes(alternateUnit);
+  const selectedAmount = useAlternateMetric ? alternateAmount : fallbackAmount;
+  const selectedUnit = useAlternateMetric ? alternateUnit : fallbackUnit;
+
+  if (selectedAmount === null || !selectedUnit) {
+    return null;
+  }
+
+  return {
+    originalText,
+    name: stripPrepPrefixes(normalizeIngredientName(match[1])),
+    amount: preciseAmount(selectedAmount),
+    unit: selectedUnit,
+  };
+}
+
+function normalizeRangeIngredient(
+  value: string,
+  originalText: string,
+): ParsedIngredient | null {
+  const match = value.match(
+    new RegExp(`^(${IMPORT_AMOUNT_PATTERN})\\s*-\\s*(${IMPORT_AMOUNT_PATTERN})\\s+(.+)$`, "i"),
+  );
+
+  if (!match) {
+    return null;
+  }
+
+  const low = parseAmount(match[1]);
+  const high = parseAmount(match[2]);
+
+  if (low === null || high === null) {
+    return null;
+  }
+
+  return {
+    originalText,
+    name: stripPrepPrefixes(normalizeIngredientName(match[3])),
+    amount: preciseAmount((low + high) / 2),
+    unit: "piece",
+  };
 }
 
 function separateCompactUnits(value: string) {

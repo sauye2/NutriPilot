@@ -369,7 +369,7 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
   },
   {
     canonical: "cilantro",
-    aliases: ["cilantro"],
+    aliases: ["cilantro", "fresh cilantro", "cilantro leaves", "fresh cilantro leaves"],
     searchExpansions: ["coriander leaves", "fresh coriander"],
   },
   {
@@ -631,6 +631,31 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
     searchExpansions: ["egg whole raw", "eggs whole raw"],
   },
   {
+    canonical: "all purpose flour",
+    aliases: ["all purpose flour", "all-purpose flour", "flour"],
+    searchExpansions: ["wheat flour all purpose", "flour wheat all purpose"],
+  },
+  {
+    canonical: "bean sprouts",
+    aliases: ["bean sprouts", "mung bean sprouts", "mung bean sprout"],
+    searchExpansions: ["mung bean sprouts raw", "bean sprouts raw"],
+  },
+  {
+    canonical: "shrimp",
+    aliases: ["shrimp", "large shrimp", "prawns", "prawn"],
+    searchExpansions: ["shrimp cooked", "crustaceans shrimp cooked"],
+  },
+  {
+    canonical: "thai chilies",
+    aliases: ["thai chili", "thai chilies", "thai chile", "thai chiles", "bird's eye chili", "birds eye chili"],
+    searchExpansions: ["peppers hot raw", "hot pepper raw"],
+  },
+  {
+    canonical: "shallot",
+    aliases: ["shallot", "shallots"],
+    searchExpansions: ["shallots raw", "onions raw"],
+  },
+  {
     canonical: "shredded cheddar cheese",
     aliases: ["shredded cheddar cheese", "cheddar cheese shredded"],
     searchExpansions: ["cheddar cheese"],
@@ -665,6 +690,15 @@ const SYNONYM_DICTIONARY: SynonymEntry[] = [
       "chicken broilers fryers drumstick meat and skin cooked roasted",
       "chicken drumstick cooked roasted",
       "chicken drumstick cooked",
+    ],
+  },
+  {
+    canonical: "chicken thigh cooked",
+    aliases: ["chicken thigh", "chicken thighs"],
+    searchExpansions: [
+      "chicken broilers fryers thigh meat and skin cooked roasted",
+      "chicken thigh cooked roasted",
+      "chicken thigh cooked",
     ],
   },
   {
@@ -1248,6 +1282,86 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
     },
   },
   {
+    canonicalQuery: "all purpose flour",
+    confidence: 0.95,
+    rationale: "Matched automatically using a preferred USDA all-purpose flour entry.",
+    food: {
+      fdcId: 168894,
+      description: "Wheat Flour, White, All-Purpose, Enriched, Bleached",
+      displayName: "All-Purpose Flour",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 364, protein: 10.33, carbs: 76.31, fat: 0.98 },
+      gramsByUnit: { g: 1, cup: 125, tbsp: 7.8, tsp: 2.6 },
+    },
+  },
+  {
+    canonicalQuery: "bean sprouts",
+    confidence: 0.94,
+    rationale: "Matched automatically using a preferred USDA mung bean sprouts entry.",
+    food: {
+      fdcId: 168427,
+      description: "Mung Beans, Mature Seeds, Sprouted, Raw",
+      displayName: "Mung Bean Sprouts",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 30, protein: 3.04, carbs: 5.94, fat: 0.18 },
+      gramsByUnit: { g: 1, cup: 104 },
+    },
+  },
+  {
+    canonicalQuery: "cilantro",
+    confidence: 0.94,
+    rationale: "Matched automatically using a preferred USDA cilantro entry.",
+    food: {
+      fdcId: 169997,
+      description: "Coriander (Cilantro) Leaves, Raw",
+      displayName: "Cilantro",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 23, protein: 2.13, carbs: 3.67, fat: 0.52 },
+      gramsByUnit: { g: 1, cup: 16, tbsp: 1 },
+    },
+  },
+  {
+    canonicalQuery: "shrimp",
+    confidence: 0.94,
+    rationale: "Matched automatically using a preferred USDA cooked shrimp entry.",
+    food: {
+      fdcId: 174210,
+      description: "Crustaceans, Shrimp, Cooked, Moist Heat",
+      displayName: "Shrimp, Cooked",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 99, protein: 23.98, carbs: 0.2, fat: 0.28 },
+      gramsByUnit: { g: 1, piece: 10 },
+    },
+  },
+  {
+    canonicalQuery: "shallot",
+    confidence: 0.9,
+    rationale: "Matched automatically using a preferred USDA shallot-style onion entry.",
+    food: {
+      fdcId: 790646,
+      description: "Onions, Yellow, Raw",
+      displayName: "Shallot",
+      dataType: "Foundation",
+      brandName: null,
+      sourceLabel: "USDA Foundation",
+      servingText: null,
+      per100g: { calories: 37, protein: 0.77, carbs: 8.61, fat: 0.09 },
+      gramsByUnit: { g: 1, piece: 25, cup: 160 },
+    },
+  },
+  {
     canonicalQuery: "white rice cooked",
     confidence: 0.96,
     rationale: "Matched automatically using a preferred USDA generic pantry entry.",
@@ -1309,6 +1423,22 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
       servingText: null,
       per100g: { calories: 216, protein: 27.27, carbs: 0, fat: 11.65 },
       gramsByUnit: { g: 1, piece: 75 },
+    },
+  },
+  {
+    canonicalQuery: "chicken thigh cooked",
+    confidence: 0.96,
+    rationale: "Matched automatically using a preferred USDA cooked chicken thigh entry.",
+    food: {
+      fdcId: 171469,
+      description: "Chicken, Broilers Or Fryers, Thigh, Meat And Skin, Cooked, Roasted",
+      displayName: "Chicken Thigh, Cooked",
+      dataType: "SR Legacy",
+      brandName: null,
+      sourceLabel: "USDA SR Legacy",
+      servingText: null,
+      per100g: { calories: 232, protein: 23.26, carbs: 0, fat: 14.74 },
+      gramsByUnit: { g: 1, piece: 90 },
     },
   },
   {
@@ -1389,6 +1519,22 @@ const PREFERRED_GENERIC_PROFILES: PreferredGenericProfile[] = [
       servingText: null,
       per100g: { calories: 40, protein: 2, carbs: 9.5, fat: 0.2 },
       gramsByUnit: { g: 1, piece: 14 },
+    },
+  },
+  {
+    canonicalQuery: "thai chilies",
+    confidence: 0.9,
+    rationale: "Matched automatically using a preferred USDA hot pepper equivalent.",
+    food: {
+      fdcId: 2709798,
+      description: "Peppers, Hot, Raw",
+      displayName: "Thai Chilies",
+      dataType: "Survey (FNDDS)",
+      brandName: null,
+      sourceLabel: "USDA Survey (FNDDS)",
+      servingText: null,
+      per100g: { calories: 40, protein: 2, carbs: 9.5, fat: 0.2 },
+      gramsByUnit: { g: 1, piece: 5 },
     },
   },
   {
@@ -2241,6 +2387,30 @@ function getPreferredGenericProfile(
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "laksa soup base") ?? null;
   }
 
+  if (query === "all purpose flour" || query === "flour") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "all purpose flour") ?? null;
+  }
+
+  if (query === "bean sprouts" || query === "mung bean sprouts") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "bean sprouts") ?? null;
+  }
+
+  if (query === "cilantro") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "cilantro") ?? null;
+  }
+
+  if (query === "shrimp") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "shrimp") ?? null;
+  }
+
+  if (query === "shallot" || query === "shallots") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "shallot") ?? null;
+  }
+
+  if (query === "thai chilies" || query === "thai chili" || query === "thai chile" || query === "thai chiles") {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "thai chilies") ?? null;
+  }
+
   if (query === "coconut milk" || query === "coconut cream") {
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "coconut milk") ?? null;
   }
@@ -2291,6 +2461,10 @@ function getPreferredGenericProfile(
 
   if (/\bchicken drumsticks?\b|\bdrumsticks?\b/.test(query) || /\bchicken drumsticks?\b|\bdrumsticks?\b/.test(raw)) {
     return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "chicken drumstick cooked") ?? null;
+  }
+
+  if (/\bchicken thighs?\b|\bthighs?\b/.test(query) || /\bchicken thighs?\b|\bthighs?\b/.test(raw)) {
+    return PREFERRED_GENERIC_PROFILES.find((profile) => profile.canonicalQuery === "chicken thigh cooked") ?? null;
   }
 
   if ((/\bribeye\b/.test(query) || /\brib eye\b/.test(raw)) && !/\braw\b/.test(raw)) {
