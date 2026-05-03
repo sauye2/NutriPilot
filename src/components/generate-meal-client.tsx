@@ -511,7 +511,7 @@ export function GenerateMealClient() {
           title="Need a starting point? We’ll sketch a meal that feels good to eat."
         >
           <p>
-            Set your targets, pick a cuisine or anchor ingredient, and NutriPilot will
+            Set your targets, pick a cuisine or anchor ingredient, and Calora will
             put together a meal idea, check the numbers, and smooth out obvious portion
             issues before it lands here.
           </p>
@@ -643,7 +643,7 @@ export function GenerateMealClient() {
                     />
                   </div>
                   <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-                    Add what you already have, and NutriPilot will try to build around
+                    Add what you already have, and Calora will try to build around
                     those ingredients before filling in the rest.
                   </p>
                 </label>
@@ -659,8 +659,8 @@ export function GenerateMealClient() {
 
               <div className="rounded-[16px] bg-[var(--muted-soft)]/86 px-4 py-4 text-sm leading-6 text-[var(--muted)] shadow-inner">
                 {plannerMode === "lazy"
-                  ? "NutriPilot shapes a meal around your goals and preferences, then checks the ingredient list against USDA-backed nutrition data before showing it here."
-                  : "NutriPilot builds around your goals and the pantry items you already have, then checks the ingredient list against USDA-backed nutrition data before showing it here."}
+                  ? "Calora shapes a meal around your goals and preferences, then checks the ingredient list against USDA-backed nutrition data before showing it here."
+                  : "Calora builds around your goals and the pantry items you already have, then checks the ingredient list against USDA-backed nutrition data before showing it here."}
               </div>
 
               {error ? (
@@ -681,7 +681,7 @@ export function GenerateMealClient() {
                 action={
                   meal ? (
                     <button
-                      className={`inline-flex items-center gap-2 rounded-[14px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(34,116,95,0.2)] transition hover:bg-[var(--primary-strong)] disabled:cursor-default disabled:opacity-95 ${
+                      className={`inline-flex items-center gap-2 rounded-[14px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(34,116,95,0.2)] transition hover:bg-[var(--primary-strong)] disabled:cursor-default ${
                         isCurrentMealAccepted ? "accepted-meal-button" : ""
                       }`}
                       disabled={isSavingAcceptedMeal || isCurrentMealAccepted}

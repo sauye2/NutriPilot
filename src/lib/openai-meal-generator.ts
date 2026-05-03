@@ -243,7 +243,7 @@ async function generateStructuredMeal(prompt: string): Promise<AiMealDraft> {
                 items: { type: "string" },
               },
               // Macros are intentionally excluded from the model schema.
-              // NutriPilot calculates displayed totals deterministically after
+              // Calora calculates displayed totals deterministically after
               // ingredient resolution against USDA-backed nutrition data.
               ingredients: {
                 type: "array",
@@ -295,13 +295,13 @@ async function generateStructuredMeal(prompt: string): Promise<AiMealDraft> {
     if (response.status === 429) {
       throw new MealGenerationError(
         details ||
-          "NutriPilot could not generate a meal right now because the AI quota or billing limit was reached.",
+          "Calora could not generate a meal right now because the AI quota or billing limit was reached.",
         429,
       );
     }
 
     throw new MealGenerationError(
-      details || `NutriPilot meal generation failed with ${response.status}.`,
+      details || `Calora meal generation failed with ${response.status}.`,
       response.status,
     );
   }
@@ -310,13 +310,13 @@ async function generateStructuredMeal(prompt: string): Promise<AiMealDraft> {
   const structuredText = extractStructuredText(payload);
 
   if (!structuredText) {
-    throw new MealGenerationError("NutriPilot did not return a structured meal.", 502);
+    throw new MealGenerationError("Calora did not return a structured meal.", 502);
   }
 
   try {
     return JSON.parse(structuredText) as AiMealDraft;
   } catch {
-    throw new MealGenerationError("NutriPilot returned meal data in an unreadable format.", 502);
+    throw new MealGenerationError("Calora returned meal data in an unreadable format.", 502);
   }
 }
 

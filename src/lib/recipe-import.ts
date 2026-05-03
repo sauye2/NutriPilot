@@ -63,7 +63,7 @@ export async function importRecipeFromUrl(inputUrl: string): Promise<ImportedRec
   const response = await fetch(url, {
     headers: {
       "User-Agent":
-        "Mozilla/5.0 (compatible; NutriPilot/1.0; +https://localhost:3000)",
+        "Mozilla/5.0 (compatible; Calora/1.0; +https://localhost:3000)",
       Accept: "text/html,application/xhtml+xml",
     },
     next: { revalidate: 0 },
@@ -78,7 +78,7 @@ export async function importRecipeFromUrl(inputUrl: string): Promise<ImportedRec
 
   if (!recipe || !recipe.recipeIngredient?.length) {
     throw new Error(
-      "NutriPilot could not find a high-confidence recipe block on that page.",
+      "Calora could not find a high-confidence recipe block on that page.",
     );
   }
 
@@ -1150,7 +1150,7 @@ function buildWarnings(ingredients: ImportedRecipeIngredient[]) {
 
   if (unmatchedCount > 0) {
     warnings.push(
-      `${unmatchedCount} ingredient${unmatchedCount === 1 ? " may" : "s may"} need a quick review. NutriPilot still picked the closest generic USDA match where possible.`,
+      `${unmatchedCount} ingredient${unmatchedCount === 1 ? " may" : "s may"} need a quick review. Calora still picked the closest generic USDA match where possible.`,
     );
   }
 

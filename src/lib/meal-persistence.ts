@@ -77,7 +77,7 @@ export function buildManualMealPayload({
     cuisine: null,
     summary:
       summary?.trim() ||
-      "A manually built meal saved from NutriPilot so you can come back to the same ingredient setup later.",
+      "A manually built meal saved from Calora so you can come back to the same ingredient setup later.",
     source: "manual",
     calories: totals.calories,
     protein: totals.protein,
@@ -155,7 +155,7 @@ export function buildManualMealTitle(names: string[]) {
   const trimmed = names.filter(Boolean).slice(0, 3);
 
   if (trimmed.length === 0) {
-    return "Saved NutriPilot Meal";
+    return "Saved Calora Meal";
   }
 
   if (trimmed.length === 1) {

@@ -14,7 +14,7 @@ export default function Error({
     <AppShell>
       <div className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8">
         <SectionCard title="Something went sideways">
-          <ErrorState message="NutriPilot could not load this view. Your meal data is local to the page, so try refreshing or returning to the builder." />
+          <ErrorState message="Calora could not load this view. Your meal data is local to the page, so try refreshing or returning to the builder." />
           <button
             className="mt-4 rounded-[8px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--primary-strong)]"
             type="button"

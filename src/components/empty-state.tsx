@@ -9,7 +9,7 @@ export function EmptyState() {
       </p>
       <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[var(--muted)]">
         Search for what you&apos;re cooking, add the amounts you plan to use, and
-        NutriPilot will pull together the meal summary, goal check, and a few
+        Calora will pull together the meal summary, goal check, and a few
         practical tweaks.
       </p>
     </div>

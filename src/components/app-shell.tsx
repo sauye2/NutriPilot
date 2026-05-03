@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
@@ -39,12 +40,20 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-50 border-b border-white/35 bg-[var(--background)]/54 shadow-[0_12px_34px_rgba(54,45,31,0.05)] backdrop-blur-2xl">
         <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-8">
         <Link href="/dashboard" className="group flex items-center gap-3">
-          <span className="grid size-11 place-items-center rounded-[16px] bg-[var(--primary)] text-base font-semibold text-white shadow-[0_12px_28px_rgba(34,116,95,0.24)] transition duration-200 group-hover:scale-[1.02] group-hover:bg-[var(--primary-strong)]">
-            N
+          <span className="grid size-11 place-items-center overflow-hidden rounded-[16px] bg-[#004f46] shadow-[0_12px_28px_rgba(0,79,70,0.24)] ring-1 ring-white/45 transition duration-200 group-hover:scale-[1.02]">
+            <Image
+              src="/calora-icon.png"
+              alt=""
+              width={44}
+              height={44}
+              className="size-full object-cover"
+              aria-hidden="true"
+              priority
+            />
           </span>
           <span>
             <span className="block text-lg font-semibold leading-tight tracking-[-0.02em] text-[var(--foreground)]">
-              NutriPilot
+              Calora
             </span>
             <span className="hidden text-xs text-[var(--muted)] sm:block">
               Calm meal planning, practical nutrition

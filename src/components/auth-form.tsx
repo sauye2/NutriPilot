@@ -85,7 +85,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           }
         >
           <p>
-            NutriPilot still works without an account for quick calculations. Signing in
+            Calora still works without an account for quick calculations. Signing in
             makes it easier to save meals, keep your goals handy, and build a real
             history in the dashboard.
           </p>
@@ -93,7 +93,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
         <SectionCard
           title={isSignup ? "Sign Up" : "Log In"}
-          eyebrow={isSignup ? "Cloud saving" : "Your NutriPilot account"}
+          eyebrow={isSignup ? "Cloud saving" : "Your Calora account"}
         >
           {didCreateAccount ? (
             <div className="rounded-[16px] border border-[var(--primary-soft)] bg-[var(--muted-soft)] px-5 py-6">

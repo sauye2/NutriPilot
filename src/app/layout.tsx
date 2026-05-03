@@ -8,8 +8,13 @@ import { cn } from "@/lib/utils";
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "NutriPilot",
+  title: "Calora",
+  applicationName: "Calora",
   description: "Calculate and optimize the meals you already want to cook.",
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({

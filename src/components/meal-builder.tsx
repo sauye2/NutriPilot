@@ -218,7 +218,7 @@ export function MealBuilder() {
           {
             id: "set-goals",
             title: "Add goals to unlock tuning",
-            body: "Set calories, protein, carbs, and fat in the dashboard, then NutriPilot will suggest clearer portion changes, adds, and swaps here.",
+            body: "Set calories, protein, carbs, and fat in the dashboard, then Calora will suggest clearer portion changes, adds, and swaps here.",
             tone: "balance" as const,
           },
         ];
@@ -1038,7 +1038,7 @@ function SuggestionsCard({ suggestions }: { suggestions: Suggestion[] }) {
         </div>
       ) : (
         <p className="text-sm leading-6 text-[var(--muted)]">
-          Add your first ingredient and NutriPilot will start suggesting clearer
+          Add your first ingredient and Calora will start suggesting clearer
           portion changes, additions, and swaps based on what is actually in the meal.
         </p>
       )}

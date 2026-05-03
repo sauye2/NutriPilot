@@ -140,7 +140,7 @@ export function ImportRecipeClient() {
               </button>
 
               <div className="rounded-[16px] bg-[var(--muted-soft)]/86 px-4 py-4 text-sm leading-6 text-[var(--muted)] shadow-inner">
-                If a page does not expose a clean ingredient list, NutriPilot will stop
+                If a page does not expose a clean ingredient list, Calora will stop
                 rather than guessing and adding extras you never asked for.
               </div>
 

@@ -588,7 +588,7 @@ function SignedOutDashboard() {
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
           <div>
             <p className="text-sm leading-6 text-[var(--muted)]">
-              NutriPilot still works great for quick calculations without an account.
+              Calora still works great for quick calculations without an account.
               Signing in gives you a calmer home base: saved meals, grocery lists you
               can reopen later, and goals that stay in sync across the app.
             </p>
@@ -628,7 +628,7 @@ function SignedOutDashboard() {
         />
         <WarmFeatureCard
           title="Build a Meal for Me"
-          body="Start with your targets, cuisine, and anchor food, then let NutriPilot sketch something satisfying."
+          body="Start with your targets, cuisine, and anchor food, then let Calora sketch something satisfying."
           href="/generate-meal"
         />
         <WarmFeatureCard
