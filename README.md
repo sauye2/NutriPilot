@@ -1,8 +1,8 @@
-# NutriPilot
+# Calora
 
-NutriPilot is a full-stack nutrition app for people who already know what they want to cook and want help calculating, saving, and improving it. It combines meal building, recipe import, AI-assisted meal generation, grocery lists, saved goals, and daily logging in one calm workflow.
+Calora is a full-stack nutrition app for people who already know what they want to cook and want help calculating, saving, and improving it. It combines meal building, recipe import, AI-assisted meal generation, grocery lists, saved goals, and daily logging in one calm workflow.
 
-Live demo: [nutripilot-stannyauy402-3763s-projects.vercel.app](https://nutripilot-stannyauy402-3763s-projects.vercel.app)
+Live demo: [calora-sa.vercel.app](calora-sa.vercel.app)
 
 ## Screenshots
 
@@ -15,7 +15,7 @@ Add a few screenshots here before sharing the project widely:
 
 ## The Problem
 
-Most nutrition apps are built around logging after the fact. NutriPilot takes a different angle:
+Most nutrition apps are built around logging after the fact. Calora takes a different angle:
 
 - you already know what you want to make
 - you want the numbers before you cook
@@ -60,7 +60,7 @@ User
 
 ## Supabase Schema Summary
 
-NutriPilot stores user-owned data in these tables:
+Calora stores user-owned data in these tables:
 
 - `profiles`: lightweight user profile tied to `auth.users`
 - `nutrition_goals`: one goals row per user
@@ -71,7 +71,7 @@ NutriPilot stores user-owned data in these tables:
 
 The full schema, indexes, triggers, and RLS policies live in:
 
-- [supabase/schema.sql](C:/Users/drago/Desktop/NutriPilot/supabase/schema.sql)
+- [supabase/schema.sql](C:/Users/drago/Desktop/Calora/supabase/schema.sql)
 
 ## API Routes
 
@@ -130,7 +130,7 @@ npm run dev
 
 1. Open your Supabase project dashboard.
 2. Go to the SQL Editor.
-3. Run the contents of [supabase/schema.sql](C:/Users/drago/Desktop/NutriPilot/supabase/schema.sql).
+3. Run the contents of [supabase/schema.sql](C:/Users/drago/Desktop/Calora/supabase/schema.sql).
 4. In Authentication, enable email/password sign-in.
 5. If you want email confirmation, leave it on. If you want faster local testing, you can disable email confirmation temporarily.
 
@@ -144,7 +144,7 @@ npm run dev
   - `OPENAI_API_KEY`
   - `OPENAI_MEAL_MODEL`
   - `USDA_FOODDATA_API_KEY`
-- NutriPilot is already set up to deploy on Vercel with Next.js API routes.
+- Calora is already set up to deploy on Vercel with Next.js API routes.
 
 ## Testing
 
@@ -178,7 +178,7 @@ The CI workflow runs the same checks in GitHub Actions.
 
 ## Why This Project Works Well In A Portfolio
 
-NutriPilot shows a useful mix of product thinking and full-stack execution:
+Calora shows a useful mix of product thinking and full-stack execution:
 
 - polished consumer UI
 - real auth and persistence
