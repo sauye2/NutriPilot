@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Check } from "lucide-react";
 import {
   useEffect,
   useMemo,
@@ -119,6 +120,7 @@ export function GenerateMealClient() {
   const shouldMoveSupportCardsLeft = Boolean(
     meal && meal.ingredients.length + meal.instructions.length + meal.whyItWorks.length >= 13,
   );
+  const isCurrentMealAccepted = Boolean(meal && acceptedMeal === meal);
 
   useEffect(() => {
     if (!user) {
@@ -679,11 +681,25 @@ export function GenerateMealClient() {
                 action={
                   meal ? (
                     <button
-                      className="rounded-[14px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(34,116,95,0.2)] transition hover:bg-[var(--primary-strong)]"
+                      className={`inline-flex items-center gap-2 rounded-[14px] bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(34,116,95,0.2)] transition hover:bg-[var(--primary-strong)] disabled:cursor-default disabled:opacity-95 ${
+                        isCurrentMealAccepted ? "accepted-meal-button" : ""
+                      }`}
+                      disabled={isSavingAcceptedMeal || isCurrentMealAccepted}
                       type="button"
                       onClick={() => void acceptCurrentMeal()}
                     >
-                      {isSavingAcceptedMeal ? "Saving..." : "Accept Meal"}
+                      {isCurrentMealAccepted ? (
+                        <>
+                          <span className="accepted-check inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/18">
+                            <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                          </span>
+                          Meal Accepted
+                        </>
+                      ) : isSavingAcceptedMeal ? (
+                        "Saving..."
+                      ) : (
+                        "Accept Meal"
+                      )}
                     </button>
                   ) : undefined
                 }
